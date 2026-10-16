@@ -119,6 +119,27 @@ test('sanitize: cilësimet (st) dhe pajisjet (dv)', () => {
   assert.deepEqual(s.dv, { abcd2345: [6, { n: 'iPhone · Aplikacioni JUZ', l: 7 }], zzzz9999: [6, null] });
   // cilësimet e vjetra (sfonde të hequra) nuk kalojnë
   assert.deepEqual(sanitize({ st: [1, { bg: 'rough', weight: 900 }] }, SCHEMA.sync, now).st, [1, {}]);
+  // v7: fontet për fillestarë dhe sfondi i letrës
+  assert.deepEqual(sanitize({ st: [2, { font: 'kufi', paper: 'washi' }] }, SCHEMA.sync, now).st, [2, { font: 'kufi', paper: 'washi' }]);
+  assert.deepEqual(sanitize({ st: [2, { font: 'comic', paper: 'gold' }] }, SCHEMA.sync, now).st, [2, {}]);
+});
+
+test('sanitize: ditari i leximit (dl) — faqe dhe sekonda për ditë e pajisje', () => {
+  const now = 1_000_000_000_000;
+  const s = sanitize({
+    dl: {
+      '2026-10-16.abcd2345': [5, { p: 12, t: 1500, x: 1 }],
+      '2026-10-16.BAD': [5, { p: 1, t: 1 }],
+      '2026-10-15.abcd2345': [5, { p: -3, t: 10 }],
+      '2026-10-14.abcd2345': [5, { p: 2, t: 999999 }],
+      '2026-10-13.wxyz6789': [5, null],
+    },
+  }, SCHEMA.sync, now);
+  assert.deepEqual(s.dl, { '2026-10-16.abcd2345': [5, { p: 12, t: 1500 }], '2026-10-13.wxyz6789': [5, null] });
+  // dy pajisje të njëjtën ditë nuk e mbishkruajnë njëra-tjetrën
+  const a = { dl: { '2026-10-16.aaaa2222': [1, { p: 3, t: 60 }] } };
+  const b = { dl: { '2026-10-16.bbbb3333': [2, { p: 4, t: 90 }] } };
+  assert.equal(Object.keys(mergeDoc(a, b, SCHEMA.sync).dl).length, 2);
 });
 
 // ---------------- API ----------------

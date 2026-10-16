@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const load = async (f) => JSON.parse(await readFile(new URL(`../data/${f}`, import.meta.url), 'utf8'));
+const load = async (f) => JSON.parse(await readFile(new URL(`../public/data/${f}`, import.meta.url), 'utf8'));
 
 test('30 xhuze, 6236 ajete, renditje e vazhdueshme, fusha të plota', async () => {
   const meta = await load('meta.json');

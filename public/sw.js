@@ -1,6 +1,6 @@
 // Service worker i JUZ — punon plotësisht pa internet.
 // RRITE VERSIONIN me çdo publikim të ri (p.sh. juz-v1.0.1), që pajisjet të marrin skedarët e rinj.
-const VERSION = 'juz-v6.1.1-cf';
+const VERSION = 'juz-v7.0.0-cf';
 const FONT_CACHE = 'juz-font-1'; // mbetet mes versioneve
 
 const JUZ = Array.from({ length: 30 }, (_, i) => `/data/juz-${String(i + 1).padStart(2, '0')}.json`);
@@ -10,6 +10,7 @@ const PRECACHE = [
   '/style.css',
   '/app.js',
   '/merge.js',
+  '/paper.js',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
@@ -23,6 +24,10 @@ const PRECACHE = [
   '/fonts/lora-latin-ext-wght-normal.woff2',
   '/fonts/lora-latin-wght-normal.woff2',
   '/fonts/noto-naskh-arabic-arabic-wght-normal.woff2',
+  '/fonts/harmattan-arabic-400-normal.woff2',
+  '/fonts/harmattan-arabic-700-normal.woff2',
+  '/fonts/noto-sans-arabic-arabic-wght-normal.woff2',
+  '/fonts/noto-kufi-arabic-arabic-wght-normal.woff2',
   '/fonts/scheherazade-new-arabic-400-normal.woff2',
   '/fonts/scheherazade-new-arabic-500-normal.woff2',
   '/fonts/scheherazade-new-arabic-600-normal.woff2',

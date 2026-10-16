@@ -18,6 +18,7 @@
   try { var s = JSON.parse(localStorage.getItem('juz.settings') || '{}'); document.documentElement.dataset.bg = s.bg === 'night' ? 'night' : 'paper'; }
   catch (e) { document.documentElement.dataset.bg = 'paper'; }
 </script>
+<script src="/paper.js"></script>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -33,7 +34,12 @@
   <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M11 18h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
   <symbol id="i-laptop" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M2 19h20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
-  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2.5l2.8 4.4 5 .9-1.3 4.9 1.3 4.9-5 .9L12 21.5l-2.8-4.4-5-.9 1.3-4.9-1.3-4.9 5-.9z" fill="currentColor"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2l2.929 2.929h4.142v4.142L22 12l-2.929 2.929v4.142h-4.142L12 22l-2.929-2.929H4.929v-4.142L2 12l2.929-2.929V4.929h4.142z" fill="currentColor"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6.6C10 5.1 7.4 4.6 3.5 4.9v13.6c3.9-.3 6.5.2 8.5 1.7 2-1.5 4.6-2 8.5-1.7V4.9c-3.9-.3-6.5.2-8.5 1.7zM12 6.6V20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3.5 10h17M8 3v4M16 3v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7.5 13.5h2M11 13.5h2M14.5 13.5h2M7.5 17h2M11 17h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-rot" viewBox="0 0 24 24"><path d="M3.6 10.2A8.6 8.6 0 0 1 17.9 5.5M20.4 13.8A8.6 8.6 0 0 1 6.1 18.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="M18.4 2.4v3.6h-3.6M5.6 21.6V18h3.6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><rect x="9.2" y="7.6" width="5.6" height="8.8" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+  <symbol id="i-rotlock" viewBox="0 0 24 24"><path d="M3.6 10.2A8.6 8.6 0 0 1 17.9 5.5M20.4 13.8A8.6 8.6 0 0 1 6.1 18.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" opacity=".45"/><rect x="8.3" y="11" width="7.4" height="6" rx="1.4" fill="currentColor"/><path d="M9.9 11V9.4a2.1 2.1 0 0 1 4.2 0V11" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
   <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.3 1.2-3.6 2.3-4.8.3 1.6 1 2.6 2.2 3 0-3.2-.5-5.6.5-8.2z" fill="currentColor"/></symbol>
   <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
   <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
@@ -59,7 +65,7 @@
         <article class="week card-hero" id="weekCard"></article>
         <div class="side">
           <article class="kahf" id="kahfCard" hidden></article>
-          <p class="statline" id="statLine"></p>
+          <button class="statline" id="statLine" data-open="stats" aria-label="Leximi im: faqet dhe koha për çdo ditë"></button>
         </div>
       </div>
 
@@ -84,6 +90,7 @@
       <button class="icon-btn" id="backBtn" aria-label="Kthehu"><svg><use href="#i-back"/></svg></button>
       <div class="r-title"><strong id="rTitle"></strong><span id="rSub" class="sub"></span></div>
       <div class="actions">
+        <button class="icon-btn" id="rotBtn" aria-label="Kyç rrotullimin" aria-pressed="false" hidden><svg><use id="rotIc" href="#i-rot"/></svg></button>
         <button class="icon-btn" data-night aria-label="Modaliteti i natës"><svg><use class="night-ic" href="#i-moon"/></svg></button>
         <button class="icon-btn" data-open="settings" aria-label="Cilësimet"><svg><use href="#i-aa"/></svg></button>
       </div>
@@ -91,6 +98,7 @@
     <div id="readerBody" class="reader-body"></div>
     <button class="pill" id="pill" aria-label="Shko te shënjuesi">
       <span class="pill-pg" id="pillPg"></span>
+      <span class="pill-mp" id="pillMp" title="Faqja në Mus'haf"></span>
       <span class="pill-bm" id="pillBm" hidden><svg><use href="#i-bm"/></svg><span id="pillBmTxt"></span></span>
       <span class="pill-bar"><span id="pillBar"></span></span>
     </button>
@@ -101,8 +109,8 @@
 
 <section class="sheet" id="sheet-pick" role="dialog" aria-modal="true" aria-labelledby="pickTitle" hidden>
   <div class="grip"></div>
-  <header class="sheet-head"><h2 id="pickTitle">Xhuzi i kësaj jave</h2><button class="icon-btn" data-close aria-label="Mbyll"><svg><use href="#i-close"/></svg></button></header>
-  <p class="muted small">Zgjidh xhuzin që do të lexosh këtë javë.</p>
+  <header class="sheet-head"><h2 id="pickTitle">Zgjidh xhuzin</h2><button class="icon-btn" data-close aria-label="Mbyll"><svg><use href="#i-close"/></svg></button></header>
+  <p class="muted small">Xhuzi që zgjedh mbetet aktiv derisa ta përfundosh, edhe nëse të duhet më shumë se një javë.</p>
   <div class="pick-grid" id="pickGrid"></div>
 </section>
 
@@ -114,6 +122,14 @@
     <span class="label">Pamja</span>
     <div class="seg" data-setting="bg"><button data-v="paper">Ditë</button><button data-v="night">Natë</button></div>
   </div>
+  <div class="field">
+    <span class="label">Sfondi i letrës</span>
+    <div class="papers" id="paperGrid" role="radiogroup" aria-label="Sfondi i letrës"></div>
+  </div>
+  <label class="switch" id="rotRow" hidden>
+    <span class="label">Kyç rrotullimin<small>Ekrani nuk rrotullohet vetë kur e kthen telefonin</small></span>
+    <input type="checkbox" class="toggle" id="rotToggle">
+  </label>
 
   <h3 class="sec">Arabisht</h3>
   <div class="field">
@@ -122,7 +138,11 @@
       <button data-v="hamdullah"><span class="f-hamd">بِسْمِ</span>Diyanet</button>
       <button data-v="scheherazade"><span style="font-family:'Scheherazade New'">بِسْمِ</span>Scheherazade</button>
       <button data-v="naskh"><span style="font-family:'Noto Naskh Arabic'">بِسْمِ</span>Naskh</button>
+      <button data-v="harmattan"><span style="font-family:Harmattan;font-size:27px">بِسْمِ</span>Harmattan<i>për fillestarë</i></button>
+      <button data-v="sans"><span style="font-family:'Noto Sans Arabic';font-size:22px">بِسْمِ</span>Noto Sans<i>për fillestarë</i></button>
+      <button data-v="kufi"><span style="font-family:'Noto Kufi Arabic';font-size:21px">بِسْمِ</span>Kufi<i>për fillestarë</i></button>
     </div>
+    <p class="hint">Fontet "për fillestarë" kanë shkronja më të hapura dhe zanore më të dallueshme.</p>
     <p class="hint" id="fontHint" hidden></p>
   </div>
   <div class="field">
@@ -132,6 +152,10 @@
   <label class="field">
     <span class="label">Madhësia <output id="sizeOut"></output></span>
     <input type="range" id="sizeRange" min="22" max="50" step="1">
+  </label>
+  <label class="field">
+    <span class="label">Transparenca e tekstit <output id="arTransOut"></output></span>
+    <input type="range" id="arTransRange" min="0" max="60" step="5">
   </label>
 
   <h3 class="sec">Shqip</h3>
@@ -151,6 +175,10 @@
     <label class="field">
       <span class="label">Madhësia <output id="trSizeOut"></output></span>
       <input type="range" id="trSizeRange" min="14" max="26" step="1">
+    </label>
+    <label class="field">
+      <span class="label">Transparenca e tekstit <output id="trTransOut"></output></span>
+      <input type="range" id="trTransRange" min="0" max="60" step="5">
     </label>
   </div>
   <div class="preview" id="preview">
@@ -191,6 +219,20 @@
   <button class="link-btn danger" id="newCodeBtn">Shkëpute këtë pajisje</button>
 </section>
 
+<section class="sheet" id="sheet-stats" role="dialog" aria-modal="true" aria-labelledby="statsTitle" hidden>
+  <div class="grip"></div>
+  <header class="sheet-head"><h2 id="statsTitle">Leximi im</h2><button class="icon-btn" data-close aria-label="Mbyll"><svg><use href="#i-close"/></svg></button></header>
+  <div class="m-nav">
+    <button class="icon-btn" id="mPrev" aria-label="Muaji i kaluar"><svg><use href="#i-back"/></svg></button>
+    <strong id="mTitle"></strong>
+    <button class="icon-btn" id="mNext" aria-label="Muaji tjetër"><svg><use href="#i-fwd"/></svg></button>
+  </div>
+  <div class="m-sum" id="mSum"></div>
+  <div class="cal" id="cal" role="grid" aria-label="Faqet dhe koha e leximit për çdo ditë"></div>
+  <p class="hint" id="mNote"></p>
+  <p class="hint">Faqet numërohen kur e lëviz shënjuesin përpara: faqet ndërmjet llogariten si të lexuara. Koha matet vetë sa je duke lexuar.</p>
+</section>
+
 <section class="sheet" id="sheet-about" role="dialog" aria-modal="true" aria-labelledby="aboutTitle" hidden>
   <div class="grip"></div>
   <header class="sheet-head"><h2 id="aboutTitle">Rreth JUZ</h2><button class="icon-btn" data-close aria-label="Mbyll"><svg><use href="#i-close"/></svg></button></header>
@@ -199,7 +241,7 @@
     <ul>
       <li><strong>Teksti arabisht:</strong> Mus'hafi i Diyanetit (Diyanet İşleri Başkanlığı), nga <a href="https://github.com/alperenugus/Kuran" target="_blank" rel="noopener">alperenugus/Kuran</a>, licencë <a href="https://creativecommons.org/licenses/by/4.0/deed.sq" target="_blank" rel="noopener">CC BY 4.0</a>. Fonti "Shaikh Hamdullah Mushaf" merret nga <a href="https://kuran.diyanet.gov.tr/Yayinlar" target="_blank" rel="noopener">kuran.diyanet.gov.tr</a>.</li>
       <li><strong>Përkthimi shqip:</strong> Hassan Nahi, botuar nga Instituti Shqiptar i Mendimit dhe i Qytetërimit Islam (AIITC), sipas <a href="https://quranenc.com/sq/browse/albanian_nahi" target="_blank" rel="noopener">QuranEnc.com</a>, versioni <span id="trVersion">1.1.0</span>. Fusnotat e përkthyesit gjenden atje.</li>
-      <li><strong>Fontet e tjera:</strong> Scheherazade New, Noto Naskh Arabic, Literata, Lora, Inter (SIL Open Font License).</li>
+      <li><strong>Fontet e tjera:</strong> Scheherazade New, Noto Naskh Arabic, Harmattan, Noto Sans Arabic, Noto Kufi Arabic, Literata, Lora, Inter (SIL Open Font License).</li>
     </ul>
     <p class="muted small" id="aboutVersion"></p>
   </div>

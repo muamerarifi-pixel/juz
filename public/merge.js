@@ -8,7 +8,7 @@ export const SCHEMA = {
   sync: {
     bj: 'v',   // shënjuesi i ajetit në mënyrën xhuz { j, s, a, p } — ky është edhe progresi
     bs: 'v',   // shënjuesi i ajetit në mënyrën sure { s, a, p }
-    wj: 'v',   // xhuzi i caktuar për këtë javë { w, j }
+    wj: 'v',   // xhuzi i caktuar { w, j } — w = java kur u nis; vazhdon javët e tjera derisa të përfundojë
     kf: 'v',   // Kehfi i xhumasë { w, p, d? } (d = 1: u lexua)
     pg: 'm',   // xhuzi → { w, c } faqja e shënjuesit në atë xhuz këtë javë
     sp: 'm',   // sureja → faqja e shënjuesit
@@ -16,6 +16,7 @@ export const SCHEMA = {
     wk: 'm',   // java → faqe të përfunduara (për seritë)
     st: 'v',   // cilësimet e përbashkëta
     dv: 'm',   // pajisjet
+    dl: 'm',   // ditari i leximit: "VVVV-MM-DD.pajisja" → { p: faqe, t: sekonda } (çdo pajisje shkruan vetëm të vetat)
   },
 };
 
@@ -59,16 +60,17 @@ export const sameDoc = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 // Cilësimet që ndahen mes pajisjeve (madhësia e tekstit mbetet për çdo pajisje).
 export const SYNCED_SETTINGS = {
   bg: ['paper', 'night'],
-  font: ['hamdullah', 'scheherazade', 'naskh'],
+  font: ['hamdullah', 'scheherazade', 'naskh', 'harmattan', 'sans', 'kufi'],
   weight: [400, 500, 600, 700],
   trans: [true, false],
   latin: ['literata', 'lora', 'inter'],
+  paper: ['classic', 'none', 'smooth', 'cotton', 'recycled', 'laid', 'linen', 'washi', 'antique'],
 };
 
 const WEEK = /^\d{4}-W\d{2}$/;
 const NUM_KEY = /^\d{1,3}$/;
-const KEY_RE = { dv: /^[a-z0-9]{8}$/, wk: WEEK };
-const MAX_KEYS = { pg: 32, sp: 120, done: 32, wk: 60, dv: 24 };
+const KEY_RE = { dv: /^[a-z0-9]{8}$/, wk: WEEK, dl: /^\d{4}-\d{2}-\d{2}\.[a-z0-9]{8}$/ };
+const MAX_KEYS = { pg: 32, sp: 120, done: 32, wk: 60, dv: 24, dl: 800 };
 const FUTURE_SKEW = 24 * 3600 * 1000;
 const int = (v, lo, hi) => Number.isInteger(v) && v >= lo && v <= hi;
 const PAGE = [1, 640];
@@ -91,6 +93,7 @@ function cleanValue(field, v) {
       return o;
     }
     case 'dv': return typeof v.n === 'string' ? { n: v.n.slice(0, 40), l: Number.isFinite(v.l) ? Math.round(v.l) : 0 } : undefined;
+    case 'dl': return int(v.p, 0, 1000) && int(v.t, 0, 86400) ? { p: v.p, t: v.t } : undefined;
   }
   return undefined;
 }

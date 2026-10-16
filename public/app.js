@@ -5,7 +5,7 @@ import { SCHEMA, SYNCED_SETTINGS, mergeDoc, sameDoc } from './merge.js';
 
 // ================================================================ konstante
 const STATE_VERSION = 6;
-const LS = { state: 'juz.state', ver: 'juz.v', code: 'juz.code', etag: 'juz.etag', settings: 'juz.settings', dev: 'juz.dev' };
+const LS = { state: 'juz.state', ver: 'juz.v', code: 'juz.code', etag: 'juz.etag', settings: 'juz.settings', dev: 'juz.dev', rot: 'juz.rot', wkbase: 'juz.wkbase' };
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const CODE_RE = /^[A-Z2-9]{10}$/;
 const PUSH_DEBOUNCE = 900;
@@ -16,13 +16,19 @@ const FETCH_TIMEOUT = 12000;
 const DEVICE_TOUCH_MS = 6 * 3600 * 1000;
 const KAHF = 18;
 const BASMALA = { d: 'بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحٖیمِ', h: 'بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّح۪يمِ' };
-const AR_FONT = { hamdullah: "'Hamdullah'", scheherazade: "'Scheherazade New'", naskh: "'Noto Naskh Arabic'" };
+const AR_FONT = { hamdullah: "'Hamdullah'", scheherazade: "'Scheherazade New'", naskh: "'Noto Naskh Arabic'", harmattan: "'Harmattan'", sans: "'Noto Sans Arabic'", kufi: "'Noto Kufi Arabic'" };
+// Fontet kanë madhësi të ndryshme për të njëjtin numër: kjo i barazon me Scheherazade.
+const AR_SCALE = { hamdullah: 1, scheherazade: 1, naskh: 1, harmattan: 1.12, sans: 0.95, kufi: 0.88 };
 const LATIN = { literata: "'Literata'", lora: "'Lora'", inter: "'Inter'" };
 const THEME_COLOR = { paper: '#ece2cb', night: '#13120f' };
-const DEFAULTS = { bg: 'paper', font: 'hamdullah', weight: 400, trans: true, latin: 'literata', size: 30, trSize: 17, home: 'juz' };
+const DEFAULTS = { bg: 'paper', font: 'hamdullah', weight: 400, trans: true, latin: 'literata', size: 30, trSize: 17, home: 'juz', paper: 'classic', arTrans: 0, trTrans: 0 };
 const SYNC_URL = '/api/sync';
 const CH = SCHEMA.sync;
 const DAYS = ['e diel', 'e hënë', 'e martë', 'e mërkurë', 'e enjte', 'e premte', 'e shtunë'];
+const MONTHS = ['Janar', 'Shkurt', 'Mars', 'Prill', 'Maj', 'Qershor', 'Korrik', 'Gusht', 'Shtator', 'Tetor', 'Nëntor', 'Dhjetor'];
+const WD_SHORT = ['Hën', 'Mar', 'Mër', 'Enj', 'Pre', 'Sht', 'Die'];
+const ORD = ['', 'parë', 'dytë', 'tretë', 'katërt', 'pestë', 'gjashtë', 'shtatë', 'tetë', 'nëntë', 'dhjetë'];
+const IDLE_MS = 6 * 60000; // pa asnjë prekje/lëvizje për 6 min: koha e leximit ndalet
 
 // ================================================================ ndihmës
 const $ = (s, el = document) => el.querySelector(s);
@@ -60,6 +66,24 @@ export function isoWeek(d = new Date()) {
 }
 const weekKey = () => isoWeek();
 const weeksAgo = (k) => isoWeek(new Date(Date.now() - k * 7 * 86400000));
+// E hëna e javës ISO "VVVV-Wjj" (ora lokale).
+function weekMonday(key) {
+  const [y, w] = key.split('-W').map(Number);
+  const jan4 = new Date(y, 0, 4);
+  return new Date(y, 0, 4 - ((jan4.getDay() + 6) % 7) + (w - 1) * 7);
+}
+// 1 = kjo javë, 2 = java e dytë që nga fillimi, …
+const weekNo = (key) => Math.round((weekMonday(weekKey()) - weekMonday(key)) / (7 * 86400000)) + 1;
+const ordinal = (n) => ORD[n] || `${n}-të`;
+const pad2 = (n) => String(n).padStart(2, '0');
+const ymd = (d = new Date()) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+function fmtDur(s, short = false) {
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60), r = m % 60;
+  if (short) return `${h}h ${pad2(r)}`;
+  return `${h} orë${r ? ` ${r} min` : ''}`;
+}
 const daysLeftInWeek = () => 7 - ((new Date().getDay() + 6) % 7); // përfshin sot; java mbaron të dielën
 // Kehfi: nga e enjtja në mbrëmje (pas akshamit, afërsisht ora 17) deri në fund të së premtes.
 function isKahfTime(d = new Date()) {
@@ -194,6 +218,8 @@ function normalizeSettings() {
   for (const [k, allowed] of Object.entries(SYNCED_SETTINGS)) if (!allowed.includes(settings[k])) settings[k] = DEFAULTS[k];
   settings.size = clamp(+settings.size || DEFAULTS.size, 22, 50);
   settings.trSize = clamp(+settings.trSize || DEFAULTS.trSize, 14, 26);
+  settings.arTrans = clamp(Math.round(+settings.arTrans || 0), 0, 60);
+  settings.trTrans = clamp(Math.round(+settings.trTrans || 0), 0, 60);
   if (!['juz', 'surah'].includes(settings.home)) settings.home = 'juz';
 }
 normalizeSettings();
@@ -231,16 +257,26 @@ function applySettings() {
   const root = document.documentElement;
   const f = arFont();
   root.dataset.bg = settings.bg;
+  window.JUZPaper?.apply(settings.paper, settings.bg === 'night');
   root.style.setProperty('--ar-size', `${settings.size}px`);
+  root.style.setProperty('--ar-scale', AR_SCALE[f] || 1);
   root.style.setProperty('--tr-size', `${settings.trSize}px`);
   root.style.setProperty('--ar-font', AR_FONT[f]);
   root.style.setProperty('--latin', LATIN[settings.latin]);
+  root.style.setProperty('--ar-alpha', (100 - settings.arTrans) / 100);
+  root.style.setProperty('--tr-alpha', (100 - settings.trTrans) / 100);
   // Hamdullah ka vetëm një trashësi: trashësia jepet me vijë konture.
   const w = settings.weight;
   root.style.setProperty('--ar-weight', f === 'hamdullah' ? 400 : w);
   root.style.setProperty('--ar-stroke', f === 'hamdullah' ? `${((w - 400) / 300) * 0.035}em` : '0px');
   document.body.classList.toggle('no-trans', !settings.trans);
-  $('meta[name="theme-color"]').content = THEME_COLOR[settings.bg];
+  const tone = settings.bg === 'paper' && window.JUZPaper?.TONES[settings.paper];
+  $('meta[name="theme-color"]').content = tone || THEME_COLOR[settings.bg];
+  for (const b of $$('#paperGrid button')) { const on = b.dataset.paper === settings.paper; b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); }
+  $('#arTransRange').value = settings.arTrans;
+  $('#arTransOut').textContent = `${settings.arTrans}%`;
+  $('#trTransRange').value = settings.trTrans;
+  $('#trTransOut').textContent = `${settings.trTrans}%`;
   for (const u of $$('.night-ic')) u.setAttribute('href', settings.bg === 'night' ? '#i-sun' : '#i-moon');
   for (const b of $$('[data-night]')) b.setAttribute('aria-label', settings.bg === 'night' ? 'Modaliteti i ditës' : 'Modaliteti i natës');
   for (const seg of $$('[data-setting]')) for (const b of $$('button', seg)) b.setAttribute('aria-pressed', String(String(settings[seg.dataset.setting]) === b.dataset.v));
@@ -326,33 +362,86 @@ function surahProgress(s) {
   const read = at ? clamp(at - su.pg[0] + 1, 0, count) : 0;
   return { read, count, pct: Math.round((read / count) * 100) };
 }
-function weekPages() {
-  const w = weekKey();
-  const cur = currentJuz();
-  let n = 0;
-  for (const j of META.juz) {
-    if (isDone(j.n)) { n += pageCount(j.pg); continue; }
-    const e = j.n === cur && val(S.pg[j.n]);
-    if (e && e.w === w) n += clamp(e.c - j.pg[0] + 1, 0, pageCount(j.pg));
-  }
-  const k = val(S.kf);
-  if (k && k.w === w) n += k.d ? pageCount(surah(KAHF).pg) : clamp(k.p - surah(KAHF).pg[0] + 1, 0, pageCount(surah(KAHF).pg));
-  return n;
+// ---------------------------------------------------------------- ditari i leximit
+// Çdo pajisje shkruan vetëm çelësat e vet ("VVVV-MM-DD.pajisja"), kështu dy pajisje nuk e mbishkruajnë njëra-tjetrën.
+const myDayKey = () => `${ymd()}.${DEV_ID}`;
+function logAdd(pages, secs = 0) {
+  pages = Math.round(pages) || 0;
+  secs = Math.round(secs) || 0;
+  if (!pages && !secs) return;
+  const k = myDayKey();
+  const cur = val(S.dl[k]) || { p: 0, t: 0 };
+  const next = { p: clamp(cur.p + pages, 0, 1000), t: clamp(cur.t + secs, 0, 86400) };
+  if (next.p === cur.p && next.t === cur.t) return;
+  setKey('dl', k, next);
 }
+// data → { p, t } (të gjitha pajisjet bashkë)
+function dayTotals() {
+  const out = {};
+  for (const [k, e] of Object.entries(S.dl)) {
+    const v = val(e);
+    if (!v) continue;
+    const o = (out[k.slice(0, 10)] ||= { p: 0, t: 0 });
+    o.p += v.p;
+    o.t += v.t;
+  }
+  return out;
+}
+// Java e përditësimit: faqet e lexuara para versionit 7 nuk janë në ditar, ndaj ruhet numri i vjetër i javës.
+let WKBASE = null;
+try { WKBASE = JSON.parse(lsGet(LS.wkbase, 'null')); } catch {}
+if (!WKBASE || typeof WKBASE.w !== 'string') {
+  WKBASE = { w: weekKey(), n: +val(S.wk[weekKey()]) || 0 };
+  lsSet(LS.wkbase, JSON.stringify(WKBASE));
+}
+// Pas sinkronizimit të parë merret edhe numri i javës nga pajisjet e tjera (vetëm një herë).
+function finalizeWkBase() {
+  if (WKBASE.f) return false;
+  const before = WKBASE.n;
+  if (WKBASE.w === weekKey()) WKBASE.n = Math.max(WKBASE.n, +val(S.wk[WKBASE.w]) || 0);
+  WKBASE.f = 1;
+  lsSet(LS.wkbase, JSON.stringify(WKBASE));
+  return WKBASE.n !== before;
+}
+function weekPages(w = weekKey()) {
+  let n = 0;
+  for (const [d, v] of Object.entries(dayTotals())) if (isoWeek(new Date(`${d}T12:00:00`)) === w) n += v.p;
+  return WKBASE.w === w ? Math.max(n, WKBASE.n) : n;
+}
+const todayTotal = () => dayTotals()[ymd()] || { p: 0, t: 0 };
 function streak() {
   let k = (val(S.wk[weekKey()]) || 0) > 0 ? 0 : 1;
   let n = 0;
   while (k < 60 && (val(S.wk[weeksAgo(k)]) || 0) > 0) { n++; k++; }
   return n;
 }
-const weekJuz = () => { const v = val(S.wj); return v && v.w === weekKey() ? v.j : null; };
+// Xhuzi aktiv: ai që u zgjodh; mbetet aktiv javët e ardhshme derisa të përfundojë.
+// (Kur përfundon, mbetet në kartë deri në fund të asaj jave, pastaj sugjerohet tjetri.)
+function activeJuz() {
+  const v = val(S.wj);
+  if (!v) return null;
+  const wk = weekKey();
+  if (v.w === wk) return v.j;
+  const dw = doneWeek(v.j);
+  if (dw && dw >= v.w) return dw === wk ? v.j : null;
+  return v.j;
+}
+const activeWeekNo = () => { const v = val(S.wj); return v ? Math.max(1, weekNo(v.w)) : 1; };
 function suggestedJuz() {
-  // xhuzi pas atij të javës së kaluar
+  // xhuzi pas atij që u përfundua
   const v = val(S.wj);
   if (v && v.w !== weekKey()) return (v.j % 30) + 1;
   return 1;
 }
 const updateWeekTotal = () => setKey('wk', weekKey(), weekPages());
+// Faqja e fundit e numëruar si e lexuar në këtë xhuz/sure (ose faqja para fillimit).
+function unitPos(kind, n) {
+  if (kind === 'j') {
+    const pr = juzProgress(n);
+    return juzMeta(n).pg[0] + (pr.state === 'reading' || pr.state === 'done' ? pr.read : 0) - 1;
+  }
+  return surah(n).pg[0] + surahProgress(n).read - 1;
+}
 
 // ================================================================ sinkronizimi
 const sync = { code: null, status: 'idle', backoffUntil: 0, dirty: false, timer: null, busy: Promise.resolve(), lastOk: 0 };
@@ -394,7 +483,9 @@ function ok(any) {
   sync.backoffUntil = 0;
   sync.lastOk = Date.now();
   setStatus('ok');
+  const based = finalizeWkBase();
   if (any) { keepOnly('pg', currentJuz()); keepOnly('sp', currentSurah()); onRemoteChange(); }
+  else if (based && route.name === 'home') renderHome();
 }
 function schedulePush(delay = PUSH_DEBOUNCE) {
   clearTimeout(sync.timer);
@@ -457,6 +548,7 @@ const onRemoteChange = safe(() => {
   if (route.name === 'home') renderHome();
   if (route.name === 'reader') { decorateBm(); updatePill(); renderEnd(); }
   if (!$('#sheet-sync').hidden) renderSync();
+  if (!$('#sheet-stats').hidden) renderStatsSheet();
 });
 
 // ================================================================ fletët
@@ -469,6 +561,8 @@ function openSheet(name) {
   if (name === 'sync') renderSync();
   if (name === 'about') renderAbout();
   if (name === 'pick') renderPick();
+  if (name === 'stats') openStats();
+  if (name === 'settings') { buildPaperGrid(); renderRot(); }
   lastFocus = document.activeElement;
   $('#scrim').hidden = false;
   el.hidden = false;
@@ -492,23 +586,25 @@ const renderHome = safe(() => {
   for (const t of $$('[data-home]')) t.setAttribute('aria-selected', String(t.dataset.home === settings.home));
   $('#juzPane').hidden = settings.home !== 'juz';
   $('#surahPane').hidden = settings.home !== 'surah';
-  renderWeek();
+  const surahMode = settings.home === 'surah';
+  $('#weekCard').classList.toggle('s-mode', surahMode);
+  if (surahMode) renderSurahHero(); else renderWeek();
   renderKahf();
   renderStats();
-  if (settings.home === 'juz') renderJuzGrid(); else renderSurahList();
+  if (surahMode) renderSurahList(); else renderJuzGrid();
 });
 
 function renderWeek() {
-  const j = weekJuz();
+  const j = activeJuz();
   const el = $('#weekCard');
   if (!j) {
     const s = suggestedJuz();
     const jm = juzMeta(s);
-    el.innerHTML = `<div class="w-top"><span class="w-kicker">Kjo javë</span><button class="w-change" data-open="pick">Zgjidh tjetër</button></div>
+    el.innerHTML = `<div class="w-top"><span class="w-kicker">Xhuzi i radhës</span><button class="w-change" data-open="pick">Zgjidh tjetër</button></div>
       <div class="w-title"><b>Xhuzi ${s}</b><span>${arNum(s)}</span></div>
       <div class="w-range">${esc(surah(jm.s[0]).sq)} ${jm.s.join(':')} – ${esc(surah(jm.e[0]).sq)} ${jm.e.join(':')} · ${pageCount(jm.pg)} faqe</div>
       <p class="w-pace">${daysLeftInWeek()} ditë deri të dielën · rreth ${Math.ceil(pageCount(jm.pg) / daysLeftInWeek())} faqe në ditë</p>
-      <p class="w-mot">Bismilah — cakto xhuzin e javës dhe fillo.</p>
+      <p class="w-mot">Bismilah — cakto xhuzin dhe fillo. Nëse nuk e mbaron këtë javë, vazhdon edhe javën tjetër.</p>
       <button class="w-go" data-assign="${s}"><span>Fillo xhuzin ${s}</span><svg><use href="#i-fwd"/></svg></button>`;
     return;
   }
@@ -516,20 +612,56 @@ function renderWeek() {
   const pr = juzProgress(j);
   const left = pr.count - pr.read;
   const days = daysLeftInWeek();
+  const wn = activeWeekNo();
   const bj = val(S.bj);
   const resume = bj && bj.j === j;
+  const kicker = wn > 1 ? `Xhuzi aktual · java e ${ordinal(wn)}` : 'Xhuzi i kësaj jave';
   const pace = pr.pct >= 100
-    ? 'E përfundove xhuzin e kësaj jave — Elhamdulilah!'
-    : `Edhe ${left} faqe · rreth ${Math.ceil(left / days)} në ditë deri të dielën`;
-  el.innerHTML = `<div class="w-top"><span class="w-kicker">Xhuzi i kësaj jave</span><button class="w-change" data-open="pick">Ndrysho</button></div>
+    ? `E përfundove xhuzin${wn > 1 ? ` për ${wn} javë` : ''} — Elhamdulilah!`
+    : `Edhe ${left} faqe · rreth ${Math.ceil(left / days)} në ditë deri të dielën${wn > 1 ? ', ose me ritmin tënd' : ''}`;
+  el.innerHTML = `<div class="w-top"><span class="w-kicker">${kicker}</span><button class="w-change" data-open="pick">Ndrysho</button></div>
     <div class="w-title"><b>Xhuzi ${j}</b><span>${arNum(j)}</span></div>
-    <div class="w-range">${esc(surah(jm.s[0]).sq)} ${jm.s.join(':')} – ${esc(surah(jm.e[0]).sq)} ${jm.e.join(':')}</div>
+    <div class="w-range">${esc(surah(jm.s[0]).sq)} ${jm.s.join(':')} – ${esc(surah(jm.e[0]).sq)} ${jm.e.join(':')} · Mus'hafi f. ${printed(jm.pg[0])}–${printed(jm.pg[1])}</div>
     <div class="w-prog"><span class="w-bar"><span style="width:${pr.pct}%"></span></span><span class="w-num">${pr.read} / ${pr.count} faqe · ${pr.pct}%</span></div>
     <p class="w-pace">${pace}</p>
     <p class="w-mot">${motivate(pr.pct)}</p>
     <button class="w-go" data-link="${resume ? `#/j/${j}/${bj.s}:${bj.a}` : `#/j/${j}`}">
-      <span>${pr.pct >= 100 ? 'Rilexo xhuzin' : resume ? 'Vazhdo leximin' : 'Fillo leximin'}${resume ? `<small>${esc(surah(bj.s).sq)} ${bj.s}:${bj.a} · faqja ${pr.read} nga ${pr.count}</small>` : ''}</span>
+      <span>${pr.pct >= 100 ? 'Rilexo xhuzin' : resume ? 'Vazhdo leximin' : 'Fillo leximin'}${resume ? `<small>${esc(surah(bj.s).sq)} ${bj.s}:${bj.a} · faqja ${pr.read} nga ${pr.count} · Mus'hafi f. ${printed(bj.p)}</small>` : ''}</span>
       <svg><use href="#i-fwd"/></svg></button>`;
+}
+
+// Mënyra "Suret": karta kryesore tregon suren që po lexon (shënjuesi i sureve, me ngjyrën e vet).
+function renderSurahHero() {
+  const el = $('#weekCard');
+  const s = currentSurah();
+  if (!s) {
+    const su = surah(1);
+    el.innerHTML = `<div class="w-top"><span class="w-kicker">Suret</span><button class="w-change" data-focus-search>Kërko</button></div>
+      <div class="w-title"><b>Zgjidh një sure</b></div>
+      <p class="w-pace">Hape një sure dhe prek ajetin ku ndalon — shënjuesi i sureve ruan progresin, veçmas nga xhuzi.</p>
+      <p class="w-mot">Bismilah — çdo sure është një fillim i ri.</p>
+      <button class="w-go" data-link="#/s/1"><span>Fillo me ${su.n}. ${esc(su.sq)}<small>${esc(su.mn)} · ${su.c} ajete</small></span><svg><use href="#i-fwd"/></svg></button>`;
+    return;
+  }
+  const su = surah(s);
+  const pr = surahProgress(s);
+  const bs = val(S.bs);
+  const resume = bs && bs.s === s;
+  const left = pr.count - pr.read;
+  const next = s < 114 ? surah(s + 1) : null;
+  const finished = pr.pct >= 100;
+  const go = finished && next
+    ? `<button class="w-go" data-link="#/s/${next.n}"><span>Vazhdo me ${next.n}. ${esc(next.sq)}<small>${esc(next.mn)} · ${next.c} ajete · ${pageCount(next.pg)} faqe</small></span><svg><use href="#i-fwd"/></svg></button>`
+    : `<button class="w-go" data-link="${resume ? `#/s/${s}/${bs.s}:${bs.a}` : `#/s/${s}`}">
+        <span>${finished ? 'Rilexo suren' : resume ? 'Vazhdo leximin' : 'Fillo leximin'}${resume ? `<small>${esc(su.sq)} ${bs.s}:${bs.a} · faqja ${pr.read} nga ${pr.count} · Mus'hafi f. ${printed(bs.p)}</small>` : ''}</span>
+        <svg><use href="#i-fwd"/></svg></button>`;
+  el.innerHTML = `<div class="w-top"><span class="w-kicker">Sureja që po lexon</span><button class="w-change" data-focus-search>Kërko</button></div>
+    <div class="w-title"><b>${s}. ${esc(su.sq)}</b><span lang="ar">${esc(su.ar)}</span></div>
+    <div class="w-range">${esc(su.mn)} · ${su.c} ajete · ${su.r === 'M' ? 'Medinase' : 'Mekase'} · Mus'hafi f. ${printed(su.pg[0])}${su.pg[1] > su.pg[0] ? `–${printed(su.pg[1])}` : ''}</div>
+    <div class="w-prog"><span class="w-bar"><span style="width:${pr.pct}%"></span></span><span class="w-num">${pr.read} / ${pr.count} faqe · ${pr.pct}%</span></div>
+    <p class="w-pace">${finished ? `Të ${su.c} ajetet, ${pr.count} faqe — të gjitha të lexuara.` : `Edhe ${left} faqe deri në fund të sures`}</p>
+    <p class="w-mot">${motivate(pr.pct)}</p>
+    ${go}`;
 }
 
 function renderKahf() {
@@ -555,12 +687,61 @@ function renderKahf() {
 
 function renderStats() {
   const pages = weekPages();
+  const today = todayTotal();
   const st = streak();
   const done = META.juz.filter((j) => isDone(j.n)).length;
-  const msg = pages === 0 ? 'Një faqe sot është fillim i mirë.' : st > 1 ? 'Mos e këput serinë — Allahu ta lehtësoftë!' : 'Çdo faqe që kupton të afron më shumë.';
-  $('#statLine').innerHTML = `<span class="st"><svg><use href="#i-check"/></svg>Këtë javë: <b>${pages}</b> faqe${done ? ` · <b>${done}</b> xhuz${done > 1 ? 'e' : ''} i plotë` : ''}</span>
-    <span class="st"><svg><use href="#i-flame"/></svg><b>${st}</b> ${st === 1 ? 'javë' : 'javë'} rresht</span><span class="msg">${msg}</span>`;
+  const msg = today.p === 0 && pages === 0 ? 'Një faqe sot është fillim i mirë.' : st > 1 ? 'Mos e këput serinë — Allahu ta lehtësoftë!' : 'Çdo faqe që kupton të afron më shumë.';
+  $('#statLine').innerHTML = `<span class="st"><svg><use href="#i-book"/></svg>Sot: <b>${today.p}</b> faqe${today.t >= 60 ? ` · ${fmtDur(today.t)}` : ''}</span>
+    <span class="st"><svg><use href="#i-check"/></svg>Këtë javë: <b>${pages}</b> faqe${done ? ` · <b>${done}</b> xhuz${done > 1 ? 'e' : ''} i plotë` : ''}</span>
+    <span class="st"><svg><use href="#i-flame"/></svg><b>${st}</b> javë rresht</span>
+    <span class="msg">${msg}</span>
+    <span class="more"><svg><use href="#i-cal"/></svg>Leximi im çdo ditë<svg><use href="#i-fwd"/></svg></span>`;
 }
+
+// ---------------------------------------------------------------- statistikat e muajit
+const statView = { y: 0, m: 0 };
+function openStats() {
+  const d = new Date();
+  statView.y = d.getFullYear();
+  statView.m = d.getMonth();
+  flushReading();
+  renderStatsSheet();
+}
+const renderStatsSheet = safe(() => {
+  const { y, m } = statView;
+  const days = dayTotals();
+  const now = new Date();
+  const todayStr = ymd(now);
+  const nDays = new Date(y, m + 1, 0).getDate();
+  const offset = (new Date(y, m, 1).getDay() + 6) % 7;
+  const list = [];
+  for (let d = 1; d <= nDays; d++) { const k = `${y}-${pad2(m + 1)}-${pad2(d)}`; list.push({ d, k, ...(days[k] || { p: 0, t: 0 }) }); }
+  const pages = list.reduce((a, x) => a + x.p, 0);
+  const secs = list.reduce((a, x) => a + x.t, 0);
+  const active = list.filter((x) => x.p > 0 || x.t >= 60);
+  const best = list.reduce((b, x) => (x.p > (b?.p || 0) ? x : b), null);
+  const max = Math.max(1, ...list.map((x) => x.p));
+  const isCur = y === now.getFullYear() && m === now.getMonth();
+  $('#mTitle').textContent = `${MONTHS[m]} ${y}`;
+  $('#mNext').disabled = isCur || new Date(y, m + 1, 1) > now;
+  $('#mSum').innerHTML = `<div><b>${pages}</b><span>faqe</span></div>
+    <div><b>${secs >= 60 ? fmtDur(secs) : '0 min'}</b><span>kohë leximi</span></div>
+    <div><b>${active.length}</b><span>ditë leximi</span></div>
+    <div><b>${active.length ? Math.round(pages / active.length) : 0}</b><span>faqe në ditë</span></div>`;
+  let html = WD_SHORT.map((w) => `<span class="cal-h" role="columnheader">${w}</span>`).join('');
+  html += '<span class="cal-x"></span>'.repeat(offset);
+  for (const x of list) {
+    const fut = x.k > todayStr;
+    const lvl = x.p ? 0.18 + 0.62 * (x.p / max) : 0;
+    const label = `${x.d} ${MONTHS[m]}: ${x.p} faqe${x.t >= 60 ? `, ${fmtDur(x.t)}` : ''}`;
+    html += `<span class="cal-d${x.k === todayStr ? ' today' : ''}${fut ? ' fut' : ''}${x.p || x.t >= 60 ? ' has' : ''}${lvl >= 0.55 ? ' hi' : ''}" role="gridcell" aria-label="${label}" title="${label}" style="--lvl:${Math.round(lvl * 100)}%">
+      <i>${x.d}</i>${x.p ? `<b>${x.p}</b>` : ''}${x.t >= 60 ? `<small>${fmtDur(x.t, true)}</small>` : ''}</span>`;
+  }
+  $('#cal').innerHTML = html;
+  $('#mNote').textContent = best && best.p
+    ? `Dita më e mirë: ${best.d} ${MONTHS[m]} · ${best.p} faqe${best.t >= 60 ? ` · ${fmtDur(best.t)}` : ''}`
+    : isCur ? 'Ende asnjë faqe këtë muaj — shëno një ajet kur lexon dhe faqet numërohen vetë.' : 'Asnjë lexim i regjistruar në këtë muaj.';
+});
 
 function bmChip(el, text, link) {
   el.hidden = !text;
@@ -571,7 +752,8 @@ function bmChip(el, text, link) {
 
 function renderJuzGrid() {
   const bj = val(S.bj);
-  const wj = weekJuz();
+  const wj = activeJuz();
+  const wTag = activeWeekNo() > 1 ? 'aktual' : 'kjo javë';
   bmChip($('#bjChip'), bj && bj.j !== wj && `Shënjuesi: <b>${esc(surah(bj.s).sq)} ${bj.s}:${bj.a}</b> · Xhuzi ${bj.j}`, bj && `#/j/${bj.j}/${bj.s}:${bj.a}`);
   $('#juzGrid').innerHTML = META.juz.map((j) => {
     const su = surah(j.s[0]);
@@ -584,7 +766,7 @@ function renderJuzGrid() {
       <span class="n">${j.n}</span>
       <span class="from">${esc(su.sq)} ${j.s[0]}:${j.s[1]}</span>
       ${pr.state === 'done' ? '<span class="seal" aria-hidden="true"><svg><use href="#i-check"/></svg></span>' : `<span class="jar">${arNum(j.n)}</span>`}
-      ${j.n === wj && pr.state !== 'done' ? '<span class="tag-w">kjo javë</span>' : ''}
+      ${j.n === wj && pr.state !== 'done' ? `<span class="tag-w">${wTag}</span>` : ''}
       <span class="pr"><span class="bar"><span style="width:${bar}%"></span></span><span class="pt">${label}</span></span>
     </button></li>`;
   }).join('');
@@ -592,13 +774,14 @@ function renderJuzGrid() {
 
 const fold = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ'’\- ]/g, '');
 function renderSurahList() {
-  const bs = val(S.bs);
-  bmChip($('#bsChip'), bs && `Shënjuesi: <b>${esc(surah(bs.s).sq)} ${bs.s}:${bs.a}</b> · ${surahProgress(bs.s).read}/${surahProgress(bs.s).count} faqe`, bs && `#/s/${bs.s}/${bs.s}:${bs.a}`);
+  // Shënjuesi i sureve shfaqet në kartën kryesore, ndaj çipi këtu nuk nevojitet.
+  bmChip($('#bsChip'), null);
+  const cur = currentSurah();
   const q = fold($('#surahSearch').value.trim());
   const list = META.surahs.filter((s) => !q || String(s.n) === q || fold(s.sq).includes(q) || fold(s.mn).includes(q) || fold(s.tr).includes(q));
   $('#surahList').innerHTML = list.length ? list.map((s) => {
     const pr = surahProgress(s.n);
-    return `<li><button class="surah-row card" data-s="${s.n}">
+    return `<li><button class="surah-row card${s.n === cur ? ' cur' : ''}" data-s="${s.n}">
       <span class="star-num">${s.n}</span>
       <span class="nm"><strong>${esc(s.sq)} <i>· ${esc(s.mn)}</i></strong><span>${s.c} ajete · ${s.r === 'M' ? 'Medinase' : 'Mekase'} · ${pr.count} faqe${pr.read ? ` · <b>${pr.read}/${pr.count}</b>` : ''}</span>
       ${pr.read ? `<span class="bar"><span style="width:${pr.pct}%"></span></span>` : ''}</span>
@@ -608,11 +791,12 @@ function renderSurahList() {
 }
 
 function renderPick() {
-  const wj = weekJuz();
+  const wj = activeJuz();
   $('#pickGrid').innerHTML = META.juz.map((j) => `<button data-assign="${j.n}" aria-pressed="${j.n === wj}" class="${isDone(j.n) ? 'done' : ''}">${j.n}</button>`).join('');
 }
 function assignWeek(j) {
-  setVal('wj', { w: weekKey(), j });
+  // I njëjti xhuz: mbetet java kur u nis (që të numërohet "java e dytë", …).
+  if (activeJuz() !== j) setVal('wj', { w: weekKey(), j });
   closeSheet(true);
   renderHome();
 }
@@ -639,16 +823,19 @@ function pageHTML(pg, i) {
       ar += `</div>${surahHead(surah(x.s))}${OPEN}`;
       tr += `<h4>${x.s}. ${esc(surah(x.s).sq)} — ${esc(surah(x.s).mn)}</h4>`;
     }
-    ar += `<span class="ay" data-k="${x.s}:${x.a}">${esc(x[key] || x.d)} <span class="an">${arNum(x.a)}</span></span> `;
-    tr += `<p data-k="${x.s}:${x.a}"><b>${x.s}:${x.a}</b>${esc(plain(x.t))}</p>`;
+    // Numri i ajetit me shifra perëndimore (1, 2, 3 …)
+    ar += `<span class="ay" data-k="${x.s}:${x.a}"><span class="at">${esc(x[key] || x.d)}</span> <span class="an">${x.a}</span></span> `;
+    tr += `<p data-k="${x.s}:${x.a}"><b>${x.s}:${x.a}</b><span class="tt">${esc(plain(x.t))}</span></p>`;
   }
   ar = (ar + '</div>').replaceAll(`${OPEN}</div>`, '');
   const j = juzOfPage(pg.p);
   const inJuz = pg.p - juzMeta(j).pg[0] + 1;
   return `<section class="pg" data-i="${i}" data-p="${pg.p}">
-    <div class="pg-ar ar-txt" lang="ar">${ar}</div>
-    <div class="pg-tr" lang="sq">${tr}</div>
-    <div class="pg-sep"><span><b>${info.n}</b> · xhuzi ${j}, faqja ${inJuz} nga ${pageCount(juzMeta(j).pg)}</span></div>
+    <div class="pg-row">
+      <div class="pg-ar ar-txt" lang="ar">${ar}</div>
+      <div class="pg-tr" lang="sq"><div class="tr-in">${tr}</div></div>
+    </div>
+    <div class="pg-sep"><span>Faqja <b>${info.n}</b> e Mus'hafit · xhuzi ${j}, ${inJuz}/${pageCount(juzMeta(j).pg)}</span></div>
   </section>`;
 }
 
@@ -705,7 +892,16 @@ function buildReader() {
   for (const el of $$('.pg, .end', body)) R.io.observe(el);
   renderEnd();
   decorateBm();
+  requestAnimationFrame(markOverflow);
 }
+// Përkthimi anash (ekran i gjerë): zbehje e butë lart/poshtë kur ka tekst për të lëvizur.
+function trEdges(el) {
+  const ovf = el.scrollHeight > el.clientHeight + 2;
+  el.classList.toggle('ovf', ovf);
+  el.classList.toggle('at-top', el.scrollTop < 4);
+  el.classList.toggle('at-end', el.scrollTop + el.clientHeight >= el.scrollHeight - 4);
+}
+const markOverflow = () => { for (const el of $$('#readerBody .tr-in')) trEdges(el); };
 function rebuildReader() {
   if (!count()) return;
   const k = visibleAyah();
@@ -748,13 +944,16 @@ const updatePill = safe(() => {
   const n = count();
   const pos = Math.min(Math.max(R.idx, 0) + 1, n);
   $('#pillPg').innerHTML = `Faqja <b>${pos}</b> / ${n}`;
+  const mp = printed(R.pages[pos - 1].p);
+  $('#pillMp').innerHTML = `<svg><use href="#i-book"/></svg>Mus'hafi <b>${mp}</b>`;
+  $('#pillMp').title = `Faqja ${mp} e Mus'hafit`;
   const b = bmOf();
   const pr = R.kind === 'j' ? juzProgress(R.n) : surahProgress(R.n);
   const showBm = !!b && bmInUnit(b);
   $('#pillBm').hidden = !showBm && !pr.read;
   $('#pillBmTxt').textContent = `${pr.read}/${pr.count}`;
   $('#pillBar').style.width = `${pr.pct}%`;
-  $('#pill').setAttribute('aria-label', showBm ? `Faqja ${pos} nga ${n}. Shko te shënjuesi.` : `Faqja ${pos} nga ${n}`);
+  $('#pill').setAttribute('aria-label', `Faqja ${pos} nga ${n}, faqja ${mp} e Mus'hafit.${showBm ? ' Shko te shënjuesi.' : ''}`);
 });
 
 // ================================================================ shënjuesi = progresi
@@ -776,11 +975,14 @@ function toggleAyahBm(k) {
     toast('Shënjuesi u hoq (progresi mbetet).');
   } else {
     const w = weekKey();
+    // Faqet ndërmjet shënjuesit të vjetër dhe të riut numërohen si të lexuara sot
+    // (lëvizja prapa e korrigjon numrin; një xhuz i përfunduar këtë javë nuk numërohet sërish).
+    const before = R.kind === 'j' && isDone(R.n) ? null : unitPos(R.kind, R.n);
     if (R.kind === 'j') {
       setVal('bj', { j: R.n, s, a, p: pg.p });
       setKey('pg', R.n, { w, c: pg.p });
       keepOnly('pg', R.n);
-      if (!weekJuz()) setVal('wj', { w, j: R.n });
+      if (!activeJuz()) setVal('wj', { w, j: R.n });
     } else {
       setVal('bs', { s, a, p: pg.p });
       setKey('sp', s, pg.p);
@@ -791,9 +993,10 @@ function toggleAyahBm(k) {
       const last = pg.p === surah(KAHF).pg[1] && a === surah(KAHF).c;
       setVal('kf', { w, p: pg.p, ...((kf && kf.w === w && kf.d) || last ? { d: 1 } : {}) });
     }
+    if (before !== null) logAdd(pg.p - before);
     updateWeekTotal();
     const pr = R.kind === 'j' ? juzProgress(R.n) : surahProgress(R.n);
-    toast(`🔖 ${surah(s).sq} ${s}:${a} · ${pr.read}/${pr.count} faqe · ${pr.pct}%`, 2600);
+    toast(`🔖 ${surah(s).sq} ${s}:${a} · ${pr.read}/${pr.count} faqe · Mus'hafi f. ${printed(pg.p)}`, 2600);
   }
   decorateBm();
   updatePill();
@@ -802,12 +1005,13 @@ function toggleAyahBm(k) {
 function markDone(j, on) {
   const w = weekKey();
   if (on) {
+    if (!isDone(j)) logAdd(juzMeta(j).pg[1] - unitPos('j', j));
     setKey('done', j, w);
     setKey('pg', j, { w, c: juzMeta(j).pg[1] });
     keepOnly('pg', j);
     const bj = val(S.bj);
     if (bj && bj.j !== j) setVal('bj', null);
-    if (!weekJuz()) setVal('wj', { w, j });
+    if (!activeJuz()) setVal('wj', { w, j });
     toast(`Elhamdulilah! Xhuzi ${j} u përfundua. Allahu ta pranoftë.`, 3600);
   } else setKey('done', j, null);
   updateWeekTotal();
@@ -815,6 +1019,10 @@ function markDone(j, on) {
   updatePill();
 }
 function markKahf() {
+  const k = val(S.kf);
+  const su = surah(KAHF);
+  const from = Math.max(su.pg[0] - 1, k && k.w === weekKey() ? k.p : 0, unitPos('s', KAHF));
+  if (!(k && k.w === weekKey() && k.d)) logAdd(su.pg[1] - from);
   setVal('kf', { w: weekKey(), p: surah(KAHF).pg[1], d: 1 });
   updateWeekTotal();
   toast('Allahu ta pranoftë! Kehfi u shënua për këtë xhuma.', 3200);
@@ -826,10 +1034,11 @@ async function openReader(kind, n, target) {
   $('#home').hidden = true;
   $('#reader').hidden = false;
   $('#reader').classList.remove('hide-bars');
+  $('#reader').dataset.kind = kind; // ngjyra e shënjuesit: ari për xhuzin, blu për suret
   const token = ++R.token;
   if (kind === 'j') {
     const jm = juzMeta(n);
-    $('#rTitle').textContent = `Xhuzi ${n}${weekJuz() === n ? ' · kjo javë' : ''}`;
+    $('#rTitle').textContent = `Xhuzi ${n}${activeJuz() === n ? (activeWeekNo() > 1 ? ` · java e ${ordinal(activeWeekNo())}` : ' · kjo javë') : ''}`;
     $('#rSub').textContent = `${surah(jm.s[0]).sq} ${jm.s.join(':')} – ${surah(jm.e[0]).sq} ${jm.e.join(':')} · ${pageCount(jm.pg)} faqe`;
   } else {
     const su = surah(n);
@@ -914,6 +1123,107 @@ function renderAbout() {
   if ('caches' in window) caches.keys().then((ks) => { const k = ks.find((x) => x.startsWith('juz-')); if (k) v.textContent = `Versioni: ${k} · Të dhënat: ${META.built}`; }).catch(() => {});
 }
 
+// ================================================================ koha e leximit
+// Matet vetëm kur lexuesi është i hapur, ekrani i dukshëm dhe ka pasur lëvizje/prekje në 6 minutat e fundit.
+const GRACE_MS = 90000; // kur del pa prekur asgjë, numërohen vetëm 90 sekondat e para pas prekjes së fundit
+const RT = { acc: 0, last: Date.now(), act: Date.now(), vis: document.visibilityState === 'visible', since: 0, idle: false };
+function accrue() {
+  const now = Date.now();
+  const dt = Math.min(now, RT.act + IDLE_MS) - RT.last;
+  RT.last = now;
+  if (route.name === 'reader' && RT.vis && dt > 0 && dt < 90000) { RT.acc += dt; RT.since += dt; }
+  if (!RT.idle && now - RT.act >= IDLE_MS) {
+    // Pa lëvizje për 6 min: koha pas 90 sekondave të para nuk ishte lexim.
+    RT.idle = true;
+    RT.acc -= Math.max(0, RT.since - GRACE_MS);
+    RT.since = 0;
+    if (RT.acc < 0) { logAdd(0, RT.acc / 1000); RT.acc = 0; }
+  }
+}
+function flushReading() {
+  accrue();
+  if (RT.acc < 5000) return;
+  const s = RT.acc / 1000;
+  RT.acc = 0;
+  logAdd(0, s);
+}
+function startReadingClock() {
+  const mark = () => { const now = Date.now(); if (RT.idle) { RT.idle = false; RT.last = now; } RT.act = now; RT.since = 0; };
+  for (const ev of ['scroll', 'pointerdown', 'keydown', 'wheel', 'touchstart']) addEventListener(ev, mark, { passive: true, capture: true });
+  setInterval(() => { accrue(); if (RT.acc >= 90000) flushReading(); }, 15000);
+  document.addEventListener('visibilitychange', () => {
+    accrue();
+    RT.vis = document.visibilityState === 'visible';
+    if (!RT.vis) flushReading();
+  });
+  addEventListener('pagehide', flushReading);
+}
+
+// ================================================================ kyçja e rrotullimit (telefon/tablet)
+const ROT = { on: false, fs: false };
+const canRotate = () => !isIOS && !!screen.orientation?.lock && matchMedia('(pointer: coarse)').matches;
+async function tryLock() {
+  try { await screen.orientation.lock(screen.orientation.type); return true; } catch { return false; }
+}
+function renderRot() {
+  const show = canRotate();
+  const b = $('#rotBtn');
+  b.hidden = !show;
+  $('#rotRow').hidden = !show;
+  if (!show) return;
+  $('#rotIc').setAttribute('href', ROT.on ? '#i-rotlock' : '#i-rot');
+  b.setAttribute('aria-pressed', String(ROT.on));
+  b.setAttribute('aria-label', ROT.on ? 'Rrotullimi është i kyçur — prek për ta zhbllokuar' : 'Kyç rrotullimin');
+  b.classList.toggle('on', ROT.on);
+  $('#rotToggle').checked = ROT.on;
+}
+async function setRotLock(on, quiet = false) {
+  if (!on) {
+    ROT.on = false;
+    lsSet(LS.rot, null);
+    try { screen.orientation.unlock(); } catch {}
+    if (ROT.fs && document.fullscreenElement) { ROT.fs = false; document.exitFullscreen().catch(() => {}); }
+    renderRot();
+    if (!quiet) toast('Rrotullimi u zhbllokua');
+    return;
+  }
+  let ok = await tryLock();
+  // Në shfletues (jo si aplikacion i instaluar) kyçja lejohet vetëm në ekran të plotë.
+  if (!ok && !quiet && !isStandalone() && document.documentElement.requestFullscreen) {
+    try { await document.documentElement.requestFullscreen({ navigationUI: 'hide' }); ROT.fs = true; ok = await tryLock(); } catch {}
+    if (!ok && ROT.fs) { ROT.fs = false; document.exitFullscreen().catch(() => {}); }
+  }
+  ROT.on = ok;
+  lsSet(LS.rot, ok ? '1' : null);
+  renderRot();
+  if (quiet) return;
+  if (ok) toast(screen.orientation.type.startsWith('portrait') ? 'Rrotullimi u kyç: vertikal' : 'Rrotullimi u kyç: horizontal');
+  else toast('Telefoni nuk e lejoi kyçjen këtu. Shto JUZ në ekranin kryesor dhe provo nga aplikacioni.', 4500);
+}
+function initRot() {
+  renderRot();
+  document.addEventListener('fullscreenchange', () => {
+    // Kur del nga ekrani i plotë, shfletuesi e heq kyçjen.
+    if (!document.fullscreenElement && ROT.fs) { ROT.fs = false; ROT.on = false; lsSet(LS.rot, null); renderRot(); }
+  });
+  if (lsGet(LS.rot) !== '1' || !canRotate()) return;
+  tryLock().then((ok) => {
+    if (ok) { ROT.on = true; renderRot(); return; }
+    // Disa telefona e lejojnë vetëm pas prekjes së parë.
+    addEventListener('pointerup', () => tryLock().then((ok2) => { ROT.on = ok2; if (!ok2) lsSet(LS.rot, null); renderRot(); }), { once: true });
+  });
+}
+
+// ================================================================ sfondi i letrës
+function buildPaperGrid() {
+  const g = $('#paperGrid');
+  if (g.childElementCount || !window.JUZPaper) return;
+  const P = window.JUZPaper;
+  g.innerHTML = P.DESIGNS.map((d) => `<button type="button" role="radio" data-paper="${d}" aria-checked="false"><i class="pp"></i><span>${esc(P.NAMES[d])}</span></button>`).join('');
+  for (const b of $$('button', g)) P.swatch($('.pp', b), b.dataset.paper);
+  applySettings();
+}
+
 // ================================================================ rruga
 const route = { name: '' };
 let cameFromHome = false;
@@ -922,6 +1232,7 @@ function navigate(hash) { if (location.hash === hash) handleRoute(); else locati
 const handleRoute = safe(() => {
   const h = location.hash.replace(/^#\/?/, '');
   const m = h.match(/^([js])\/(\d{1,3})(?:\/(\d{1,3}:\d{1,3}))?/);
+  flushReading(); // koha e lexuar deri tani i përket faqes së mëparshme
   closeSheet(true);
   if (m && ((m[1] === 'j' && +m[2] >= 1 && +m[2] <= 30) || (m[1] === 's' && +m[2] >= 1 && +m[2] <= 114))) {
     cameFromHome = pendingFromHome && route.name === 'home';
@@ -958,6 +1269,12 @@ function bind() {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
 
   for (const t of $$('[data-home]')) t.addEventListener('click', () => { settings.home = t.dataset.home; saveSettings(); renderHome(); });
+  $('#weekCard').addEventListener('click', (e) => {
+    if (!e.target.closest('[data-focus-search]')) return;
+    const s = $('#surahSearch');
+    s.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    s.focus({ preventScroll: true });
+  });
   $('#surahSearch').addEventListener('input', safe(renderSurahList));
   $('#juzGrid').addEventListener('click', (e) => {
     const b = e.target.closest('[data-j]');
@@ -1009,6 +1326,22 @@ function bind() {
   $('#transToggle').addEventListener('change', (e) => setSetting('trans', e.target.checked));
   $('#sizeRange').addEventListener('input', (e) => { settings.size = +e.target.value; saveSettings(); applySettings(); });
   $('#trSizeRange').addEventListener('input', (e) => { settings.trSize = +e.target.value; saveSettings(); applySettings(); });
+  $('#arTransRange').addEventListener('input', (e) => { settings.arTrans = +e.target.value; saveSettings(); applySettings(); });
+  $('#trTransRange').addEventListener('input', (e) => { settings.trTrans = +e.target.value; saveSettings(); applySettings(); });
+  $('#paperGrid').addEventListener('click', (e) => { const b = e.target.closest('[data-paper]'); if (b) setSetting('paper', b.dataset.paper); });
+
+  // rrotullimi
+  $('#rotBtn').addEventListener('click', () => setRotLock(!ROT.on));
+  $('#rotToggle').addEventListener('change', (e) => setRotLock(e.target.checked));
+
+  // statistikat
+  $('#mPrev').addEventListener('click', () => { if (--statView.m < 0) { statView.m = 11; statView.y--; } renderStatsSheet(); });
+  $('#mNext').addEventListener('click', () => { if (++statView.m > 11) { statView.m = 0; statView.y++; } renderStatsSheet(); });
+
+  // përkthimi anash: zbehja lart/poshtë
+  $('#readerBody').addEventListener('scroll', (e) => { if (e.target.classList?.contains('tr-in')) trEdges(e.target); }, { capture: true, passive: true });
+  let rz;
+  addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (route.name === 'reader') markOverflow(); }, 200); });
 
   // pajisjet
   $('#shareBtn').addEventListener('click', shareLink);
@@ -1057,6 +1390,8 @@ async function main() {
   }
   handleRoute();
   startSync();
+  startReadingClock();
+  initRot();
   registerSW();
 }
 main();
