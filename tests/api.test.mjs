@@ -23,6 +23,11 @@ globalThis.fetch = async (url, opts) => {
     const buf = Buffer.alloc(5000); buf.write('wOF2', 0, 'latin1');
     return new Response(buf, { status: 200 });
   }
+  if (url === 'https://fake-upstash.test/pipeline') {
+    const cmds = JSON.parse(opts.body);
+    for (const [c, k, v, ex] of cmds) { assert.equal(c, 'SET'); assert.equal(ex, 'EX'); db.set(k, v); }
+    return new Response(JSON.stringify(cmds.map(() => ({ result: 'OK' }))), { status: 200 });
+  }
   assert.equal(url, 'https://fake-upstash.test');
   assert.equal(opts.headers.Authorization, 'Bearer secret');
   const [cmd, ...args] = JSON.parse(opts.body);
@@ -43,7 +48,13 @@ let quranCalls = 0;
 function quranApi(url) {
   quranCalls++;
   const u = new URL(url);
-  assert.match(u.pathname, /\/verses\/by_chapter\/112$/);
+  const sn = +u.pathname.split('/').pop();
+  if (sn !== 112) {
+    // sure të tjera: ajete me një fjalë, për testin e kufirit të thirrjeve
+    const per = 50, page = +u.searchParams.get('page'), total = [0, 7, 286, 200][sn] || 3;
+    const verses = Array.from({ length: Math.min(per, total - (page - 1) * per) }, (_, i) => ({ verse_number: (page - 1) * per + i + 1, page_number: 1, words: [{ char_type_name: 'word', code_v2: 'ﱁ', page_number: 1 }] }));
+    return new Response(JSON.stringify({ verses, pagination: { per_page: per, current_page: page, total_pages: Math.ceil(total / per), total_records: total } }), { status: 200 });
+  }
   assert.equal(u.searchParams.get('mushaf'), '19');
   const page = +u.searchParams.get('page');
   const w = (n, code, pg, type = 'word') => ({ char_type_name: type, code_v2: code, page_number: pg, position: n });
@@ -280,4 +291,20 @@ test('/api/qcf-font: WOFF2 me cache të gjatë; faqe e pavlefshme → 400; CDN p
   fontMode = 'down';
   assert.equal((await qcfFont(new Request('https://juz.test/api/qcf-font?p=1'))).status, 502);
   fontMode = 'ok';
+});
+
+test('/api/qcf-text: nuk kalon kufirin e thirrjeve; kthen "more" dhe e plotëson herën tjetër', async () => {
+  const before = quranCalls;
+  const r1 = await (await qcfText(new Request('https://juz.test/api/qcf-text?s=1-3'))).json();
+  // 1 (7 ajete: 1 thirrje) + 2 (286: 6) + 3 (200: 4) = 11 ≤ 40 → të gjitha njëherësh
+  assert.deepEqual(Object.keys(r1.s), ['1', '2', '3']);
+  assert.equal(r1.more, undefined);
+  assert.equal(Object.keys(r1.s['2']).length, 286);
+  assert.equal(quranCalls - before, 11);
+  // 40 sure të shkurtra të paruajtura: 40 thirrje lejohen, asnjë më shumë
+  const b2 = quranCalls;
+  const r2 = await (await qcfText(new Request('https://juz.test/api/qcf-text?s=60-99'))).json();
+  assert.ok(quranCalls - b2 <= 40);
+  const got = Object.keys(r2.s).length, left = (r2.more || []).length;
+  assert.equal(got + left, 40);
 });

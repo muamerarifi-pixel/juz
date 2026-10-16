@@ -1,6 +1,6 @@
 // Service worker i JUZ — punon plotësisht pa internet.
 // RRITE VERSIONIN me çdo publikim të ri (p.sh. juz-v1.0.1), që pajisjet të marrin skedarët e rinj.
-const VERSION = 'juz-v7.1.1-cf';
+const VERSION = 'juz-v7.1.2-cf';
 const FONT_CACHE = 'juz-font-1'; // mbetet mes versioneve
 const QCF_CACHE = 'juz-qcf-1';   // fontet dhe kodet e texhvidit (QCF V4), mbeten mes versioneve
 
@@ -88,7 +88,8 @@ self.addEventListener('fetch', (event) => {
       const hit = await cache.match(req);
       if (hit) return hit;
       const res = await fetch(req);
-      if (res.ok) cache.put(req, res.clone());
+      // një përgjigje e pjesshme ("more") nuk ruhet: vjen e plotë herën tjetër
+      if (res.ok && !/no-store/.test(res.headers.get('Cache-Control') || '')) cache.put(req, res.clone());
       return res;
     })());
     return;

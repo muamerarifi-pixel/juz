@@ -828,18 +828,21 @@ async function qcfEnsure(pages) {
   const need = [];
   for (let s = a; s <= b; s++) if (!QCF.text.has(s)) need.push(s);
   if (!need.length) return;
-  const lo = need[0], hi = need[need.length - 1];
-  for (let s = lo; s <= hi; s += 40) {
-    const e = Math.min(hi, s + 39);
+  // Serveri mund të kthejë vetëm një pjesë herën e parë ("more"): pyetet sërish derisa të vijnë të gjitha.
+  for (let round = 0; round < 12; round++) {
+    const left = need.filter((s) => !QCF.text.has(s));
+    if (!left.length) return;
+    const lo = left[0], hi = Math.min(left[left.length - 1], lo + 39);
     const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 25000);
+    const t = setTimeout(() => ctrl.abort(), 45000);
     try {
-      const r = await fetch(`/api/qcf-text?s=${s}-${e}`, { signal: ctrl.signal });
+      const r = await fetch(`/api/qcf-text?s=${lo}-${hi}`, { signal: ctrl.signal });
       if (!r.ok) throw new Error(`qcf ${r.status}`);
       const j = await r.json();
       for (const [k, m] of Object.entries(j.s || {})) QCF.text.set(+k, m);
     } finally { clearTimeout(t); }
   }
+  if (need.some((s) => !QCF.text.has(s))) throw new Error('qcf incomplete');
 }
 function qcfPalettes() {
   let el = document.getElementById('qcfPal');
