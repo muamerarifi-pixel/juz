@@ -1,27 +1,41 @@
 # JUZ (v6)
 
-A Quran reader: the Diyanet Mushaf with Hassan Nahi's Albanian translation, by juz or by surah. It works offline and syncs between devices.
+A Quran reader: the Diyanet Mushaf with Hassan Nahi's Albanian translation, by juz or by surah.
+It works offline and syncs between devices.
 
-## Updating the live app (same domain, same sync)
+**Live:** https://juz.muamer-arifi.workers.dev
 
-1. Unzip this file.
-2. Open https://vercel.com → project **juz-vercel** → **Overview**.
-3. Drag the unzipped **juz** folder onto that page ("drop your project anywhere on this page").
-4. Wait until it says **Ready**. The site stays at **juz-vercel.vercel.app**, and sync keeps working: the `KV_…` database variables stay in the project.
+## Deploying
 
-Phones that already have the app get the new version automatically the next time they open it (a "JUZ u përditësua" message appears).
+This repo **is** the live app. Every push to `main` is built and deployed automatically by Cloudflare
+Workers Builds (`npx wrangler deploy`) to the address above. Same domain, same sync, no manual step.
 
-## What's inside
+- Sync data is not in this repo. It lives in Upstash Redis, reached with the `KV_REST_API_URL` and
+  `KV_REST_API_TOKEN` secrets set on the Cloudflare worker. A deploy never touches it.
+- Keep `"name": "juz"` in `wrangler.jsonc` (that keeps the same address) and never delete those secrets.
+- Manual deploy, if ever needed: `npm install` then `npx wrangler deploy`.
 
-- `index.html`, `style.css`, `app.js`, `merge.js`, `sw.js`, `manifest.json`: the app (plain HTML/CSS/JS, no build step)
-- `api/sync.js`, `api/_store.js`: sync through Upstash Redis (`KV_REST_API_URL`, `KV_REST_API_TOKEN`)
+When you change files in `public/`, raise `VERSION` in `public/sw.js` (e.g. `juz-v6.1.2-cf`) so phones
+pick up the change. Phones that already have the app get it the next time they open it (a
+"JUZ u përditësua" message appears).
+
+## Layout
+
+- `public/`: the app, served by Workers Static Assets: `index.html`, `style.css`, `app.js`,
+  `merge.js`, `sw.js`, `manifest.json`, `_headers`, `data/` (605 Mushaf pages, 30 juz, the Albanian
+  translation), `fonts/`, `textures/`, `icons/`
+- `api/sync.js`, `api/_store.js`: sync through Upstash Redis
 - `api/qr.js`: the QR code for linking devices
-- `api/font.js`: fetches Diyanet's official "Shaikh Hamdullah Mushaf" font from kuran.diyanet.gov.tr. Vercel's CDN caches it for a year and the app keeps it for offline use. If it can't be reached, the app uses Scheherazade New.
-- `data/`: the Diyanet Mushaf text (605 pages, 30 juz) and the Albanian translation
-- `fonts/`, `textures/`, `icons/`
-- `scripts/build-data.mjs`: rebuilds `data/` (`node scripts/build-data.mjs`)
+- `api/font.js`: fetches Diyanet's official "Shaikh Hamdullah Mushaf" font from kuran.diyanet.gov.tr;
+  the app keeps it for offline use and falls back to Scheherazade New if it can't be reached
+- `worker.js`: routes `/api/*` to the functions in `api/` and serves everything else from `public/`
+- `scripts/build-data.mjs`: rebuilds the Quran data (`node scripts/build-data.mjs`); it writes to
+  `data/`, so move the output into `public/data/`
+- `tests/`: API and data tests
 
-When you change files later, raise `VERSION` in `sw.js` (e.g. `juz-v6.0.1`) so phones pick up the change.
+## Local testing
+
+Put the two `KV_…` secrets in a `.dev.vars` file (git-ignored), then `npm install` and `npm run dev`.
 
 ## Sources
 
