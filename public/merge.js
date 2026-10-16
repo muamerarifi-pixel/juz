@@ -60,7 +60,7 @@ export const sameDoc = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 // Cilësimet që ndahen mes pajisjeve (madhësia e tekstit mbetet për çdo pajisje).
 export const SYNCED_SETTINGS = {
   bg: ['paper', 'night'],
-  font: ['hamdullah', 'scheherazade', 'naskh', 'harmattan', 'sans', 'kufi'],
+  font: ['hamdullah', 'scheherazade', 'naskh', 'harmattan', 'sans', 'kufi', 'qcf'],
   weight: [400, 500, 600, 700],
   trans: [true, false],
   latin: ['literata', 'lora', 'inter'],

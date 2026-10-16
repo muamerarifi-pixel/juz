@@ -11,6 +11,8 @@ const ROUTES = {
   '/api/sync': () => import('./api/sync.js'),
   '/api/font': () => import('./api/font.js'),
   '/api/qr': () => import('./api/qr.js'),
+  '/api/qcf-text': () => import('./api/qcf-text.js'),
+  '/api/qcf-font': () => import('./api/qcf-font.js'),
 };
 
 let envCopied = false;

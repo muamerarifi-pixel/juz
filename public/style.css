@@ -458,3 +458,24 @@ body:not(.no-trans) .pg-row > .pg-ar { direction: rtl; }
   .tr-in { scrollbar-width: thin; scrollbar-color: transparent transparent; }
   .pg-tr:hover .tr-in { scrollbar-color: color-mix(in srgb, var(--gold) 50%, transparent) transparent; }
 }
+
+/* ================= Texhvidi me ngjyra (QCF V4) ================= */
+.at.q { font-feature-settings: normal; -webkit-text-stroke: 0; }
+.at.q .qf { font-weight: 400; }
+.pg.qw .at.q { visibility: hidden; }
+.pg.qw .pg-ar { background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ink) 4%, transparent), transparent) 0 0 / 200% 100%; animation: qwait 1.4s linear infinite; border-radius: 12px; }
+@keyframes qwait { to { background-position: -200% 0; } }
+:root[data-bg="night"] .at.q .qf, :root[data-bg="night"] .ay-ar.q .qf { font-palette: --qcf-dark; }
+.f-qcf .tj { display: flex; gap: 3px; height: 38px; align-items: center; }
+.f-qcf .tj b { width: 9px; height: 9px; border-radius: 50%; }
+.f-qcf .tj b:nth-child(1) { background: #d1352b; } .f-qcf .tj b:nth-child(2) { background: #2b8a3e; }
+.f-qcf .tj b:nth-child(3) { background: #1f6fd1; } .f-qcf .tj b:nth-child(4) { background: #9a5bd0; }
+
+/* ================= Gishti i mbajtur: përkthimi i ajetit ================= */
+body.hold .pg-ar, body.hold .pg-tr p { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+#sheet-ayah .sheet-head h2 { margin: 0; }
+#sheet-ayah .sheet-head .sub { margin-top: 2px; }
+.ay-ar { direction: rtl; text-align: center; font-size: calc(min(var(--ar-size), 34px) * var(--ar-scale)); line-height: 2; margin: 8px 0 6px; padding: 10px 12px; border-radius: 16px;
+  background-color: var(--bg); background-image: var(--tex); background-size: var(--tex-size, 256px); box-shadow: var(--sh-in); overflow-wrap: anywhere; }
+.ay-tr { margin: 10px 2px 14px; font: calc(var(--tr-size) + 1px)/1.7 var(--latin), Georgia, serif; }
+.ay-row { display: flex; gap: 8px; flex-wrap: wrap; }

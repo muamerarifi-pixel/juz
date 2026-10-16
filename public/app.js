@@ -16,12 +16,12 @@ const FETCH_TIMEOUT = 12000;
 const DEVICE_TOUCH_MS = 6 * 3600 * 1000;
 const KAHF = 18;
 const BASMALA = { d: 'بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحٖیمِ', h: 'بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّح۪يمِ' };
-const AR_FONT = { hamdullah: "'Hamdullah'", scheherazade: "'Scheherazade New'", naskh: "'Noto Naskh Arabic'", harmattan: "'Harmattan'", sans: "'Noto Sans Arabic'", kufi: "'Noto Kufi Arabic'" };
+const AR_FONT = { hamdullah: "'Hamdullah'", scheherazade: "'Scheherazade New'", naskh: "'Noto Naskh Arabic'", harmattan: "'Harmattan'", sans: "'Noto Sans Arabic'", kufi: "'Noto Kufi Arabic'", qcf: "'Scheherazade New'" };
 // Fontet kanë madhësi të ndryshme për të njëjtin numër: kjo i barazon me Scheherazade.
-const AR_SCALE = { hamdullah: 1, scheherazade: 1, naskh: 1, harmattan: 1.12, sans: 0.95, kufi: 0.88 };
+const AR_SCALE = { hamdullah: 1, scheherazade: 1, naskh: 1, harmattan: 1.12, sans: 0.95, kufi: 0.88, qcf: 1 };
 const LATIN = { literata: "'Literata'", lora: "'Lora'", inter: "'Inter'" };
 const THEME_COLOR = { paper: '#ece2cb', night: '#13120f' };
-const DEFAULTS = { bg: 'paper', font: 'hamdullah', weight: 400, trans: true, latin: 'literata', size: 30, trSize: 17, home: 'juz', paper: 'classic', arTrans: 0, trTrans: 0 };
+const DEFAULTS = { bg: 'paper', font: 'hamdullah', weight: 400, trans: true, latin: 'literata', size: 30, trSize: 17, home: 'juz', paper: 'classic', arTrans: 0, trTrans: 0, hold: true };
 const SYNC_URL = '/api/sync';
 const CH = SCHEMA.sync;
 const DAYS = ['e diel', 'e hënë', 'e martë', 'e mërkurë', 'e enjte', 'e premte', 'e shtunë'];
@@ -221,6 +221,7 @@ function normalizeSettings() {
   settings.arTrans = clamp(Math.round(+settings.arTrans || 0), 0, 60);
   settings.trTrans = clamp(Math.round(+settings.trTrans || 0), 0, 60);
   if (!['juz', 'surah'].includes(settings.home)) settings.home = 'juz';
+  settings.hold = settings.hold !== false;
 }
 normalizeSettings();
 const saveSettings = () => lsSet(LS.settings, JSON.stringify(settings));
@@ -229,7 +230,8 @@ const syncedSnapshot = () => Object.fromEntries(Object.keys(SYNCED_SETTINGS).map
 // Fonti i Diyanetit vjen nga /api/font; nëse nuk ngarkohet, përdoret Scheherazade dhe teksti Unicode.
 const fontState = { hamdullah: 'unknown' }; // unknown | ok | failed
 const arFont = () => (settings.font === 'hamdullah' && fontState.hamdullah !== 'ok' ? 'scheherazade' : settings.font);
-const textKey = () => (arFont() === 'hamdullah' ? 'h' : 'd');
+const textKey = () => (settings.font === 'qcf' ? 'q' : arFont() === 'hamdullah' ? 'h' : 'd');
+const basmala = () => BASMALA[textKey() === 'h' ? 'h' : 'd'];
 async function checkHamdullah() {
   if (fontState.hamdullah !== 'unknown' || !document.fonts) return;
   try {
@@ -267,9 +269,12 @@ function applySettings() {
   root.style.setProperty('--tr-alpha', (100 - settings.trTrans) / 100);
   // Hamdullah ka vetëm një trashësi: trashësia jepet me vijë konture.
   const w = settings.weight;
-  root.style.setProperty('--ar-weight', f === 'hamdullah' ? 400 : w);
+  root.style.setProperty('--ar-weight', f === 'hamdullah' || f === 'qcf' ? 400 : w);
   root.style.setProperty('--ar-stroke', f === 'hamdullah' ? `${((w - 400) / 300) * 0.035}em` : '0px');
   document.body.classList.toggle('no-trans', !settings.trans);
+  document.body.classList.toggle('qcf', f === 'qcf');
+  document.body.classList.toggle('hold', settings.hold);
+  $('#holdToggle').checked = settings.hold;
   const tone = settings.bg === 'paper' && window.JUZPaper?.TONES[settings.paper];
   $('meta[name="theme-color"]').content = tone || THEME_COLOR[settings.bg];
   for (const b of $$('#paperGrid button')) { const on = b.dataset.paper === settings.paper; b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); }
@@ -287,7 +292,7 @@ function applySettings() {
   $('#trSizeRange').value = settings.trSize;
   $('#trSizeOut').textContent = settings.trSize;
   const p = $('#previewAr');
-  p.textContent = BASMALA[textKey()];
+  p.textContent = basmala();
   p.className = 'ar ar-txt';
   const hint = $('#fontHint');
   hint.hidden = !(settings.font === 'hamdullah' && fontState.hamdullah === 'failed');
@@ -801,6 +806,98 @@ function assignWeek(j) {
   renderHome();
 }
 
+// ================================================================ QCF V4: Mus'hafi i Medinës me ngjyrat e texhvidit
+// Çdo faqe e Mus'hafit të Medinës (1–604) ka fontin e vet me ngjyra (COLRv1); çdo fjalë shkruhet me kodin e saj.
+// Kodet vijnë nga /api/qcf-text, fontet nga /api/qcf-font (të dyja ruhen në telefon pas herës së parë).
+const QCF = { text: new Map(), faces: new Map(), warned: false };
+const QCF_CDN = (p) => `https://verses.quran.foundation/fonts/quran/hafs/v4/colrv1/woff2/p${p}.woff2`;
+const qcfFam = (p) => `QCF4 P${p}`;
+const qcfSegs = (x) => QCF.text.get(x.s)?.[x.a] || null;
+function surahSpan(pages) {
+  let a = 999, b = 0;
+  for (const pg of pages) for (const x of pg.items) { if (x.s < a) a = x.s; if (x.s > b) b = x.s; }
+  return [a, b];
+}
+function qcfReady(pages) {
+  const [a, b] = surahSpan(pages);
+  for (let s = a; s <= b; s++) if (!QCF.text.has(s)) return false;
+  return true;
+}
+async function qcfEnsure(pages) {
+  const [a, b] = surahSpan(pages);
+  const need = [];
+  for (let s = a; s <= b; s++) if (!QCF.text.has(s)) need.push(s);
+  if (!need.length) return;
+  const lo = need[0], hi = need[need.length - 1];
+  for (let s = lo; s <= hi; s += 40) {
+    const e = Math.min(hi, s + 39);
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 25000);
+    try {
+      const r = await fetch(`/api/qcf-text?s=${s}-${e}`, { signal: ctrl.signal });
+      if (!r.ok) throw new Error(`qcf ${r.status}`);
+      const j = await r.json();
+      for (const [k, m] of Object.entries(j.s || {})) QCF.text.set(+k, m);
+    } finally { clearTimeout(t); }
+  }
+}
+function qcfPalettes() {
+  let el = document.getElementById('qcfPal');
+  if (!el) { el = document.createElement('style'); el.id = 'qcfPal'; document.head.append(el); }
+  const fams = [...QCF.faces.keys()].map((p) => `"${qcfFam(p)}"`).join(', ');
+  // Natën: paleta e errët e fontit (1); ditën: e çelëta (0, parazgjedhje).
+  el.textContent = fams ? `@font-palette-values --qcf-dark { font-family: ${fams}; base-palette: 1; }` : '';
+}
+function qcfFace(p) {
+  let f = QCF.faces.get(p);
+  if (f) return f;
+  f = new FontFace(qcfFam(p), `url(/api/qcf-font?p=${p}) format('woff2'), url(${QCF_CDN(p)}) format('woff2')`, { display: 'block' });
+  document.fonts.add(f);
+  QCF.faces.set(p, f);
+  qcfPalettes();
+  return f;
+}
+const qcfHTML = (segs) => segs.map(([p, c]) => `<span class="qf" style="font-family:'${qcfFam(p)}'">${esc(c)}</span>`).join(' ');
+function ayahItem(k) {
+  for (const pg of R.pages) for (const x of pg.items) if (`${x.s}:${x.a}` === k) return x;
+  return null;
+}
+// Nëse fontet e një faqeje nuk ngarkohen, ajetet e saj shkruhen me Scheherazade.
+function qcfFallback(sec) {
+  for (const at of $$('.at.q', sec)) {
+    const x = ayahItem(at.closest('.ay')?.dataset.k);
+    if (x) { at.classList.remove('q'); at.textContent = x.d; }
+  }
+}
+// Fontet ngarkohen duke filluar nga faqja ku je; çdo faqe shfaqet kur fontet e saj janë gati.
+async function qcfLoadFonts(startIdx = 0) {
+  const token = R.token;
+  const order = $$('#readerBody .pg.qw').sort((a, b) => Math.abs(+a.dataset.i - startIdx) - Math.abs(+b.dataset.i - startIdx));
+  let i = 0;
+  const worker = async () => {
+    while (i < order.length) {
+      const sec = order[i++];
+      const ps = (sec.dataset.qp || '').split(',').filter(Boolean).map(Number);
+      try { await Promise.all(ps.map((p) => qcfFace(p).load())); }
+      catch {
+        if (token !== R.token) return;
+        qcfFallback(sec);
+        if (!QCF.warned) { QCF.warned = true; toast('Disa faqe me texhvid nuk u ngarkuan (internet?). Po shfaqen me Scheherazade.', 4200); }
+      }
+      if (token !== R.token) return;
+      sec.classList.remove('qw');
+    }
+  };
+  await Promise.all([worker(), worker(), worker()]);
+}
+async function qcfPrepare(pages) {
+  try { await qcfEnsure(pages); return true; }
+  catch {
+    if (!QCF.warned) { QCF.warned = true; toast('Fonti me texhvid nuk u ngarkua — nevojitet internet herën e parë. Po përdoret Scheherazade.', 4500); }
+    return false;
+  }
+}
+
 // ================================================================ lexuesi
 const R = { kind: '', n: 0, pages: [], idx: 0, token: 0, io: null, lastY: 0 };
 const count = () => R.pages.length;
@@ -809,12 +906,14 @@ function surahHead(su) {
   const showB = su.b && su.n !== 1 && su.n !== 9;
   return `<div class="s-head"><div class="orn"><span class="ar-name" lang="ar">${esc(su.ar)}</span></div>
     <div class="sq">${su.n}. ${esc(su.sq)} · <i>${esc(su.mn)}</i> · ${su.c} ajete</div></div>
-    ${showB ? `<div class="basmala ar-txt" lang="ar">${BASMALA[textKey()]}</div>` : ''}`;
+    ${showB ? `<div class="basmala ar-txt" lang="ar">${basmala()}</div>` : ''}`;
 }
 
 function pageHTML(pg, i) {
   const info = PAGES[pg.p];
   const key = textKey();
+  const qcf = key === 'q';
+  const qpages = new Set();
   const OPEN = '<div class="txt">';
   let ar = OPEN;
   let tr = '';
@@ -824,13 +923,17 @@ function pageHTML(pg, i) {
       tr += `<h4>${x.s}. ${esc(surah(x.s).sq)} — ${esc(surah(x.s).mn)}</h4>`;
     }
     // Numri i ajetit me shifra perëndimore (1, 2, 3 …)
-    ar += `<span class="ay" data-k="${x.s}:${x.a}"><span class="at">${esc(x[key] || x.d)}</span> <span class="an">${x.a}</span></span> `;
+    const segs = qcf && qcfSegs(x);
+    if (segs) for (const [p] of segs) qpages.add(p);
+    const at = segs ? `<span class="at q">${qcfHTML(segs)}</span>` : `<span class="at">${esc((key !== 'q' && x[key]) || x.d)}</span>`;
+    ar += `<span class="ay" data-k="${x.s}:${x.a}">${at} <span class="an">${x.a}</span></span> `;
     tr += `<p data-k="${x.s}:${x.a}"><b>${x.s}:${x.a}</b><span class="tt">${esc(plain(x.t))}</span></p>`;
   }
   ar = (ar + '</div>').replaceAll(`${OPEN}</div>`, '');
   const j = juzOfPage(pg.p);
   const inJuz = pg.p - juzMeta(j).pg[0] + 1;
-  return `<section class="pg" data-i="${i}" data-p="${pg.p}">
+  const qattr = qpages.size ? ` data-qp="${[...qpages].join(',')}"` : '';
+  return `<section class="pg${qpages.size ? ' qw' : ''}" data-i="${i}" data-p="${pg.p}"${qattr}>
     <div class="pg-row">
       <div class="pg-ar ar-txt" lang="ar">${ar}</div>
       <div class="pg-tr" lang="sq"><div class="tr-in">${tr}</div></div>
@@ -905,8 +1008,13 @@ const markOverflow = () => { for (const el of $$('#readerBody .tr-in')) trEdges(
 function rebuildReader() {
   if (!count()) return;
   const k = visibleAyah();
-  buildReader();
-  if (k) scrollToAyah(k, false); else goTo(R.idx, false);
+  const done = () => {
+    buildReader();
+    if (k) scrollToAyah(k, false); else goTo(R.idx, false);
+    if (textKey() === 'q') qcfLoadFonts(Math.max(0, R.idx));
+  };
+  if (textKey() === 'q' && !qcfReady(R.pages)) { const token = R.token; qcfPrepare(R.pages).then(() => { if (token === R.token) done(); }); return; }
+  done();
 }
 function visibleAyah() {
   const top = $('.reader-top').getBoundingClientRect().bottom + 20;
@@ -1053,14 +1161,26 @@ async function openReader(kind, n, target) {
     return;
   }
   if (token !== R.token) return;
+  const qcf = textKey() === 'q' && (await qcfPrepare(pages));
+  if (token !== R.token) return;
   Object.assign(R, { kind, n, pages, idx: -1 });
   // Objektivi: ajeti nga lidhja, përndryshe shënjuesi i kësaj njësie, përndryshe fillimi.
   let ayah = target && target.includes(':') ? target : null;
   if (!ayah) { const b = bmOf(); if (b && bmInUnit(b)) ayah = `${b.s}:${b.a}`; }
+  let ti = 0;
+  if (ayah) { const [s, a] = ayah.split(':').map(Number); ti = Math.max(0, pages.findIndex((g) => g.items.some((x) => x.s === s && x.a === a))); }
+  if (qcf) {
+    // Fontet e faqes ku do të hapet ngarkohen para shfaqjes, që faqja të mos lëvizë pasi del.
+    const ps = new Set();
+    for (const x of pages[ti].items) for (const [p] of qcfSegs(x) || []) ps.add(p);
+    await Promise.race([Promise.all([...ps].map((p) => qcfFace(p).load())).catch(() => {}), new Promise((r) => setTimeout(r, 6000))]);
+    if (token !== R.token) return;
+  }
   buildReader();
   scrollTo(0, 0);
   setIdx(0);
   requestAnimationFrame(() => { if (token === R.token && ayah) scrollToAyah(ayah, !!target); });
+  if (qcf) qcfLoadFonts(ti);
 }
 
 // ================================================================ sinkronizimi (UI)
@@ -1121,6 +1241,26 @@ function renderAbout() {
   const v = $('#aboutVersion');
   v.textContent = `Të dhënat: ${META.built}`;
   if ('caches' in window) caches.keys().then((ks) => { const k = ks.find((x) => x.startsWith('juz-')); if (k) v.textContent = `Versioni: ${k} · Të dhënat: ${META.built}`; }).catch(() => {});
+}
+
+// ================================================================ përkthimi i një ajeti (gishti i mbajtur)
+function showAyah(k) {
+  const x = ayahItem(k);
+  if (!x) return;
+  const su = surah(x.s);
+  const sheet = $('#sheet-ayah');
+  sheet.dataset.k = k;
+  $('#ayTitle').textContent = `${su.sq} ${x.s}:${x.a}`;
+  $('#aySub').textContent = `${su.mn} · Mus'hafi f. ${printed(x.p)}`;
+  const ar = $('#ayAr');
+  const src = $(`#readerBody .ay[data-k="${k}"] .at`);
+  if (src && src.classList.contains('q')) { ar.innerHTML = src.innerHTML; ar.className = 'ay-ar ar-txt q'; }
+  else { ar.textContent = (textKey() === 'h' && x.h) || x.d; ar.className = 'ay-ar ar-txt'; }
+  $('#ayTr').textContent = plain(x.t);
+  const b = bmOf();
+  const on = b && bmInUnit(b) && `${b.s}:${b.a}` === k;
+  $('#ayBm').innerHTML = `<svg><use href="#i-bm"/></svg> ${on ? 'Hiqe shënjuesin' : 'Shëno këtu'}`;
+  openSheet('ayah');
 }
 
 // ================================================================ koha e leximit
@@ -1289,7 +1429,30 @@ function bind() {
     else toast('Prek një ajet për ta shënuar — kështu ruhet progresi.');
   });
 
+  // Mbaj gishtin mbi një ajet (ose kliko me të djathtën): përkthimi shqip i atij ajeti.
+  const LP = { t: 0, x: 0, y: 0, fired: false };
+  const body = $('#readerBody');
+  body.addEventListener('pointerdown', (e) => {
+    LP.fired = false;
+    clearTimeout(LP.t);
+    if (!settings.hold || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    const el = e.target.closest('.ay, .pg-tr p[data-k]');
+    if (!el) return;
+    LP.x = e.clientX; LP.y = e.clientY;
+    LP.t = setTimeout(() => { LP.fired = true; try { navigator.vibrate?.(12); } catch {} showAyah(el.dataset.k); }, 480);
+  });
+  body.addEventListener('pointermove', (e) => { if (Math.hypot(e.clientX - LP.x, e.clientY - LP.y) > 10) clearTimeout(LP.t); });
+  for (const ev of ['pointerup', 'pointercancel']) body.addEventListener(ev, () => clearTimeout(LP.t));
+  addEventListener('scroll', () => clearTimeout(LP.t), { passive: true });
+  body.addEventListener('contextmenu', (e) => {
+    const el = e.target.closest('.ay, .pg-tr p[data-k]');
+    if (!el || !settings.hold) return;
+    e.preventDefault();
+    if (!LP.fired) { LP.fired = true; showAyah(el.dataset.k); }
+  });
+
   $('#readerBody').addEventListener('click', safe((e) => {
+    if (LP.fired) { LP.fired = false; return; } // gishti i mbajtur hapi përkthimin; mos e shëno ajetin
     const act = e.target.closest('[data-act]');
     if (act) {
       const a = act.dataset.act;
@@ -1319,6 +1482,14 @@ function bind() {
     if (b) setSetting(seg.dataset.setting, /^\d+$/.test(b.dataset.v) ? +b.dataset.v : b.dataset.v);
   });
   $('#transToggle').addEventListener('change', (e) => setSetting('trans', e.target.checked));
+  $('#holdToggle').addEventListener('change', (e) => { settings.hold = e.target.checked; saveSettings(); applySettings(); });
+  $('#ayBm').addEventListener('click', () => { const k = $('#sheet-ayah').dataset.k; closeSheet(true); if (k) toggleAyahBm(k); });
+  $('#ayCopy').addEventListener('click', async () => {
+    const x = ayahItem($('#sheet-ayah').dataset.k);
+    if (!x) return;
+    const txt = `${x.d}\n\n${plain(x.t)}\n— ${surah(x.s).sq} ${x.s}:${x.a} (Hassan Nahi)`;
+    try { await navigator.clipboard.writeText(txt); toast('Ajeti u kopjua'); } catch { prompt('Kopjo:', txt); }
+  });
   $('#sizeRange').addEventListener('input', (e) => { settings.size = +e.target.value; saveSettings(); applySettings(); });
   $('#trSizeRange').addEventListener('input', (e) => { settings.trSize = +e.target.value; saveSettings(); applySettings(); });
   $('#arTransRange').addEventListener('input', (e) => { settings.arTrans = +e.target.value; saveSettings(); applySettings(); });

@@ -141,8 +141,9 @@
       <button data-v="harmattan"><span style="font-family:Harmattan;font-size:27px">بِسْمِ</span>Harmattan<i>për fillestarë</i></button>
       <button data-v="sans"><span style="font-family:'Noto Sans Arabic';font-size:22px">بِسْمِ</span>Noto Sans<i>për fillestarë</i></button>
       <button data-v="kufi"><span style="font-family:'Noto Kufi Arabic';font-size:21px">بِسْمِ</span>Kufi<i>për fillestarë</i></button>
+      <button data-v="qcf" class="f-qcf"><span class="tj" aria-hidden="true"><b></b><b></b><b></b><b></b></span>Texhvid<i>QCF V4 · me ngjyra</i></button>
     </div>
-    <p class="hint">Fontet "për fillestarë" kanë shkronja më të hapura dhe zanore më të dallueshme.</p>
+    <p class="hint">Fontet "për fillestarë" kanë shkronja më të hapura dhe zanore më të dallueshme. "Texhvid" është Mus'hafi i Medinës me ngjyrat e rregullave të leximit (nevojitet internet herën e parë për çdo xhuz).</p>
     <p class="hint" id="fontHint" hidden></p>
   </div>
   <div class="field">
@@ -162,6 +163,10 @@
   <label class="switch">
     <span class="label">Përkthimi<small>Hassan Nahi, nën çdo faqe (anash në ekran të gjerë)</small></span>
     <input type="checkbox" class="toggle" id="transToggle">
+  </label>
+  <label class="switch">
+    <span class="label">Mbaj gishtin për përkthimin<small>Mbaj gishtin mbi një ajet (ose kliko me të djathtën) për ta lexuar shqip</small></span>
+    <input type="checkbox" class="toggle" id="holdToggle">
   </label>
   <div id="trFields">
     <div class="field">
@@ -219,6 +224,18 @@
   <button class="link-btn danger" id="newCodeBtn">Shkëpute këtë pajisje</button>
 </section>
 
+<section class="sheet" id="sheet-ayah" role="dialog" aria-modal="true" aria-labelledby="ayTitle" hidden>
+  <div class="grip"></div>
+  <header class="sheet-head"><div><h2 id="ayTitle"></h2><p class="sub" id="aySub"></p></div><button class="icon-btn" data-close aria-label="Mbyll"><svg><use href="#i-close"/></svg></button></header>
+  <p class="ay-ar ar-txt" lang="ar" dir="rtl" id="ayAr"></p>
+  <p class="ay-tr" lang="sq" id="ayTr"></p>
+  <div class="ay-row">
+    <button class="btn primary small" id="ayBm"></button>
+    <button class="btn small" id="ayCopy"><svg><use href="#i-copy"/></svg> Kopjo</button>
+  </div>
+  <p class="hint">Përkthimi: Hassan Nahi</p>
+</section>
+
 <section class="sheet" id="sheet-stats" role="dialog" aria-modal="true" aria-labelledby="statsTitle" hidden>
   <div class="grip"></div>
   <header class="sheet-head"><h2 id="statsTitle">Leximi im</h2><button class="icon-btn" data-close aria-label="Mbyll"><svg><use href="#i-close"/></svg></button></header>
@@ -241,6 +258,7 @@
     <ul>
       <li><strong>Teksti arabisht:</strong> Mus'hafi i Diyanetit (Diyanet İşleri Başkanlığı), nga <a href="https://github.com/alperenugus/Kuran" target="_blank" rel="noopener">alperenugus/Kuran</a>, licencë <a href="https://creativecommons.org/licenses/by/4.0/deed.sq" target="_blank" rel="noopener">CC BY 4.0</a>. Fonti "Shaikh Hamdullah Mushaf" merret nga <a href="https://kuran.diyanet.gov.tr/Yayinlar" target="_blank" rel="noopener">kuran.diyanet.gov.tr</a>.</li>
       <li><strong>Përkthimi shqip:</strong> Hassan Nahi, botuar nga Instituti Shqiptar i Mendimit dhe i Qytetërimit Islam (AIITC), sipas <a href="https://quranenc.com/sq/browse/albanian_nahi" target="_blank" rel="noopener">QuranEnc.com</a>, versioni <span id="trVersion">1.1.0</span>. Fusnotat e përkthyesit gjenden atje.</li>
+      <li><strong>Texhvidi me ngjyra:</strong> fontet QPC V4 të Mus'hafit të Medinës (Kompleksi Mbreti Fahd, kaligrafia e Uthman Tahas), përmes <a href="https://quran.foundation" target="_blank" rel="noopener">Quran Foundation</a> / quran.com.</li>
       <li><strong>Fontet e tjera:</strong> Scheherazade New, Noto Naskh Arabic, Harmattan, Noto Sans Arabic, Noto Kufi Arabic, Literata, Lora, Inter (SIL Open Font License).</li>
     </ul>
     <p class="muted small" id="aboutVersion"></p>

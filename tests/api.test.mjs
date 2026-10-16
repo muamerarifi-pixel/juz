@@ -17,12 +17,19 @@ globalThis.fetch = async (url, opts) => {
     const buf = Buffer.alloc(40000); buf.writeUInt32BE(0x00010000, 0);
     return new Response(buf, { status: 200 });
   }
+  if (String(url).startsWith('https://api.quran.com/')) return quranApi(String(url));
+  if (String(url).includes('quran.foundation') || String(url).includes('tarteel.ai')) {
+    if (fontMode === 'down') return new Response('nope', { status: 503 });
+    const buf = Buffer.alloc(5000); buf.write('wOF2', 0, 'latin1');
+    return new Response(buf, { status: 200 });
+  }
   assert.equal(url, 'https://fake-upstash.test');
   assert.equal(opts.headers.Authorization, 'Bearer secret');
   const [cmd, ...args] = JSON.parse(opts.body);
   commands++;
   let result;
   if (cmd === 'GET') result = db.has(args[0]) ? db.get(args[0]) : null;
+  else if (cmd === 'MGET') result = args.map((k) => (db.has(k) ? db.get(k) : null));
   else if (cmd === 'SET') {
     assert.equal(args[2], 'EX');
     db.set(args[0], args[1]);
@@ -31,6 +38,23 @@ globalThis.fetch = async (url, opts) => {
   return new Response(JSON.stringify({ result }), { status: 200 });
 };
 
+// quran.com i rremë: sureja 112 me 4 ajete në dy "faqe" të API-së (2 ajete secila); ajeti 4 kalon në faqen 605 të rreme
+let quranCalls = 0;
+function quranApi(url) {
+  quranCalls++;
+  const u = new URL(url);
+  assert.match(u.pathname, /\/verses\/by_chapter\/112$/);
+  assert.equal(u.searchParams.get('mushaf'), '19');
+  const page = +u.searchParams.get('page');
+  const w = (n, code, pg, type = 'word') => ({ char_type_name: type, code_v2: code, page_number: pg, position: n });
+  const verse = (a) => ({ verse_number: a, page_number: 604, words: a === 4
+    ? [w(1, 'ﱁ', 604), w(2, 'ﱂﱃ', 605), w(3, 'ﱄ', 605, 'end')]
+    : [w(1, 'ﰀ', 604), w(2, 'ﰁ', 604), w(3, 'ﰂ', 604, 'end')] });
+  const verses = page === 1 ? [verse(1), verse(2)] : [verse(3), verse(4)];
+  return new Response(JSON.stringify({ verses, pagination: { per_page: 2, current_page: page, total_pages: 2, total_records: 4 } }), { status: 200 });
+}
+const { GET: qcfText } = await import('../api/qcf-text.js');
+const { GET: qcfFont } = await import('../api/qcf-font.js');
 const { default: sync } = await import('../api/sync.js');
 const { default: qr } = await import('../api/qr.js');
 const { default: font } = await import('../api/font.js');
@@ -231,4 +255,29 @@ test('/api/font: kalon fontin e Diyanetit me cache të gjatë; dështon pastër 
   r = await call(font, { url: '/api/font' });
   assert.equal(r.status, 502);
   assert.equal(r.headers['cache-control'], 'no-store');
+});
+
+test('/api/qcf-text: kodet fjalë për fjalë, pjesë sipas faqes, pa shenjën e fundit; merren një herë, pastaj nga Redis', async () => {
+  const before = quranCalls;
+  const r = await qcfText(new Request('https://juz.test/api/qcf-text?s=112'));
+  assert.equal(r.status, 200);
+  const j = await r.json();
+  assert.deepEqual(j.s['112'], { 1: [[604, 'ﰀ ﰁ']], 2: [[604, 'ﰀ ﰁ']], 3: [[604, 'ﰀ ﰁ']], 4: [[604, 'ﱁ'], [605, 'ﱂﱃ']] });
+  assert.equal(quranCalls - before, 2);
+  const again = await (await qcfText(new Request('https://juz.test/api/qcf-text?s=112-112'))).json();
+  assert.deepEqual(again.s['112'], j.s['112']);
+  assert.equal(quranCalls - before, 2, 'e dyta lexohet nga Redis');
+  for (const bad of ['0', '115', '5-2', '1-60', 'x']) assert.equal((await qcfText(new Request(`https://juz.test/api/qcf-text?s=${bad}`))).status, 400);
+});
+
+test('/api/qcf-font: WOFF2 me cache të gjatë; faqe e pavlefshme → 400; CDN poshtë → 502', async () => {
+  fontMode = 'ok';
+  const r = await qcfFont(new Request('https://juz.test/api/qcf-font?p=293'));
+  assert.equal(r.status, 200);
+  assert.equal(r.headers.get('content-type'), 'font/woff2');
+  assert.match(r.headers.get('cache-control'), /max-age=31536000/);
+  assert.equal((await qcfFont(new Request('https://juz.test/api/qcf-font?p=605'))).status, 400);
+  fontMode = 'down';
+  assert.equal((await qcfFont(new Request('https://juz.test/api/qcf-font?p=1'))).status, 502);
+  fontMode = 'ok';
 });
