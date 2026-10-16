@@ -8,7 +8,10 @@ It works offline and syncs between devices.
   while the reader is open. "Leximi im" shows pages and time for every day of the month.
 - Juz bookmark is gold, surah bookmark is blue; in "Suret" the main card follows the surah bookmark.
 - The Mushaf page number is always shown in the reader. Ayah numbers use 1, 2, 3.
-- 9 paper backgrounds, 6 Arabic fonts (3 for beginners), text transparency, rotation lock on phones.
+- 9 paper backgrounds, 6 Arabic fonts (3 for beginners), text transparency.
+- Rotation follows the phone's auto-rotate setting: `manifest.json` deliberately has no `orientation`
+  (Chrome on Android ignores the phone's rotation lock when it is set to `any`). The reader's lock
+  button only locks for the current session.
 
 **Live:** https://juz.muamer-arifi.workers.dev
 

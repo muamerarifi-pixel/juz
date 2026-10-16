@@ -1160,6 +1160,8 @@ function startReadingClock() {
 }
 
 // ================================================================ kyçja e rrotullimit (telefon/tablet)
+// Si parazgjedhje aplikacioni ndjek cilësimin e telefonit (Rrotullimi automatik).
+// Butoni e kyç vetëm për këtë herë; kur aplikacioni hapet përsëri, vendos sërish telefoni.
 const ROT = { on: false, fs: false };
 const canRotate = () => !isIOS && !!screen.orientation?.lock && matchMedia('(pointer: coarse)').matches;
 async function tryLock() {
@@ -1173,18 +1175,17 @@ function renderRot() {
   if (!show) return;
   $('#rotIc').setAttribute('href', ROT.on ? '#i-rotlock' : '#i-rot');
   b.setAttribute('aria-pressed', String(ROT.on));
-  b.setAttribute('aria-label', ROT.on ? 'Rrotullimi është i kyçur — prek për ta zhbllokuar' : 'Kyç rrotullimin');
+  b.setAttribute('aria-label', ROT.on ? 'Rrotullimi është i kyçur — prek që të vendosë telefoni' : 'Kyç rrotullimin për këtë herë');
   b.classList.toggle('on', ROT.on);
   $('#rotToggle').checked = ROT.on;
 }
 async function setRotLock(on, quiet = false) {
   if (!on) {
     ROT.on = false;
-    lsSet(LS.rot, null);
     try { screen.orientation.unlock(); } catch {}
     if (ROT.fs && document.fullscreenElement) { ROT.fs = false; document.exitFullscreen().catch(() => {}); }
     renderRot();
-    if (!quiet) toast('Rrotullimi u zhbllokua');
+    if (!quiet) toast('Rrotullimi ndjek përsëri cilësimin e telefonit');
     return;
   }
   let ok = await tryLock();
@@ -1194,23 +1195,17 @@ async function setRotLock(on, quiet = false) {
     if (!ok && ROT.fs) { ROT.fs = false; document.exitFullscreen().catch(() => {}); }
   }
   ROT.on = ok;
-  lsSet(LS.rot, ok ? '1' : null);
   renderRot();
   if (quiet) return;
-  if (ok) toast(screen.orientation.type.startsWith('portrait') ? 'Rrotullimi u kyç: vertikal' : 'Rrotullimi u kyç: horizontal');
+  if (ok) toast(screen.orientation.type.startsWith('portrait') ? 'U kyç vertikalisht për këtë herë' : 'U kyç horizontalisht për këtë herë');
   else toast('Telefoni nuk e lejoi kyçjen këtu. Shto JUZ në ekranin kryesor dhe provo nga aplikacioni.', 4500);
 }
 function initRot() {
+  lsSet(LS.rot, null); // kyçja e ruajtur nga versioni 7.0.0 nuk vendoset më vetë
   renderRot();
   document.addEventListener('fullscreenchange', () => {
     // Kur del nga ekrani i plotë, shfletuesi e heq kyçjen.
-    if (!document.fullscreenElement && ROT.fs) { ROT.fs = false; ROT.on = false; lsSet(LS.rot, null); renderRot(); }
-  });
-  if (lsGet(LS.rot) !== '1' || !canRotate()) return;
-  tryLock().then((ok) => {
-    if (ok) { ROT.on = true; renderRot(); return; }
-    // Disa telefona e lejojnë vetëm pas prekjes së parë.
-    addEventListener('pointerup', () => tryLock().then((ok2) => { ROT.on = ok2; if (!ok2) lsSet(LS.rot, null); renderRot(); }), { once: true });
+    if (!document.fullscreenElement && ROT.fs) { ROT.fs = false; ROT.on = false; renderRot(); }
   });
 }
 

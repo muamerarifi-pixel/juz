@@ -1,6 +1,6 @@
 // Service worker i JUZ — punon plotësisht pa internet.
 // RRITE VERSIONIN me çdo publikim të ri (p.sh. juz-v1.0.1), që pajisjet të marrin skedarët e rinj.
-const VERSION = 'juz-v7.0.0-cf';
+const VERSION = 'juz-v7.0.1-cf';
 const FONT_CACHE = 'juz-font-1'; // mbetet mes versioneve
 
 const JUZ = Array.from({ length: 30 }, (_, i) => `/data/juz-${String(i + 1).padStart(2, '0')}.json`);
@@ -81,6 +81,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   if (url.pathname.startsWith('/api/')) return; // sinkronizimi asnjëherë në cache
+
+  // Manifesti: gjithmonë nga rrjeti (Chrome e lexon për të përditësuar aplikacionin e instaluar).
+  if (url.pathname === '/manifest.json') {
+    event.respondWith((async () => {
+      const cache = await caches.open(VERSION);
+      try { return await refresh(cache, req, '/manifest.json'); } catch { return (await cache.match('/manifest.json')) || Response.error(); }
+    })());
+    return;
+  }
 
   // Navigimi: gjithmonë index.html (edhe me ?k=KODI ose #/j/5), cache-first.
   if (req.mode === 'navigate') {
