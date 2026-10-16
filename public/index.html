@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="sq">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>JUZ — Kur'ani, një xhuz në javë</title>
+<meta name="description" content="Lexo dhe kupto Kur'anin një xhuz në javë: Mus'hafi i Diyanetit me përkthimin shqip të Hassan Nahit.">
+<meta name="theme-color" content="#ece2cb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="JUZ">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" href="/icons/favicon.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="preload" href="/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/style.css">
+<script>
+  try { var s = JSON.parse(localStorage.getItem('juz.settings') || '{}'); document.documentElement.dataset.bg = s.bg === 'night' ? 'night' : 'paper'; }
+  catch (e) { document.documentElement.dataset.bg = 'paper'; }
+</script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-fwd" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-aa" viewBox="0 0 24 24"><path d="M3 18l5-12 5 12M4.8 14h6.4M15 18v-5.5a2.5 2.5 0 0 1 5 0V18M15 15h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-sync" viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-14.3 4.9M4 12a8 8 0 0 1 14.3-4.9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18.5 3v4.2h-4.2M5.5 21v-4.2h4.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-bm" viewBox="0 0 24 24"><path d="M7 3.5h10a1 1 0 0 1 1 1V21l-6-4.2L6 21V4.5a1 1 0 0 1 1-1z" fill="currentColor"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4M5 13v6h14v-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M11 18h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-laptop" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M2 19h20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2.5l2.8 4.4 5 .9-1.3 4.9 1.3 4.9-5 .9L12 21.5l-2.8-4.4-5-.9 1.3-4.9-1.3-4.9 5-.9z" fill="currentColor"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.3 1.2-3.6 2.3-4.8.3 1.6 1 2.6 2.2 3 0-3.2-.5-5.6.5-8.2z" fill="currentColor"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-cave" viewBox="0 0 24 24"><path d="M3 20c1-7 4.5-12 9-12s8 5 9 12M9 20c0-3 1.3-5 3-5s3 2 3 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+</svg>
+
+<main id="app">
+  <section id="home" hidden>
+    <header class="topbar">
+      <div class="brand">
+        <img class="brand-ic" src="/icons/favicon.png" alt="" width="34" height="34">
+        <div><h1>JUZ</h1><p class="sub" id="weekLabel"></p></div>
+      </div>
+      <div class="actions">
+        <button class="icon-btn" data-night aria-label="Modaliteti i natës"><svg><use class="night-ic" href="#i-moon"/></svg></button>
+        <button class="icon-btn" data-open="sync" aria-label="Pajisjet"><svg><use href="#i-sync"/></svg><span class="dot" data-sync-dot></span></button>
+        <button class="icon-btn" data-open="settings" aria-label="Cilësimet"><svg><use href="#i-aa"/></svg></button>
+      </div>
+    </header>
+
+    <div class="home-body">
+      <div class="top-row">
+        <article class="week card-hero" id="weekCard"></article>
+        <div class="side">
+          <article class="kahf" id="kahfCard" hidden></article>
+          <p class="statline" id="statLine"></p>
+        </div>
+      </div>
+
+      <div class="tabs" role="tablist" aria-label="Lista">
+        <button role="tab" class="tab" data-home="juz" aria-selected="true">Xhuzet</button>
+        <button role="tab" class="tab" data-home="surah" aria-selected="false">Suret</button>
+      </div>
+
+      <div id="juzPane"><button class="bm-chip" id="bjChip" hidden></button><ol id="juzGrid" class="juz-grid"></ol></div>
+      <div id="surahPane" hidden>
+        <button class="bm-chip" id="bsChip" hidden></button>
+        <label class="search"><svg><use href="#i-search"/></svg>
+          <input id="surahSearch" type="search" placeholder="Kërko suren (emër, kuptim ose numër)" autocomplete="off" enterkeyhint="search">
+        </label>
+        <ol id="surahList" class="surah-list"></ol>
+      </div>
+    </div>
+  </section>
+
+  <section id="reader" hidden>
+    <header class="topbar reader-top">
+      <button class="icon-btn" id="backBtn" aria-label="Kthehu"><svg><use href="#i-back"/></svg></button>
+      <div class="r-title"><strong id="rTitle"></strong><span id="rSub" class="sub"></span></div>
+      <div class="actions">
+        <button class="icon-btn" data-night aria-label="Modaliteti i natës"><svg><use class="night-ic" href="#i-moon"/></svg></button>
+        <button class="icon-btn" data-open="settings" aria-label="Cilësimet"><svg><use href="#i-aa"/></svg></button>
+      </div>
+    </header>
+    <div id="readerBody" class="reader-body"></div>
+    <button class="pill" id="pill" aria-label="Shko te shënjuesi">
+      <span class="pill-pg" id="pillPg"></span>
+      <span class="pill-bm" id="pillBm" hidden><svg><use href="#i-bm"/></svg><span id="pillBmTxt"></span></span>
+      <span class="pill-bar"><span id="pillBar"></span></span>
+    </button>
+  </section>
+</main>
+
+<div id="scrim" class="scrim" hidden></div>
+
+<section class="sheet" id="sheet-pick" role="dialog" aria-modal="true" aria-labelledby="pickTitle" hidden>
+  <div class="grip"></div>
+  <header class="sheet-head"><h2 id="pickTitle">Xhuzi i kësaj jave</h2><button class="icon-btn" data-close aria-label="Mbyll"><svg><use href="#i-close"/></svg></button></header>
+  <p class="muted small">Zgjidh xhuzin që do të lexosh këtë javë.</p>
+  <div class="pick-grid" id="pickGrid"></div>
+</section>
+
+<section class="sheet" id="sheet-settings" role="dialog" aria-modal="true" aria-labelledby="setTitle" hidden>
+  <div class="grip"></div>
+  <header class="sheet-head"><h2 id="setTitle">Cilësimet</h2><button class="icon-btn" data-close aria-label="Mbyll"><svg><use href="#i-close"/></svg></button></header>
+
+  <div class="field">
+    <span class="label">Pamja</span>
+    <div class="seg" data-setting="bg"><button data-v="paper">Ditë</button><button data-v="night">Natë</button></div>
+  </div>
+
+  <h3 class="sec">Arabisht</h3>
+  <div class="field">
+    <span class="label">Fonti</span>
+    <div class="seg fonts" data-setting="font">
+      <button data-v="hamdullah"><span class="f-hamd">بِسْمِ</span>Diyanet</button>
+      <button data-v="scheherazade"><span style="font-family:'Scheherazade New'">بِسْمِ</span>Scheherazade</button>
+      <button data-v="naskh"><span style="font-family:'Noto Naskh Arabic'">بِسْمِ</span>Naskh</button>
+    </div>
+    <p class="hint" id="fontHint" hidden></p>
+  </div>
+  <div class="field">
+    <span class="label">Trashësia</span>
+    <div class="seg" data-setting="weight"><button data-v="400">Hollë</button><button data-v="500">Mesme</button><button data-v="600">Trashë</button><button data-v="700">Shumë</button></div>
+  </div>
+  <label class="field">
+    <span class="label">Madhësia <output id="sizeOut"></output></span>
+    <input type="range" id="sizeRange" min="22" max="50" step="1">
+  </label>
+
+  <h3 class="sec">Shqip</h3>
+  <label class="switch">
+    <span class="label">Përkthimi<small>Hassan Nahi, nën çdo faqe (anash në ekran të gjerë)</small></span>
+    <input type="checkbox" class="toggle" id="transToggle">
+  </label>
+  <div id="trFields">
+    <div class="field">
+      <span class="label">Fonti</span>
+      <div class="seg" data-setting="latin">
+        <button data-v="literata" style="font-family:Literata">Literata</button>
+        <button data-v="lora" style="font-family:Lora">Lora</button>
+        <button data-v="inter" style="font-family:Inter">Inter</button>
+      </div>
+    </div>
+    <label class="field">
+      <span class="label">Madhësia <output id="trSizeOut"></output></span>
+      <input type="range" id="trSizeRange" min="14" max="26" step="1">
+    </label>
+  </div>
+  <div class="preview" id="preview">
+    <p class="ar" lang="ar" dir="rtl" id="previewAr"></p>
+    <p class="tr">Me emrin e Allahut, të Gjithëmëshirshmit, Mëshirëplotit!</p>
+  </div>
+  <button class="link-btn" data-open="about">Rreth aplikacionit dhe burimet</button>
+</section>
+
+<section class="sheet" id="sheet-sync" role="dialog" aria-modal="true" aria-labelledby="syncTitle" hidden>
+  <div class="grip"></div>
+  <header class="sheet-head"><h2 id="syncTitle">Pajisjet</h2><button class="icon-btn" data-close aria-label="Mbyll"><svg><use href="#i-close"/></svg></button></header>
+  <div class="sync-hero card" id="syncHero">
+    <span class="ic"><svg><use href="#i-sync"/></svg></span>
+    <div><strong id="syncTitleText"></strong><span id="syncText"></span></div>
+    <button class="link-btn" id="retryBtn" hidden>Provo</button>
+  </div>
+  <ul class="devices card" id="deviceList"></ul>
+  <h3 class="sec">Shto një pajisje</h3>
+  <div class="pair card">
+    <img id="qrImg" alt="Kodi QR për lidhje" width="128" height="128">
+    <div>
+      <p class="steps">Skano kodin me kamerën e telefonit tjetër, ose shkruaje këtë kod në JUZ:</p>
+      <strong id="myCode" class="code"></strong>
+      <div class="row">
+        <button class="btn small" id="copyCodeBtn"><svg><use href="#i-copy"/></svg> Kopjo</button>
+        <button class="btn small" id="shareBtn"><svg><use href="#i-share"/></svg> Dërgo</button>
+      </div>
+    </div>
+  </div>
+  <h3 class="sec">Kam një kod</h3>
+  <form id="joinForm" class="join-row">
+    <input id="joinInput" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX" aria-label="Kodi i pajisjes tjetër">
+    <button class="btn primary" type="submit">Lidhu</button>
+  </form>
+  <p class="small error" id="joinErr" hidden></p>
+  <p class="hint" id="iosHint" hidden>iPhone/iPad: shkruaje kodin brenda aplikacionit JUZ në ekranin kryesor, jo në Safari.</p>
+  <button class="link-btn danger" id="newCodeBtn">Shkëpute këtë pajisje</button>
+</section>
+
+<section class="sheet" id="sheet-about" role="dialog" aria-modal="true" aria-labelledby="aboutTitle" hidden>
+  <div class="grip"></div>
+  <header class="sheet-head"><h2 id="aboutTitle">Rreth JUZ</h2><button class="icon-btn" data-close aria-label="Mbyll"><svg><use href="#i-close"/></svg></button></header>
+  <div class="prose">
+    <p>Lexo dhe kupto Kur'anin një xhuz në javë — dhe suren Kehf çdo të premte. Prek një ajet për ta shënuar: shënjuesi është edhe progresi yt. Punon edhe pa internet.</p>
+    <ul>
+      <li><strong>Teksti arabisht:</strong> Mus'hafi i Diyanetit (Diyanet İşleri Başkanlığı), nga <a href="https://github.com/alperenugus/Kuran" target="_blank" rel="noopener">alperenugus/Kuran</a>, licencë <a href="https://creativecommons.org/licenses/by/4.0/deed.sq" target="_blank" rel="noopener">CC BY 4.0</a>. Fonti "Shaikh Hamdullah Mushaf" merret nga <a href="https://kuran.diyanet.gov.tr/Yayinlar" target="_blank" rel="noopener">kuran.diyanet.gov.tr</a>.</li>
+      <li><strong>Përkthimi shqip:</strong> Hassan Nahi, botuar nga Instituti Shqiptar i Mendimit dhe i Qytetërimit Islam (AIITC), sipas <a href="https://quranenc.com/sq/browse/albanian_nahi" target="_blank" rel="noopener">QuranEnc.com</a>, versioni <span id="trVersion">1.1.0</span>. Fusnotat e përkthyesit gjenden atje.</li>
+      <li><strong>Fontet e tjera:</strong> Scheherazade New, Noto Naskh Arabic, Literata, Lora, Inter (SIL Open Font License).</li>
+    </ul>
+    <p class="muted small" id="aboutVersion"></p>
+  </div>
+</section>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<script type="module" src="/app.js"></script>
+</body>
+</html>

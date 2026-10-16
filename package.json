@@ -1,0 +1,21 @@
+{
+  "name": "juz",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "JUZ — lexues i Kur'anit, një xhuz në javë, për lexuesit shqiptarë",
+  "scripts": {
+    "build:data": "node scripts/build-data.mjs",
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
+  }
+}

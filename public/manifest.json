@@ -1,0 +1,18 @@
+{
+  "name": "JUZ — Kur'ani, një xhuz në javë",
+  "short_name": "JUZ",
+  "description": "Lexo Kur'anin një xhuz në javë: Mus'hafi i Diyanetit dhe përkthim shqip nga Hassan Nahi.",
+  "lang": "sq",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#ece2cb",
+  "theme_color": "#ece2cb",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
