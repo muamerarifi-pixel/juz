@@ -18,7 +18,7 @@ const KAHF = 18;
 const BASMALA = { d: 'بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحٖیمِ', h: 'بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّح۪يمِ' };
 const AR_FONT = { hamdullah: "'Hamdullah'", scheherazade: "'Scheherazade New'", naskh: "'Noto Naskh Arabic'", harmattan: "'Harmattan'", sans: "'Noto Sans Arabic'", kufi: "'Noto Kufi Arabic'", qcf: "'Scheherazade New'" };
 // Fontet kanë madhësi të ndryshme për të njëjtin numër: kjo i barazon me Scheherazade.
-const AR_SCALE = { hamdullah: 1, scheherazade: 1, naskh: 1, harmattan: 1.12, sans: 0.95, kufi: 0.88, qcf: 1 };
+const AR_SCALE = { hamdullah: 1, scheherazade: 1, naskh: 1, harmattan: 1.12, sans: 0.95, kufi: 0.88, qcf: 1.12 };
 const LATIN = { literata: "'Literata'", lora: "'Lora'", inter: "'Inter'" };
 const THEME_COLOR = { paper: '#ece2cb', night: '#13120f' };
 const DEFAULTS = { bg: 'paper', font: 'hamdullah', weight: 400, trans: true, latin: 'literata', size: 30, trSize: 17, home: 'juz', paper: 'classic', arTrans: 0, trTrans: 0, hold: true };
