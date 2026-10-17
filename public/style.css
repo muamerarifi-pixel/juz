@@ -525,3 +525,8 @@ body.hold .pg-ar, body.hold .pg-tr p { -webkit-user-select: none; user-select: n
 #weekCard .w-pace { margin: 0 0 8px; font-size: 12px; }
 #weekCard .w-go { min-height: 42px; }
 .home-body { padding-bottom: calc(var(--hero-h, 190px) + 28px + var(--safe-b)); }
+#weekCard.swap-l { animation: wc-l .28s ease-out; }
+#weekCard.swap-r { animation: wc-r .28s ease-out; }
+@keyframes wc-l { from { transform: translateX(28%); opacity: .2; } }
+@keyframes wc-r { from { transform: translateX(-28%); opacity: .2; } }
+@media (prefers-reduced-motion: reduce) { #weekCard.swap-l, #weekCard.swap-r { animation: none; } }

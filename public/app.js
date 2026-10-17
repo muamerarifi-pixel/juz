@@ -1524,6 +1524,21 @@ function bind() {
   // A− / A+ dhe ajeti para/pas
   // the floating main card: the home list leaves room for it at the bottom
   if ('ResizeObserver' in window) new ResizeObserver(([e]) => document.documentElement.style.setProperty('--hero-h', `${Math.ceil(e.target.offsetHeight)}px`)).observe($('#weekCard'));
+  // swipe the floating card left/right: Xhuzet ⇄ Suret
+  {
+    const wc = $('#weekCard');
+    let sx = 0, sy = 0, on = false;
+    wc.addEventListener('touchstart', (e) => { const t = e.touches[0]; sx = t.clientX; sy = t.clientY; on = e.touches.length === 1; }, { passive: true });
+    wc.addEventListener('touchend', (e) => {
+      if (!on) return;
+      on = false;
+      const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+      if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      settings.home = settings.home === 'juz' ? 'surah' : 'juz';
+      saveSettings(); renderHome();
+      wc.classList.remove('swap-l', 'swap-r'); void wc.offsetWidth; wc.classList.add(dx < 0 ? 'swap-l' : 'swap-r');
+    }, { passive: true });
+  }
   $('#fszDown').addEventListener('click', () => stepSize(-1));
   $('#fszUp').addEventListener('click', () => stepSize(1));
   $('#ayPrev').addEventListener('click', () => stepAyah(-1));
