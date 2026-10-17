@@ -1263,7 +1263,34 @@ function showAyah(k) {
   const b = bmOf();
   const on = b && bmInUnit(b) && `${b.s}:${b.a}` === k;
   $('#ayBm').innerHTML = `<svg><use href="#i-bm"/></svg> ${on ? 'Hiqe shënjuesin' : 'Shëno këtu'}`;
-  openSheet('ayah');
+  $('#ayPrev').disabled = !ayahNear(k, -1);
+  $('#ayNext').disabled = !ayahNear(k, 1);
+  if ($('#sheet-ayah').hidden) openSheet('ayah');
+}
+// ajeti para/pas këtij, brenda asaj që po lexohet (xhuzi ose surja)
+function ayahNear(k, d) {
+  const all = R.pages.flatMap((pg) => pg.items);
+  const i = all.findIndex((x) => `${x.s}:${x.a}` === k);
+  const x = i < 0 ? null : all[i + d];
+  return x ? `${x.s}:${x.a}` : null;
+}
+function stepAyah(d) {
+  const k = ayahNear($('#sheet-ayah').dataset.k, d);
+  if (!k) return;
+  showAyah(k);
+  $('#sheet-ayah').scrollTop = 0;
+}
+// A− / A+ gjatë leximit: arabishtja me 2, përkthimi me 1; ajeti në krye të ekranit mbetet aty
+function stepSize(d) {
+  const size = clamp(settings.size + 2 * d, 22, 50), tr = clamp(settings.trSize + d, 14, 26);
+  if (size === settings.size && tr === settings.trSize) return;
+  const k = visibleAyah();
+  const el = k && $(`#readerBody .ay[data-k="${k}"]`);
+  const before = el ? el.getBoundingClientRect().top : 0;
+  settings.size = size; settings.trSize = tr;
+  saveSettings(); applySettings();
+  $('#sizeRange').value = size; $('#trSizeRange').value = tr;
+  if (el) scrollBy({ top: el.getBoundingClientRect().top - before, behavior: 'instant' });
 }
 
 // ================================================================ koha e leximit
@@ -1312,14 +1339,8 @@ async function tryLock() {
 }
 function renderRot() {
   const show = canRotate();
-  const b = $('#rotBtn');
-  b.hidden = !show;
   $('#rotRow').hidden = !show;
   if (!show) return;
-  $('#rotIc').setAttribute('href', ROT.on ? '#i-rotlock' : '#i-rot');
-  b.setAttribute('aria-pressed', String(ROT.on));
-  b.setAttribute('aria-label', ROT.on ? 'Rrotullimi është i kyçur — prek që të vendosë telefoni' : 'Kyç rrotullimin për këtë herë');
-  b.classList.toggle('on', ROT.on);
   $('#rotToggle').checked = ROT.on;
 }
 async function setRotLock(on, quiet = false) {
@@ -1500,7 +1521,22 @@ function bind() {
   $('#paperGrid').addEventListener('click', (e) => { const b = e.target.closest('[data-paper]'); if (b) setSetting('paper', b.dataset.paper); });
 
   // rrotullimi
-  $('#rotBtn').addEventListener('click', () => setRotLock(!ROT.on));
+  // A− / A+ dhe ajeti para/pas
+  $('#fszDown').addEventListener('click', () => stepSize(-1));
+  $('#fszUp').addEventListener('click', () => stepSize(1));
+  $('#ayPrev').addEventListener('click', () => stepAyah(-1));
+  $('#ayNext').addEventListener('click', () => stepAyah(1));
+  {
+    let sx = 0, sy = 0, on = false;
+    const sh = $('#sheet-ayah');
+    sh.addEventListener('touchstart', (e) => { const t = e.touches[0]; sx = t.clientX; sy = t.clientY; on = e.touches.length === 1; }, { passive: true });
+    sh.addEventListener('touchend', (e) => {
+      if (!on) return;
+      on = false;
+      const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) stepAyah(dx < 0 ? 1 : -1);
+    }, { passive: true });
+  }
   $('#rotToggle').addEventListener('change', (e) => setRotLock(e.target.checked));
 
   // statistikat

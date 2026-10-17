@@ -90,12 +90,13 @@
       <button class="icon-btn" id="backBtn" aria-label="Kthehu"><svg><use href="#i-back"/></svg></button>
       <div class="r-title"><strong id="rTitle"></strong><span id="rSub" class="sub"></span></div>
       <div class="actions">
-        <button class="icon-btn" id="rotBtn" aria-label="Kyç rrotullimin" aria-pressed="false" hidden><svg><use id="rotIc" href="#i-rot"/></svg></button>
         <button class="icon-btn" data-night aria-label="Modaliteti i natës"><svg><use class="night-ic" href="#i-moon"/></svg></button>
         <button class="icon-btn" data-open="settings" aria-label="Cilësimet"><svg><use href="#i-aa"/></svg></button>
       </div>
     </header>
     <div id="readerBody" class="reader-body"></div>
+    <button class="fsz" id="fszDown" aria-label="Tekst më i vogël">A<span>−</span></button>
+    <button class="fsz" id="fszUp" aria-label="Tekst më i madh">A<span>+</span></button>
     <button class="pill" id="pill" aria-label="Shko te shënjuesi">
       <span class="pill-pg" id="pillPg"></span>
       <span class="pill-mp" id="pillMp" title="Faqja në Mus'haf"></span>
@@ -233,7 +234,11 @@
     <button class="btn primary small" id="ayBm"></button>
     <button class="btn small" id="ayCopy"><svg><use href="#i-copy"/></svg> Kopjo</button>
   </div>
-  <p class="hint">Përkthimi: Hassan Nahi</p>
+  <div class="ay-nav">
+    <button class="btn small" id="ayPrev" aria-label="Ajeti i mëparshëm"><svg><use href="#i-back"/></svg> I mëparshmi</button>
+    <button class="btn small" id="ayNext" aria-label="Ajeti tjetër">Tjetri <svg><use href="#i-fwd"/></svg></button>
+  </div>
+  <p class="hint">Përkthimi: Hassan Nahi · rrëshqit majtas/djathtas për ajetin tjetër</p>
 </section>
 
 <section class="sheet" id="sheet-stats" role="dialog" aria-modal="true" aria-labelledby="statsTitle" hidden>

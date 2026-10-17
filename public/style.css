@@ -220,6 +220,24 @@ a { color: var(--accent); }
 #reader { min-height: 100vh; min-height: 100dvh; }
 .reader-body { width: 100%; max-width: var(--w); margin: 0 auto; padding: 8px 0 120px; }
 .hide-bars .reader-top { transform: translateY(-110%); }
+/* the reader's bar: compact, so the text gets the room */
+.reader-top { min-height: 0; gap: 2px; padding-top: calc(3px + var(--safe-t)); padding-bottom: 3px; }
+.reader-top .icon-btn { width: 40px; height: 40px; border-radius: 12px; }
+.reader-top .icon-btn svg { width: 21px; height: 21px; }
+.reader-top .r-title { line-height: 1.15; }
+.reader-top .r-title strong { font-size: 15px; }
+.reader-top .r-title .sub { font-size: 11.5px; }
+/* A− / A+ beside the page pill */
+.fsz { position: fixed; bottom: calc(16px + var(--safe-b)); z-index: 12; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%;
+  background: var(--surface); border: 1px solid var(--line); box-shadow: var(--sh-3), inset 0 1px 0 var(--hi); color: var(--ink);
+  font: 700 15px/1 Literata, Georgia, serif; transition: transform .1s, opacity .3s; }
+.fsz span { font-size: .8em; margin-left: 1px; }
+.fsz:active { transform: scale(.92); }
+#fszDown { left: max(12px, calc((100% - var(--w)) / 2 + 12px)); }
+#fszUp { right: max(12px, calc((100% - var(--w)) / 2 + 12px)); }
+.ay-nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 12px; }
+.ay-nav .btn svg { width: 16px; height: 16px; }
+.ay-nav .btn:disabled { opacity: .35; pointer-events: none; }
 .pg { margin: 0 auto; padding: 10px 18px 0; max-width: 780px; scroll-margin-top: 70px; }
 @media (min-width: 1000px) {
   body:not(.no-trans) .pg { max-width: none; padding: 10px 28px 0; }
