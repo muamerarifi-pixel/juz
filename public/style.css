@@ -513,3 +513,15 @@ body.hold .pg-ar, body.hold .pg-tr p { -webkit-user-select: none; user-select: n
 .w-mot { font-size: 12.5px; margin: 2px 0 9px; }
 .w-go { min-height: 44px; border-radius: 13px; padding: 0 14px; }
 .w-go small { font-size: 11.5px; }
+/* the main card floats at the bottom of the home screen, within reach of a thumb */
+#weekCard { position: fixed; z-index: 11; left: max(10px, calc((100% - var(--w)) / 2 + 10px)); right: max(10px, calc((100% - var(--w)) / 2 + 10px));
+  bottom: calc(10px + var(--safe-b)); padding: 11px 14px 11px; border-radius: 22px;
+  box-shadow: 0 14px 34px -10px rgb(0 0 0 / .45), 0 2px 8px rgb(0 0 0 / .18); }
+#weekCard .w-range, #weekCard .w-mot { display: none; }
+#weekCard .w-title { margin: 1px 0 0; }
+#weekCard .w-title b { font-size: 21px; }
+#weekCard .w-title span { font-size: 19px; }
+#weekCard .w-prog { margin: 6px 0 2px; }
+#weekCard .w-pace { margin: 0 0 8px; font-size: 12px; }
+#weekCard .w-go { min-height: 42px; }
+.home-body { padding-bottom: calc(var(--hero-h, 190px) + 28px + var(--safe-b)); }

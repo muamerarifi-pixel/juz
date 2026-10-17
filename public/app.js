@@ -1522,6 +1522,8 @@ function bind() {
 
   // rrotullimi
   // A− / A+ dhe ajeti para/pas
+  // the floating main card: the home list leaves room for it at the bottom
+  if ('ResizeObserver' in window) new ResizeObserver(([e]) => document.documentElement.style.setProperty('--hero-h', `${Math.ceil(e.target.offsetHeight)}px`)).observe($('#weekCard'));
   $('#fszDown').addEventListener('click', () => stepSize(-1));
   $('#fszUp').addEventListener('click', () => stepSize(1));
   $('#ayPrev').addEventListener('click', () => stepAyah(-1));
