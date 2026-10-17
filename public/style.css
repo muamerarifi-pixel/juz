@@ -497,3 +497,19 @@ body.hold .pg-ar, body.hold .pg-tr p { -webkit-user-select: none; user-select: n
   background-color: var(--bg); background-image: var(--tex); background-size: var(--tex-size, 256px); box-shadow: var(--sh-in); overflow-wrap: anywhere; }
 .ay-tr { margin: 10px 2px 14px; font: calc(var(--tr-size) + 1px)/1.7 var(--latin), Georgia, serif; }
 .ay-row { display: flex; gap: 8px; flex-wrap: wrap; }
+/* the home screen's main card (the juz or surah being read): compact */
+.card-hero { padding: 13px 16px 13px; border-radius: 22px; }
+.card-hero::after { width: 130px; height: 130px; right: -30px; top: -34px; }
+.w-kicker { font-size: 11px; }
+.w-change { font-size: 12px; padding: 4px 9px; }
+.w-title { margin: 3px 0 0; gap: 2px 10px; }
+.w-title b { font-size: 25px; }
+.w-title span { font-size: 22px; }
+.w-range { font-size: 12.5px; }
+.w-prog { margin: 8px 0 3px; gap: 10px; }
+.w-bar { height: 6px; }
+.w-num { font-size: 13px; }
+.w-pace { font-size: 12.5px; margin: 0; }
+.w-mot { font-size: 12.5px; margin: 2px 0 9px; }
+.w-go { min-height: 44px; border-radius: 13px; padding: 0 14px; }
+.w-go small { font-size: 11.5px; }
