@@ -1784,7 +1784,26 @@ function bind() {
     if (!LP.fired) { LP.fired = true; showAyah(el.dataset.k); }
   });
 
+  // Kthimi i faqeve anash: me gisht ose me mi, një faqe në çdo rrëshqitje
+  {
+    const body = $('#readerBody');
+    let px = null, py = 0, pid = null;
+    body.addEventListener('pointerdown', (e) => { if (!paged() || (e.pointerType === 'mouse' && e.button)) return; px = e.clientX; py = e.clientY; pid = e.pointerId; }, true);
+    const end = (e) => {
+      if (px === null || e.pointerId !== pid) return;
+      const dx = e.clientX - px, dy = e.clientY - py;
+      px = null;
+      if (Math.abs(dx) < 45 || Math.abs(dx) < Math.abs(dy) * 1.3) return;
+      R.swipedAt = Date.now();
+      const fwd = settings.pager === 'rtl' ? dx > 0 : dx < 0;
+      const to = clamp(Math.max(0, R.idx) + (fwd ? 1 : -1), 0, count());
+      if (to !== R.idx) { goTo(to); haptic(8); }
+    };
+    addEventListener('pointerup', end, true);
+    addEventListener('pointercancel', () => { px = null; }, true);
+  }
   $('#readerBody').addEventListener('click', safe((e) => {
+    if (Date.now() - (R.swipedAt || 0) < 450) return; // ishte rrëshqitje, jo prekje
     if (LP.fired) { LP.fired = false; return; } // gishti i mbajtur hapi përkthimin; mos e shëno ajetin
     const act = e.target.closest('[data-act]');
     if (act) {
