@@ -377,58 +377,78 @@ function applySettings() {
   for (const show of KNOBS) show();
 }
 
-// ---- dorezat rrotulluese (në vend të rrëshqitësve), me dridhje të lehtë në çdo hap
+// ---- rrëshqitës (7.5): vlera ndryshon vetëm me tërheqje anash; lëvizja lart-poshtë e faqes nuk e prek kurrë
 const KNOBS = [];
+const SPAD = 15; // rrezja e dorezës
 function knob(input, fmt = (v) => `${v}`) {
-  const min = +input.min, max = +input.max, step = +input.step || 1;
+  const min = +input.min, max = +input.max, step = +input.step || 1, span = (max - min) || 1;
+  const n = Math.round(span / step), dots = n <= 10 ? n + 1 : 5;
   const el = document.createElement('div');
-  el.className = 'knob';
+  el.className = 'sl';
   el.tabIndex = 0;
   el.setAttribute('role', 'slider');
   el.setAttribute('aria-valuemin', min); el.setAttribute('aria-valuemax', max);
   el.setAttribute('aria-label', input.closest('.kf')?.querySelector('.label')?.firstChild?.textContent.trim() || '');
-  el.innerHTML = '<svg viewBox="0 0 100 100" aria-hidden="true"><circle class="k-track" cx="50" cy="50" r="44" pathLength="360"/><circle class="k-fill" cx="50" cy="50" r="44" pathLength="360"/></svg><span class="k-dial"><i></i></span><b class="k-val"></b>';
+  let dh = '';
+  for (let i = 0; i < dots; i++) dh += `<i style="--p:${(i / (dots - 1)).toFixed(4)}"></i>`;
+  el.innerHTML = `<span class="sl-track"><span class="sl-fill"></span>${dh}</span><span class="sl-thumb"><b class="sl-tip"></b></span>`;
   input.classList.add('k-src');
   input.tabIndex = -1;
   input.after(el);
+  const box = input.closest('.kf');
+  const val = document.createElement('b'); val.className = 'sl-val';
+  if (box) box.querySelector('.label')?.after(val);
+  const tip = el.querySelector('.sl-tip'), track = el.firstChild;
   const show = () => {
-    const v = +input.value;
-    el.style.setProperty('--f', (v - min) / (max - min));
-    el.lastChild.textContent = fmt(v);
-    el.setAttribute('aria-valuenow', v); el.setAttribute('aria-valuetext', fmt(v));
+    const v = +input.value, t = fmt(v);
+    el.style.setProperty('--f', clamp((v - min) / span, 0, 1));
+    tip.textContent = t; val.textContent = t;
+    el.setAttribute('aria-valuenow', v); el.setAttribute('aria-valuetext', t);
   };
   const set = (v) => {
-    v = clamp(Math.round(v / step) * step, min, max);
+    v = +clamp(min + Math.round((v - min) / step) * step, min, max).toFixed(4);
     if (v === +input.value) return;
     input.value = v;
     input.dispatchEvent(new Event('input', { bubbles: true }));
     haptic(5);
     show();
   };
-  let last = null, acc = 0;
-  const angle = (e) => {
-    const r = el.getBoundingClientRect(), x = e.clientX - (r.left + r.width / 2), y = e.clientY - (r.top + r.height / 2);
-    return Math.hypot(x, y) < 8 ? null : (Math.atan2(y, x) * 180) / Math.PI;
+  const width = () => Math.max(1, track.getBoundingClientRect().width - 2 * SPAD);
+  const valueAt = (x) => min + clamp((x - track.getBoundingClientRect().left - SPAD) / width(), 0, 1) * span;
+  let st = null;
+  const begin = (e) => {
+    st.on = true;
+    try { el.setPointerCapture(e.pointerId); } catch {}
+    el.classList.add('dragging'); haptic(4);
+    if (!st.grab) set(valueAt(e.clientX));
   };
-  el.addEventListener('pointerdown', (e) => { el.setPointerCapture(e.pointerId); last = angle(e); acc = +input.value; el.classList.add('turning'); haptic(4); e.preventDefault(); });
-  el.addEventListener('pointermove', (e) => {
-    if (!el.classList.contains('turning')) return;
-    const a = angle(e);
-    if (a === null) return;
-    if (last === null) { last = a; return; }
-    let d = a - last;
-    if (d > 180) d -= 360; if (d < -180) d += 360;
-    last = a;
-    acc = clamp(acc + (d / 270) * (max - min), min, max);
-    set(acc);
+  el.addEventListener('pointerdown', (e) => {
+    if (e.button > 0) return;
+    const th = el.lastChild.getBoundingClientRect();
+    st = { x: e.clientX, y: e.clientY, id: e.pointerId, grab: Math.abs(e.clientX - (th.left + th.width / 2)) <= th.width * 0.9, v0: +input.value, on: false };
+    if (e.pointerType === 'mouse') { e.preventDefault(); el.focus({ preventScroll: true }); begin(e); }   // miu nuk lëviz faqen: vepro menjëherë
   });
-  const end = () => { last = null; el.classList.remove('turning'); };
+  el.addEventListener('pointermove', (e) => {
+    if (!st || e.pointerId !== st.id) return;
+    if (!st.on) {
+      const dx = e.clientX - st.x, dy = e.clientY - st.y;
+      if (Math.abs(dy) > 8 && Math.abs(dy) >= Math.abs(dx)) { st = null; return; }   // po lëviz faqen: mos e prek
+      if (Math.abs(dx) < 8 || Math.abs(dx) < Math.abs(dy) * 1.3) return;
+      begin(e);
+    }
+    e.preventDefault();
+    set(st.grab ? st.v0 + ((e.clientX - st.x) / width()) * span : valueAt(e.clientX));
+  });
+  const end = () => { if (st?.on) haptic(3); st = null; el.classList.remove('dragging'); };
   el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
-  el.addEventListener('wheel', (e) => { e.preventDefault(); set(+input.value + (e.deltaY < 0 ? step : -step)); }, { passive: false });
+  el.addEventListener('lostpointercapture', (e) => { if (e.target === el) end(); });
+  el.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); });
   el.addEventListener('keydown', (e) => {
     const k = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1, PageUp: 3, PageDown: -3 }[e.key];
     if (k) { e.preventDefault(); set(+input.value + k * step); }
+    else if (e.key === 'Home') set(min); else if (e.key === 'End') set(max);
   });
+  input.addEventListener('input', show);
   KNOBS.push(show);
   show();
 }
@@ -1689,7 +1709,7 @@ function bind() {
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeSheet();
-    if (route.name === 'reader' && paged() && !openSheetEl && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !e.target.closest?.('.knob, input')) {
+    if (route.name === 'reader' && paged() && !openSheetEl && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !e.target.closest?.('.sl, input')) {
       const fwd = (e.key === 'ArrowLeft') === (settings.pager === 'rtl');
       goTo(Math.max(0, R.idx) + (fwd ? 1 : -1));
     }
@@ -1865,7 +1885,7 @@ function bind() {
     let sx = 0, sy = 0, on = false;
     $('#home').addEventListener('touchstart', (e) => {
       const t = e.touches[0]; sx = t.clientX; sy = t.clientY;
-      on = e.touches.length === 1 && sx > 24 && sx < innerWidth - 24 && !e.target.closest('input, .knob');
+      on = e.touches.length === 1 && sx > 24 && sx < innerWidth - 24 && !e.target.closest('input, .sl');
     }, { passive: true });
     $('#home').addEventListener('touchend', (e) => {
       if (!on) return;
