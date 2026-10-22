@@ -21,7 +21,7 @@ const AR_FONT = { hamdullah: "'Hamdullah'", scheherazade: "'Scheherazade New'", 
 const AR_SCALE = { hamdullah: 1, scheherazade: 1, naskh: 1, harmattan: 1.12, sans: 0.95, kufi: 0.88, qcf: 1.12 };
 const LATIN = { literata: "'Literata'", lora: "'Lora'", inter: "'Inter'" };
 const THEME_COLOR = { paper: '#ece2cb', night: '#13120f' };
-const DEFAULTS = { bg: 'paper', font: 'hamdullah', weight: 400, trans: true, latin: 'literata', size: 30, trSize: 17, home: 'juz', paper: 'classic', arTrans: 0, trTrans: 0, hold: true };
+const DEFAULTS = { bg: 'paper', font: 'hamdullah', weight: 400, trans: true, latin: 'literata', size: 30, trSize: 17, home: 'juz', paper: 'classic', arTrans: 0, trTrans: 0, hold: true, shadow: 0, dimDay: 0, dimNight: 0, autoBg: true, fs: false, pager: 'scroll' };
 const SYNC_URL = '/api/sync';
 const CH = SCHEMA.sync;
 const DAYS = ['e diel', 'e hënë', 'e martë', 'e mërkurë', 'e enjte', 'e premte', 'e shtunë'];
@@ -179,9 +179,68 @@ function loadState() {
 const saveState = () => lsSet(LS.state, JSON.stringify(S));
 const stamp = (prev) => Math.max(Date.now(), (Array.isArray(prev) ? prev[0] : 0) + 1);
 
+// ---- historiku: një fotografi e gjendjes para çdo ndryshimi, për t'u kthyer pas
+const HIST_KEY = 'juz.hist';
+let HIST = []; try { HIST = JSON.parse(lsGet(HIST_KEY, '[]')) || []; } catch {}
+let histT = 0, histOff = false;
+const QUIET = new Set(['dv', 'dl', 'wk', 'st']); // pajisjet, ditari, seritë: rrjedhin vetë
+const NOTE = { bj: 'Shënjuesi i xhuzit', bs: 'Shënjuesi i sures', bk: 'Shënjuesi i hatmes', wj: 'Xhuzi i javës', done: 'Xhuz i përfunduar', kf: 'Kehfi', kt: 'Hatmja', pg: 'Shënjuesi i xhuzit', sp: 'Shënjuesi i sures' };
+function remember(note) {
+  if (histOff) return;
+  const now = Date.now();
+  if (now - histT < 2500 && HIST[0]) { histT = now; return; } // një varg ndryshimesh të shpejta = një hap
+  histT = now;
+  const snap = Object.fromEntries(Object.keys(CH).filter((k) => k !== 'dv').map((k) => [k, S[k]]));
+  HIST.unshift({ t: now, note: note || 'Ndryshim', s: JSON.stringify(snap), set: JSON.stringify(settings) });
+  HIST = HIST.slice(0, 40);
+  lsSet(HIST_KEY, JSON.stringify(HIST));
+}
+const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+function restoreSnap(i) {
+  const h = HIST[i];
+  if (!h) return;
+  histT = 0;
+  remember('Kthim pas'); // edhe kthimi mund të zhbëhet
+  const snap = JSON.parse(h.s);
+  histOff = true;
+  try {
+    for (const k of Object.keys(CH)) {
+      if (k === 'dv' || !(k in snap)) continue;
+      if (CH[k] === 'v') { if (!same(val(snap[k]), val(S[k]))) setVal(k, val(snap[k]) ?? null); continue; }
+      const keys = new Set([...Object.keys(S[k] || {}), ...Object.keys(snap[k] || {})]);
+      for (const key of keys) if (!same(val(snap[k]?.[key]), val(S[k]?.[key]))) setKey(k, key, val(snap[k]?.[key]) ?? null);
+    }
+    const prevKey = textKey();
+    settings = { ...DEFAULTS, ...JSON.parse(h.set) };
+    normalizeSettings(); saveSettings(); applySettings();
+    setVal('st', syncedSnapshot());
+    if (route.name === 'reader') { if (prevKey !== textKey()) rebuildReader(); else { decorateBm(); updatePill(); renderEnd(); } }
+  } finally { histOff = false; }
+  if (route.name === 'home') renderHome();
+  if (!$('#sheet-history').hidden) renderHistory();
+  haptic(14);
+  toast(`↺ U kthye si ishte ${ago(h.t)}`);
+}
+const undoAction = () => { const h = HIST[0]; return h && { label: 'Zhbëj', fn: () => { $('#toast').hidden = true; restoreSnap(HIST.indexOf(h)); } }; };
+function snapSummary(snap) {
+  const p = [];
+  const bj = val(snap.bj), bs = val(snap.bs), bk = val(snap.bk);
+  if (bj) p.push(`Xhuzi ${bj.j}: ${surah(bj.s).sq} ${bj.s}:${bj.a}`);
+  if (bs) p.push(`Sure: ${surah(bs.s).sq} ${bs.s}:${bs.a}`);
+  if (bk) p.push(`Hatme: ${surah(bk.s).sq} ${bk.s}:${bk.a}`);
+  return p.join(' · ') || 'Pa shënjues';
+}
+function renderHistory() {
+  $('#histList').innerHTML = HIST.length
+    ? HIST.map((h, i) => `<li><div><b>Para: ${esc(h.note)}</b><small>${esc(ago(h.t))} · ${new Date(h.t).toLocaleTimeString('sq', { hour: '2-digit', minute: '2-digit' })} · ${esc(snapSummary(JSON.parse(h.s)))}</small></div><button class="btn" data-restore="${i}">Kthehu</button></li>`).join('')
+    : '<li><div><small>Ende asnjë ndryshim. Sapo të lëvizësh një shënjues ose cilësim, del këtu.</small></div></li>';
+}
+const haptic = (ms = 8) => { try { navigator.vibrate?.(ms); } catch {} };
+
 function setVal(field, value) {
   if (S[field] && JSON.stringify(val(S[field])) === JSON.stringify(value)) return;
   if (!S[field] && value === null) return;
+  if (!QUIET.has(field)) remember(NOTE[field]);
   S[field] = [stamp(S[field]), value];
   changed();
 }
@@ -190,6 +249,7 @@ function setKey(field, key, value) {
   const k = String(key);
   if (m[k] && JSON.stringify(m[k][1]) === JSON.stringify(value)) return;
   if (!m[k] && value === null) return;
+  if (!QUIET.has(field)) remember(NOTE[field]);
   m[k] = [stamp(m[k]), value];
   changed();
 }
@@ -220,8 +280,14 @@ function normalizeSettings() {
   settings.trSize = clamp(+settings.trSize || DEFAULTS.trSize, 14, 26);
   settings.arTrans = clamp(Math.round(+settings.arTrans || 0), 0, 60);
   settings.trTrans = clamp(Math.round(+settings.trTrans || 0), 0, 60);
-  if (!['juz', 'surah'].includes(settings.home)) settings.home = 'juz';
+  if (!['juz', 'surah', 'khatmah'].includes(settings.home)) settings.home = 'juz';
   settings.hold = settings.hold !== false;
+  settings.shadow = clamp(Math.round(+settings.shadow || 0), 0, 100);
+  settings.dimDay = clamp(Math.round(+settings.dimDay || 0), 0, 70);
+  settings.dimNight = clamp(Math.round(+settings.dimNight || 0), 0, 70);
+  if (!['scroll', 'rtl', 'ltr'].includes(settings.pager)) settings.pager = 'scroll';
+  settings.autoBg = settings.autoBg !== false;
+  settings.fs = !!settings.fs;
 }
 normalizeSettings();
 const saveSettings = () => lsSet(LS.settings, JSON.stringify(settings));
@@ -297,17 +363,110 @@ function applySettings() {
   const hint = $('#fontHint');
   hint.hidden = !(settings.font === 'hamdullah' && fontState.hamdullah === 'failed');
   hint.textContent = 'Fonti i Diyanetit nuk u ngarkua (nevojitet internet herën e parë). Po përdoret Scheherazade.';
+  const night = settings.bg === 'night';
+  root.style.setProperty('--txt-sh', settings.shadow / 100);
+  root.style.setProperty('--dim', (night ? settings.dimNight : settings.dimDay) / 100);
+  $('#dimRange').value = night ? settings.dimNight : settings.dimDay;
+  $('#dimFor').textContent = night ? 'për natën' : 'për ditën';
+  $('#shadowRange').value = settings.shadow;
+  $('#autoToggle').checked = settings.autoBg;
+  $('#fsToggle').checked = settings.fs;
+  $('#fsRow').hidden = !document.documentElement.requestFullscreen;
+  document.body.classList.toggle('paged', settings.pager !== 'scroll');
+  document.body.dataset.pager = settings.pager;
+  for (const show of KNOBS) show();
 }
 
-function setSetting(k, v) {
+// ---- dorezat rrotulluese (në vend të rrëshqitësve), me dridhje të lehtë në çdo hap
+const KNOBS = [];
+function knob(input, fmt = (v) => `${v}`) {
+  const min = +input.min, max = +input.max, step = +input.step || 1;
+  const el = document.createElement('div');
+  el.className = 'knob';
+  el.tabIndex = 0;
+  el.setAttribute('role', 'slider');
+  el.setAttribute('aria-valuemin', min); el.setAttribute('aria-valuemax', max);
+  el.setAttribute('aria-label', input.closest('.kf')?.querySelector('.label')?.firstChild?.textContent.trim() || '');
+  el.innerHTML = '<svg viewBox="0 0 100 100" aria-hidden="true"><circle class="k-track" cx="50" cy="50" r="44" pathLength="360"/><circle class="k-fill" cx="50" cy="50" r="44" pathLength="360"/></svg><span class="k-dial"><i></i></span><b class="k-val"></b>';
+  input.classList.add('k-src');
+  input.tabIndex = -1;
+  input.after(el);
+  const show = () => {
+    const v = +input.value;
+    el.style.setProperty('--f', (v - min) / (max - min));
+    el.lastChild.textContent = fmt(v);
+    el.setAttribute('aria-valuenow', v); el.setAttribute('aria-valuetext', fmt(v));
+  };
+  const set = (v) => {
+    v = clamp(Math.round(v / step) * step, min, max);
+    if (v === +input.value) return;
+    input.value = v;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    haptic(5);
+    show();
+  };
+  let last = null, acc = 0;
+  const angle = (e) => {
+    const r = el.getBoundingClientRect(), x = e.clientX - (r.left + r.width / 2), y = e.clientY - (r.top + r.height / 2);
+    return Math.hypot(x, y) < 8 ? null : (Math.atan2(y, x) * 180) / Math.PI;
+  };
+  el.addEventListener('pointerdown', (e) => { el.setPointerCapture(e.pointerId); last = angle(e); acc = +input.value; el.classList.add('turning'); haptic(4); e.preventDefault(); });
+  el.addEventListener('pointermove', (e) => {
+    if (!el.classList.contains('turning')) return;
+    const a = angle(e);
+    if (a === null) return;
+    if (last === null) { last = a; return; }
+    let d = a - last;
+    if (d > 180) d -= 360; if (d < -180) d += 360;
+    last = a;
+    acc = clamp(acc + (d / 270) * (max - min), min, max);
+    set(acc);
+  });
+  const end = () => { last = null; el.classList.remove('turning'); };
+  el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+  el.addEventListener('wheel', (e) => { e.preventDefault(); set(+input.value + (e.deltaY < 0 ? step : -step)); }, { passive: false });
+  el.addEventListener('keydown', (e) => {
+    const k = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1, PageUp: 3, PageDown: -3 }[e.key];
+    if (k) { e.preventDefault(); set(+input.value + k * step); }
+  });
+  KNOBS.push(show);
+  show();
+}
+
+// ---- ditë e natë sipas diellit në Kosovë (Prishtinë); përdoruesi mund ta ndryshojë kurdo me dorë
+function sunTimes(d = new Date(), lat = 42.66, lon = 21.17) {
+  const rad = Math.PI / 180;
+  const n = Math.floor((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(d.getFullYear(), 0, 0)) / 864e5);
+  const g = ((2 * Math.PI) / 365) * (n - 1);
+  const eqt = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
+  const decl = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g) - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
+  const ha = Math.acos(Math.cos(90.833 * rad) / (Math.cos(lat * rad) * Math.cos(decl)) - Math.tan(lat * rad) * Math.tan(decl)) / rad;
+  const noon = 720 - 4 * lon - eqt; // minuta UTC
+  const base = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+  return [base + (noon - 4 * ha) * 6e4, base + (noon + 4 * ha) * 6e4];
+}
+function autoTheme(force = false) {
+  if (!settings.autoBg) return;
+  const now = Date.now();
+  const [rise, set] = sunTimes(new Date());
+  const day = now >= rise && now < set;
+  const mark = `${ymd()}:${day ? 'd' : now < rise ? 'a' : 'b'}`;
+  if (!force && lsGet('juz.autoMark') === mark) return; // vetëm kur lind ose perëndon dielli: zgjedhja me dorë mbetet deri atëherë
+  lsSet('juz.autoMark', mark);
+  setSetting('bg', day ? 'paper' : 'night', true);
+}
+const enterFS = () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen?.({ navigationUI: 'hide' }).catch(() => {}); };
+
+function setSetting(k, v, quiet = false) {
   if (settings[k] === v) return;
+  if (!quiet) remember('Cilësimet');
   const prevKey = textKey();
   settings[k] = v;
   saveSettings();
   applySettings();
   if (k in SYNCED_SETTINGS) setVal('st', syncedSnapshot());
   if (k === 'font' && v === 'hamdullah') checkHamdullah();
-  if (route.name === 'reader' && prevKey !== textKey()) rebuildReader();
+  if (route.name === 'reader' && (prevKey !== textKey() || k === 'pager')) rebuildReader();
 }
 
 // ================================================================ të dhënat
@@ -564,6 +723,8 @@ function openSheet(name) {
   const el = $(`#sheet-${name}`);
   if (!el) return;
   if (name === 'sync') renderSync();
+  if (name === 'history') renderHistory();
+  if (name === 'khat') renderKhatSheet();
   if (name === 'about') renderAbout();
   if (name === 'pick') renderPick();
   if (name === 'stats') openStats();
@@ -589,14 +750,16 @@ const renderHome = safe(() => {
   const [, w] = weekKey().split('-W');
   $('#weekLabel').textContent = `Java ${+w} · ${DAYS[d.getDay()]}`;
   for (const t of $$('[data-home]')) t.setAttribute('aria-selected', String(t.dataset.home === settings.home));
-  $('#juzPane').hidden = settings.home !== 'juz';
-  $('#surahPane').hidden = settings.home !== 'surah';
-  const surahMode = settings.home === 'surah';
-  $('#weekCard').classList.toggle('s-mode', surahMode);
-  if (surahMode) renderSurahHero(); else renderWeek();
+  const mode = settings.home;
+  $('#juzPane').hidden = mode !== 'juz';
+  $('#surahPane').hidden = mode !== 'surah';
+  $('#khatmahPane').hidden = mode !== 'khatmah';
+  $('#weekCard').classList.toggle('s-mode', mode === 'surah');
+  $('#weekCard').classList.toggle('k-mode', mode === 'khatmah');
+  if (mode === 'surah') renderSurahHero(); else if (mode === 'khatmah') renderKhatHero(); else renderWeek();
   renderKahf();
   renderStats();
-  if (surahMode) renderSurahList(); else renderJuzGrid();
+  if (mode === 'surah') renderSurahList(); else if (mode === 'khatmah') renderKhatGrid(); else renderJuzGrid();
 });
 
 function renderWeek() {
@@ -667,6 +830,70 @@ function renderSurahHero() {
     <p class="w-pace">${finished ? `Të ${su.c} ajetet, ${pr.count} faqe — të gjitha të lexuara.` : `Edhe ${left} faqe deri në fund të sures`}</p>
     <p class="w-mot">${motivate(pr.pct)}</p>
     ${go}`;
+}
+
+// ---- Hatmja: Kur'ani nga fillimi në fund, me shënjuesin e vet, pa afat ose me afat
+const lastPage = () => META.juz[29].pg[1];
+function khatInfo() {
+  const b = val(S.bk), t = val(S.kt) || {}, total = lastPage();
+  const read = b ? b.p : 0, pct = Math.min(100, Math.floor((read / total) * 100));
+  let pace = null;
+  if (t.days > 0) {
+    const end = new Date(`${t.start || ymd()}T00:00:00`).getTime() + t.days * 864e5;
+    const left = Math.ceil((end - Date.now()) / 864e5);
+    pace = { left: Math.max(1, left), late: left <= 0, per: Math.max(1, Math.ceil((total - read) / Math.max(1, left))) };
+  }
+  return { b, t, total, read, pct, pace };
+}
+function khatJuzProg(n) {
+  const jm = juzMeta(n), b = val(S.bk), count = pageCount(jm.pg);
+  const read = !b ? 0 : b.j > n ? count : b.j === n ? clamp(b.p - jm.pg[0] + 1, 0, count) : 0;
+  return { read, count, pct: Math.round((read / count) * 100) };
+}
+const khatTargetLabel = (d) => (!d ? 'Pa afat' : d % 365 === 0 ? `${d / 365} vit` : d % 30 === 0 ? `${d / 30} muaj` : d === 7 ? '1 javë' : `${d} ditë`);
+function renderKhatHero() {
+  const el = $('#weekCard');
+  const k = khatInfo();
+  const j = k.b ? k.b.j : 1;
+  const left = k.total - k.read;
+  const pace = k.pace
+    ? (k.pace.late ? `Afati kaloi — vazhdo me ritmin tënd, edhe ${left} faqe` : `Edhe ${k.pace.left} ditë · rreth ${k.pace.per} faqe në ditë`)
+    : `Pa nxitim — edhe ${left} faqe, sa të të duhet`;
+  el.innerHTML = `<div class="w-top"><span class="w-kicker">Hatmja${k.t.c ? ` e ${ordinal(k.t.c + 1)}` : ''}</span><button class="w-change" data-open="khat">${khatTargetLabel(k.t.days)}</button></div>
+    <div class="w-title"><b>${k.b ? `Xhuzi ${j}` : 'Hatme nga fillimi'}</b><span>${arNum(j)}</span></div>
+    <div class="w-prog"><span class="w-bar"><span style="width:${k.pct}%"></span></span><span class="w-num">${k.read} / ${k.total} faqe · ${k.pct}%</span></div>
+    <p class="w-pace">${pace}</p>
+    <p class="w-mot">${motivate(k.pct)}</p>
+    <button class="w-go" data-link="${k.b ? `#/k/${k.b.j}/${k.b.s}:${k.b.a}` : '#/k/1'}">
+      <span>${k.b ? 'Vazhdo hatmen' : 'Fillo me El-Fatihan'}${k.b ? `<small>${esc(surah(k.b.s).sq)} ${k.b.s}:${k.b.a} · Mus'hafi f. ${printed(k.b.p)}</small>` : ''}</span>
+      <svg><use href="#i-fwd"/></svg></button>`;
+}
+function renderKhatGrid() {
+  const b = val(S.bk);
+  $('#khatGrid').innerHTML = META.juz.map((j) => {
+    const su = surah(j.s[0]);
+    const pr = khatJuzProg(j.n);
+    const cur = b ? b.j === j.n : j.n === 1;
+    const done = pr.read >= pr.count;
+    return `<li><button class="juz-card card${cur ? ' week' : ''}${done ? ' is-done' : ''}" data-kj="${j.n}" aria-label="Hatmja, xhuzi ${j.n}, ${pr.read} nga ${pr.count} faqe">
+      <span class="n">${j.n}</span>
+      <span class="from">${esc(su.sq)} ${j.s[0]}:${j.s[1]}</span>
+      ${done ? '<span class="seal" aria-hidden="true"><svg><use href="#i-check"/></svg></span>' : `<span class="jar">${arNum(j.n)}</span>`}
+      <span class="pr"><span class="bar"><span style="width:${pr.pct}%"></span></span><span class="pt">${done ? 'Lexuar · <b>100%</b>' : pr.read ? `<b>${pr.read}</b> / ${pr.count} faqe` : `${pr.count} faqe`}</span></span>
+    </button></li>`;
+  }).join('');
+}
+function renderKhatSheet() {
+  const t = val(S.kt) || {};
+  for (const b of $$('#khatDays button')) b.setAttribute('aria-pressed', String(+b.dataset.kdays === (t.days || 0)));
+  const k = khatInfo();
+  $('#khatNow').textContent = k.b ? `Je te ${surah(k.b.s).sq} ${k.b.s}:${k.b.a} — ${k.read} nga ${k.total} faqe (${k.pct}%).` : 'Ende nuk ke filluar — hape xhuzin e parë dhe prek ajetin ku ndalon.';
+}
+function setKhatDays(days) {
+  const t = val(S.kt) || {};
+  setVal('kt', { ...t, start: ymd(), days });
+  renderKhatSheet(); renderHome(); haptic(10);
+  toast(days ? `Afati: ${khatTargetLabel(days)} · rreth ${khatInfo().pace.per} faqe në ditë` : 'Hatme pa afat — me ritmin tënd');
 }
 
 function renderKahf() {
@@ -950,7 +1177,13 @@ const renderEnd = safe(() => {
   const el = $('#endCard');
   if (!el) return;
   let html;
-  if (R.kind === 'j') {
+  if (R.kind === 'k') {
+    html = R.n === 30
+      ? `<div class="big">100%</div><h3>Elhamdulilah! E përfundove hatmen</h3><p>Allahu ta pranoftë leximin dhe ta bëftë Kur'anin dritë të zemrës.</p>
+         <div class="row"><button class="btn primary" data-act="khatnew">Fillo hatme të re</button></div>`
+      : `<h3>Fundi i xhuzit ${R.n} të hatmes</h3><p>Mashallah! Vazhdo me xhuzin tjetër kur të jesh gati.</p>
+         <div class="row"><button class="btn primary" data-act="next">Xhuzi ${R.n + 1} →</button></div>`;
+  } else if (R.kind === 'j') {
     const done = isDone(R.n);
     const next = R.n < 30 ? R.n + 1 : 1;
     html = done
@@ -973,7 +1206,7 @@ const renderEnd = safe(() => {
 
 async function loadUnit(kind, n) {
   let ayahs;
-  if (kind === 'j') ayahs = (await loadJuz(n)).a;
+  if (kind === 'j' || kind === 'k') ayahs = (await loadJuz(n)).a;
   else {
     const su = surah(n);
     const j1 = su.j, j2 = juzOfPage(su.pg[1]);
@@ -994,7 +1227,8 @@ function buildReader() {
   body.innerHTML = R.pages.map(pageHTML).join('') + endHTML();
   R.io = new IntersectionObserver((ents) => {
     for (const e of ents) if (e.isIntersecting) setIdx(+e.target.dataset.i);
-  }, { rootMargin: '-35% 0px -60% 0px' });
+  }, paged() ? { root: body, threshold: 0.6 } : { rootMargin: '-35% 0px -60% 0px' });
+  body.scrollLeft = 0;
   for (const el of $$('.pg, .end', body)) R.io.observe(el);
   renderEnd();
   decorateBm();
@@ -1019,7 +1253,15 @@ function rebuildReader() {
   if (textKey() === 'q' && !qcfReady(R.pages)) { const token = R.token; qcfPrepare(R.pages).then(() => { if (token === R.token) done(); }); return; }
   done();
 }
+const paged = () => settings.pager !== 'scroll';
 function visibleAyah() {
+  if (paged()) {
+    const pg = $(`#readerBody [data-i="${Math.max(0, R.idx)}"]`);
+    if (!pg) return null;
+    const t = pg.getBoundingClientRect().top + 10;
+    for (const el of $$('.ay', pg)) if (el.getBoundingClientRect().bottom > t) return el.dataset.k;
+    return null;
+  }
   const top = $('.reader-top').getBoundingClientRect().bottom + 20;
   for (const el of $$('#readerBody .ay')) if (el.getBoundingClientRect().bottom > top) return el.dataset.k;
   return null;
@@ -1029,6 +1271,7 @@ function goTo(i, smooth = true) {
   i = clamp(i, 0, count());
   const el = $(`#readerBody [data-i="${i}"]`);
   if (!el) return;
+  if (paged()) { el.scrollIntoView({ inline: 'start', block: 'nearest', behavior: smooth ? 'smooth' : 'instant' }); setIdx(i); return; }
   const top = i === 0 ? 0 : el.getBoundingClientRect().top + scrollY - 70;
   scrollTo({ top: Math.max(0, top), behavior: smooth ? 'smooth' : 'instant' });
   setIdx(i);
@@ -1036,9 +1279,14 @@ function goTo(i, smooth = true) {
 function scrollToAyah(k, flash = true) {
   const el = $(`#readerBody .ay[data-k="${k}"]`);
   if (!el) return;
-  const top = el.getBoundingClientRect().top + scrollY - innerHeight * 0.28;
-  scrollTo({ top: Math.max(0, top), behavior: 'instant' });
   const pg = el.closest('.pg');
+  if (paged() && pg) {
+    pg.scrollIntoView({ inline: 'start', block: 'nearest', behavior: 'instant' });
+    pg.scrollTop = Math.max(0, el.getBoundingClientRect().top - pg.getBoundingClientRect().top + pg.scrollTop - pg.clientHeight * 0.28);
+  } else {
+    const top = el.getBoundingClientRect().top + scrollY - innerHeight * 0.28;
+    scrollTo({ top: Math.max(0, top), behavior: 'instant' });
+  }
   if (pg) setIdx(+pg.dataset.i);
   if (flash) for (const x of $$(`#readerBody [data-k="${k}"]`)) { x.classList.remove('flash'); void x.offsetWidth; x.classList.add('flash'); }
 }
@@ -1059,7 +1307,7 @@ const updatePill = safe(() => {
   $('#pillMp').innerHTML = `<svg><use href="#i-book"/></svg>Mus'hafi <b>${mp}</b>`;
   $('#pillMp').title = `Faqja ${mp} e Mus'hafit`;
   const b = bmOf();
-  const pr = R.kind === 'j' ? juzProgress(R.n) : surahProgress(R.n);
+  const pr = R.kind === 'j' ? juzProgress(R.n) : R.kind === 'k' ? khatJuzProg(R.n) : surahProgress(R.n);
   const showBm = !!b && bmInUnit(b);
   $('#pillBm').hidden = !showBm && !pr.read;
   $('#pillBmTxt').textContent = `${pr.read}/${pr.count}`;
@@ -1068,8 +1316,8 @@ const updatePill = safe(() => {
 });
 
 // ================================================================ shënjuesi = progresi
-const bmOf = () => (R.kind === 'j' ? val(S.bj) : val(S.bs));
-const bmInUnit = (b) => (R.kind === 'j' ? b.j === R.n : b.s === R.n);
+const bmOf = () => (R.kind === 'j' ? val(S.bj) : R.kind === 'k' ? val(S.bk) : val(S.bs));
+const bmInUnit = (b) => (R.kind === 's' ? b.s === R.n : b.j === R.n);
 function decorateBm() {
   for (const el of $$('#readerBody .bm')) el.classList.remove('bm');
   const b = bmOf();
@@ -1079,11 +1327,20 @@ function toggleAyahBm(k) {
   const [s, a] = k.split(':').map(Number);
   const pg = R.pages.find((g) => g.items.some((x) => x.s === s && x.a === a));
   if (!pg) return;
-  const field = R.kind === 'j' ? 'bj' : 'bs';
+  const field = R.kind === 'j' ? 'bj' : R.kind === 'k' ? 'bk' : 'bs';
   const b = val(S[field]);
   if (b && b.s === s && b.a === a && bmInUnit(b)) {
     setVal(field, null);
-    toast('Shënjuesi u hoq (progresi mbetet).');
+    toast('Shënjuesi u hoq (progresi mbetet).', 4000, undoAction());
+  } else if (R.kind === 'k') {
+    const prev = val(S.bk)?.p ?? juzMeta(R.n).pg[0] - 1;
+    setVal('bk', { j: R.n, s, a, p: pg.p });
+    if (!val(S.kt)) setVal('kt', { start: ymd(), days: 0 });
+    const d = pg.p - prev;
+    if (Math.abs(d) <= 40) logAdd(d);
+    updateWeekTotal();
+    const k = khatInfo();
+    toast(`🔖 Hatmja · ${surah(s).sq} ${s}:${a} · ${k.read}/${k.total} faqe · ${k.pct}%`, 4000, undoAction());
   } else {
     const w = weekKey();
     // Faqet ndërmjet shënjuesit të vjetër dhe të riut numërohen si të lexuara sot
@@ -1107,7 +1364,7 @@ function toggleAyahBm(k) {
     if (before !== null) logAdd(pg.p - before);
     updateWeekTotal();
     const pr = R.kind === 'j' ? juzProgress(R.n) : surahProgress(R.n);
-    toast(`🔖 ${surah(s).sq} ${s}:${a} · ${pr.read}/${pr.count} faqe · Mus'hafi f. ${printed(pg.p)}`, 2600);
+    toast(`🔖 ${surah(s).sq} ${s}:${a} · ${pr.read}/${pr.count} faqe · Mus'hafi f. ${printed(pg.p)}`, 4000, undoAction());
   }
   decorateBm();
   updatePill();
@@ -1145,9 +1402,14 @@ async function openReader(kind, n, target) {
   $('#home').hidden = true;
   $('#reader').hidden = false;
   $('#reader').classList.remove('hide-bars');
-  $('#reader').dataset.kind = kind; // ngjyra e shënjuesit: ari për xhuzin, blu për suret
+  $('#reader').dataset.kind = kind; // ngjyra e shënjuesit: ari për xhuzin, blu për suret, e gjelbër për hatmen
+  document.documentElement.style.setProperty('--rtop', `${$('.reader-top').offsetHeight}px`);
   const token = ++R.token;
-  if (kind === 'j') {
+  if (kind === 'k') {
+    const jm = juzMeta(n);
+    $('#rTitle').textContent = `Hatmja · Xhuzi ${n}`;
+    $('#rSub').textContent = `${surah(jm.s[0]).sq} ${jm.s.join(':')} – ${surah(jm.e[0]).sq} ${jm.e.join(':')} · ${pageCount(jm.pg)} faqe`;
+  } else if (kind === 'j') {
     const jm = juzMeta(n);
     $('#rTitle').textContent = `Xhuzi ${n}${activeJuz() === n ? (activeWeekNo() > 1 ? ` · java e ${ordinal(activeWeekNo())}` : ' · kjo javë') : ''}`;
     $('#rSub').textContent = `${surah(jm.s[0]).sq} ${jm.s.join(':')} – ${surah(jm.e[0]).sq} ${jm.e.join(':')} · ${pageCount(jm.pg)} faqe`;
@@ -1390,10 +1652,10 @@ let pendingFromHome = false;
 function navigate(hash) { if (location.hash === hash) handleRoute(); else location.hash = hash; }
 const handleRoute = safe(() => {
   const h = location.hash.replace(/^#\/?/, '');
-  const m = h.match(/^([js])\/(\d{1,3})(?:\/(\d{1,3}:\d{1,3}))?/);
+  const m = h.match(/^([jsk])\/(\d{1,3})(?:\/(\d{1,3}:\d{1,3}))?/);
   flushReading(); // koha e lexuar deri tani i përket faqes së mëparshme
   closeSheet(true);
-  if (m && ((m[1] === 'j' && +m[2] >= 1 && +m[2] <= 30) || (m[1] === 's' && +m[2] >= 1 && +m[2] <= 114))) {
+  if (m && ((m[1] !== 's' && +m[2] >= 1 && +m[2] <= 30) || (m[1] === 's' && +m[2] >= 1 && +m[2] <= 114))) {
     cameFromHome = pendingFromHome && route.name === 'home';
     pendingFromHome = false;
     route.name = 'reader';
@@ -1425,9 +1687,56 @@ function bind() {
     const link = e.target.closest('[data-link]');
     if (link) { pendingFromHome = route.name === 'home'; navigate(link.dataset.link); }
   });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeSheet();
+    if (route.name === 'reader' && paged() && !openSheetEl && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !e.target.closest?.('.knob, input')) {
+      const fwd = (e.key === 'ArrowLeft') === (settings.pager === 'rtl');
+      goTo(Math.max(0, R.idx) + (fwd ? 1 : -1));
+    }
+  });
 
-  for (const t of $$('[data-home]')) t.addEventListener('click', () => { settings.home = t.dataset.home; saveSettings(); renderHome(); });
+  const setHome = (mode, anim) => {
+    if (settings.home === mode) return;
+    settings.home = mode; saveSettings(); renderHome(); haptic(9);
+    const wc = $('#weekCard');
+    if (anim) { wc.classList.remove('swap-l', 'swap-r'); void wc.offsetWidth; wc.classList.add(anim); }
+  };
+  for (const t of $$('[data-home]')) t.addEventListener('click', () => setHome(t.dataset.home));
+  $('#khatGrid').addEventListener('click', (e) => { const b = e.target.closest('[data-kj]'); if (b) { pendingFromHome = true; navigate(`#/k/${b.dataset.kj}`); } });
+  $('#khatDays').addEventListener('click', (e) => { const b = e.target.closest('[data-kdays]'); if (b) setKhatDays(+b.dataset.kdays); });
+  $('#khatCustom').addEventListener('change', (e) => { const d = clamp(Math.round(+e.target.value || 0), 0, 3650); e.target.value = ''; setKhatDays(d); });
+  $('#khatReset').addEventListener('click', () => {
+    const t = val(S.kt) || {};
+    setVal('bk', null); setVal('kt', { ...t, start: ymd() });
+    renderKhatSheet(); renderHome(); haptic(12);
+    toast('Hatmja nis nga e para.', 4000, undoAction());
+  });
+  $('#histList').addEventListener('click', (e) => { const b = e.target.closest('[data-restore]'); if (b) restoreSnap(+b.dataset.restore); });
+
+  // Prekjet e rastësishme: një prekje gjatë ose menjëherë pas lëvizjes së faqes (edhe me gishtin e madh të dorës së djathtë) nuk vlen.
+  {
+    let lastScroll = 0, moved = false, sx = 0, sy = 0;
+    document.addEventListener('scroll', () => { lastScroll = Date.now(); }, { capture: true, passive: true });
+    document.addEventListener('touchstart', (e) => { const t = e.touches[0]; sx = t.clientX; sy = t.clientY; moved = e.touches.length > 1 || Date.now() - lastScroll < 120; }, { capture: true, passive: true });
+    document.addEventListener('touchmove', (e) => { const t = e.touches[0]; if (Math.hypot(t.clientX - sx, t.clientY - sy) > 10) moved = true; }, { capture: true, passive: true });
+    document.addEventListener('click', (e) => {
+      if (e.detail === 0) return; // tastiera
+      if (moved || Date.now() - lastScroll < 220) { e.preventDefault(); e.stopPropagation(); moved = false; }
+    }, true);
+  }
+  // Çdo ndryshim i vogël te cilësimet ndihet me një dridhje të lehtë.
+  $('#sheet-settings').addEventListener('click', (e) => { if (e.target.closest('button, input, .switch')) haptic(10); });
+  $('#sheet-khat').addEventListener('click', (e) => { if (e.target.closest('button')) haptic(8); });
+  // Ekran i plotë: hyn sërish me prekjen e radhës nëse sistemi e mbyll.
+  $('#fsToggle').addEventListener('change', (e) => {
+    setSetting('fs', e.target.checked);
+    if (e.target.checked) enterFS(); else if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  });
+  { let t = 0; document.addEventListener('pointerup', () => { if (settings.fs && !document.fullscreenElement && Date.now() - t > 4000) { t = Date.now(); enterFS(); } }, true); }
+  $('#autoToggle').addEventListener('change', (e) => { setSetting('autoBg', e.target.checked); if (e.target.checked) autoTheme(true); });
+  $('#dimRange').addEventListener('input', (e) => { remember('Cilësimet'); settings[settings.bg === 'night' ? 'dimNight' : 'dimDay'] = +e.target.value; saveSettings(); applySettings(); });
+  $('#shadowRange').addEventListener('input', (e) => { remember('Cilësimet'); settings.shadow = +e.target.value; saveSettings(); applySettings(); });
+  for (const [id, f] of [['sizeRange'], ['arTransRange', (v) => `${v}%`], ['trSizeRange'], ['trTransRange', (v) => `${v}%`], ['dimRange', (v) => `${v}%`], ['shadowRange', (v) => `${v}%`]]) knob($(`#${id}`), f);
   $('#weekCard').addEventListener('click', (e) => {
     if (!e.target.closest('[data-focus-search]')) return;
     const s = $('#surahSearch');
@@ -1483,7 +1792,14 @@ function bind() {
       if (a === 'done') markDone(+act.dataset.j, true);
       if (a === 'undone') markDone(+act.dataset.j, false);
       if (a === 'kahf') markKahf();
-      if (a === 'next') navigate(R.kind === 's' ? `#/s/${R.n + 1}` : `#/j/${R.n < 30 ? R.n + 1 : 1}`);
+      if (a === 'next') navigate(R.kind === 's' ? `#/s/${R.n + 1}` : R.kind === 'k' ? `#/k/${R.n + 1}` : `#/j/${R.n < 30 ? R.n + 1 : 1}`);
+      if (a === 'khatnew') {
+        const t = val(S.kt) || {};
+        setVal('kt', { ...t, start: ymd(), c: (t.c || 0) + 1 });
+        setVal('bk', null);
+        toast('Bismilah — hatme e re!', 2600, undoAction());
+        navigate('#/k/1');
+      }
       return;
     }
     if (String(getSelection?.() || '').length) return;
@@ -1514,29 +1830,31 @@ function bind() {
     const txt = `${x.d}\n\n${plain(x.t)}\n— ${surah(x.s).sq} ${x.s}:${x.a} (Hassan Nahi)`;
     try { await navigator.clipboard.writeText(txt); toast('Ajeti u kopjua'); } catch { prompt('Kopjo:', txt); }
   });
-  $('#sizeRange').addEventListener('input', (e) => { settings.size = +e.target.value; saveSettings(); applySettings(); });
-  $('#trSizeRange').addEventListener('input', (e) => { settings.trSize = +e.target.value; saveSettings(); applySettings(); });
-  $('#arTransRange').addEventListener('input', (e) => { settings.arTrans = +e.target.value; saveSettings(); applySettings(); });
-  $('#trTransRange').addEventListener('input', (e) => { settings.trTrans = +e.target.value; saveSettings(); applySettings(); });
+  $('#sizeRange').addEventListener('input', (e) => { remember('Cilësimet'); settings.size = +e.target.value; saveSettings(); applySettings(); });
+  $('#trSizeRange').addEventListener('input', (e) => { remember('Cilësimet'); settings.trSize = +e.target.value; saveSettings(); applySettings(); });
+  $('#arTransRange').addEventListener('input', (e) => { remember('Cilësimet'); settings.arTrans = +e.target.value; saveSettings(); applySettings(); });
+  $('#trTransRange').addEventListener('input', (e) => { remember('Cilësimet'); settings.trTrans = +e.target.value; saveSettings(); applySettings(); });
   $('#paperGrid').addEventListener('click', (e) => { const b = e.target.closest('[data-paper]'); if (b) setSetting('paper', b.dataset.paper); });
 
   // rrotullimi
   // A− / A+ dhe ajeti para/pas
   // the floating main card: the home list leaves room for it at the bottom
   if ('ResizeObserver' in window) new ResizeObserver(([e]) => document.documentElement.style.setProperty('--hero-h', `${Math.ceil(e.target.offsetHeight)}px`)).observe($('#weekCard'));
-  // swipe the floating card left/right: Xhuzet ⇄ Suret
+  // swipe anywhere on the home screen: Xhuzet → Suret → Hatmja
   {
-    const wc = $('#weekCard');
+    const MODES = ['juz', 'surah', 'khatmah'];
     let sx = 0, sy = 0, on = false;
-    wc.addEventListener('touchstart', (e) => { const t = e.touches[0]; sx = t.clientX; sy = t.clientY; on = e.touches.length === 1; }, { passive: true });
-    wc.addEventListener('touchend', (e) => {
+    $('#home').addEventListener('touchstart', (e) => {
+      const t = e.touches[0]; sx = t.clientX; sy = t.clientY;
+      on = e.touches.length === 1 && sx > 24 && sx < innerWidth - 24 && !e.target.closest('input, .knob');
+    }, { passive: true });
+    $('#home').addEventListener('touchend', (e) => {
       if (!on) return;
       on = false;
       const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
-      if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-      settings.home = settings.home === 'juz' ? 'surah' : 'juz';
-      saveSettings(); renderHome();
-      wc.classList.remove('swap-l', 'swap-r'); void wc.offsetWidth; wc.classList.add(dx < 0 ? 'swap-l' : 'swap-r');
+      if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.8) return;
+      const i = MODES.indexOf(settings.home);
+      setHome(MODES[(i + (dx < 0 ? 1 : MODES.length - 1)) % MODES.length], dx < 0 ? 'swap-l' : 'swap-r');
     }, { passive: true });
   }
   $('#fszDown').addEventListener('click', () => stepSize(-1));
@@ -1610,6 +1928,9 @@ async function main() {
     document.body.innerHTML = '<p class="loading">JUZ nuk u ngarkua. Lidhu me internetin një herë që aplikacioni të ruhet për përdorim pa internet.</p>';
     return;
   }
+  autoTheme();
+  setInterval(autoTheme, 60000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') autoTheme(); });
   handleRoute();
   startSync();
   startReadingClock();

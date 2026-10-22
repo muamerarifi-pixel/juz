@@ -12,6 +12,8 @@ export const SCHEMA = {
     kf: 'v',   // Kehfi i xhumasë { w, p, d? } (d = 1: u lexua)
     pg: 'm',   // xhuzi → { w, c } faqja e shënjuesit në atë xhuz këtë javë
     sp: 'm',   // sureja → faqja e shënjuesit
+    bk: 'v',   // shënjuesi i hatmes { j, s, a, p }
+    kt: 'v',   // hatmja { start: 'VVVV-MM-DD', days: 0 = pa afat, c: hatme të përfunduara }
     done: 'm', // xhuzi → java kur u përfundua
     wk: 'm',   // java → faqe të përfunduara (për seritë)
     st: 'v',   // cilësimet e përbashkëta

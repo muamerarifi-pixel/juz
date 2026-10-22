@@ -72,6 +72,7 @@
       <div class="tabs" role="tablist" aria-label="Lista">
         <button role="tab" class="tab" data-home="juz" aria-selected="true">Xhuzet</button>
         <button role="tab" class="tab" data-home="surah" aria-selected="false">Suret</button>
+        <button role="tab" class="tab" data-home="khatmah" aria-selected="false">Hatmja</button>
       </div>
 
       <div id="juzPane"><button class="bm-chip" id="bjChip" hidden></button><ol id="juzGrid" class="juz-grid"></ol></div>
@@ -82,6 +83,7 @@
         </label>
         <ol id="surahList" class="surah-list"></ol>
       </div>
+      <div id="khatmahPane" hidden><ol id="khatGrid" class="juz-grid"></ol></div>
     </div>
   </section>
 
@@ -119,14 +121,33 @@
   <div class="grip"></div>
   <header class="sheet-head"><h2 id="setTitle">Cilësimet</h2><button class="icon-btn" data-close aria-label="Mbyll"><svg><use href="#i-close"/></svg></button></header>
 
+  <h3 class="sec">Pamja</h3>
   <div class="field">
-    <span class="label">Pamja</span>
     <div class="seg" data-setting="bg"><button data-v="paper">Ditë</button><button data-v="night">Natë</button></div>
+  </div>
+  <label class="switch">
+    <span class="label">Ditë e natë sipas diellit<small>E ditës pas lindjes së diellit në Kosovë, e natës pas perëndimit. Mund ta ndryshosh me dorë kurdo.</small></span>
+    <input type="checkbox" class="toggle" id="autoToggle">
+  </label>
+  <div class="knobs">
+    <div class="kf"><span class="label">Errësimi i sfondit</span><input type="range" id="dimRange" min="0" max="70" step="5"><small id="dimFor"></small></div>
+    <div class="kf"><span class="label">Hija pas tekstit</span><input type="range" id="shadowRange" min="0" max="100" step="10"><small>0% = pa hije</small></div>
   </div>
   <div class="field">
     <span class="label">Sfondi i letrës</span>
     <div class="papers" id="paperGrid" role="radiogroup" aria-label="Sfondi i letrës"></div>
   </div>
+
+  <h3 class="sec">Leximi</h3>
+  <div class="field">
+    <span class="label">Kalimi i faqeve</span>
+    <div class="seg" data-setting="pager"><button data-v="scroll">Poshtë</button><button data-v="rtl">Faqe ⟵</button><button data-v="ltr">Faqe ⟶</button></div>
+    <p class="hint">"Faqe" i kthen faqet anash, një nga një, si në Mus'haf: ⟵ nga e djathta në të majtë, ⟶ nga e majta në të djathtë.</p>
+  </div>
+  <label class="switch" id="fsRow">
+    <span class="label">Ekran i plotë<small>Fsheh shiritin e statusit dhe atë të navigimit, në telefon dhe në kompjuter</small></span>
+    <input type="checkbox" class="toggle" id="fsToggle">
+  </label>
   <label class="switch" id="rotRow" hidden>
     <span class="label">Kyç rrotullimin për këtë herë<small>Përndryshe JUZ ndjek "Rrotullimin automatik" të telefonit</small></span>
     <input type="checkbox" class="toggle" id="rotToggle">
@@ -151,14 +172,10 @@
     <span class="label">Trashësia</span>
     <div class="seg" data-setting="weight"><button data-v="400">Hollë</button><button data-v="500">Mesme</button><button data-v="600">Trashë</button><button data-v="700">Shumë</button></div>
   </div>
-  <label class="field">
-    <span class="label">Madhësia <output id="sizeOut"></output></span>
-    <input type="range" id="sizeRange" min="22" max="50" step="1">
-  </label>
-  <label class="field">
-    <span class="label">Transparenca e tekstit <output id="arTransOut"></output></span>
-    <input type="range" id="arTransRange" min="0" max="60" step="5">
-  </label>
+  <div class="knobs">
+    <div class="kf"><span class="label">Madhësia <output id="sizeOut"></output></span><input type="range" id="sizeRange" min="22" max="50" step="1"></div>
+    <div class="kf"><span class="label">Transparenca <output id="arTransOut"></output></span><input type="range" id="arTransRange" min="0" max="60" step="5"></div>
+  </div>
 
   <h3 class="sec">Shqip</h3>
   <label class="switch">
@@ -178,20 +195,38 @@
         <button data-v="inter" style="font-family:Inter">Inter</button>
       </div>
     </div>
-    <label class="field">
-      <span class="label">Madhësia <output id="trSizeOut"></output></span>
-      <input type="range" id="trSizeRange" min="14" max="26" step="1">
-    </label>
-    <label class="field">
-      <span class="label">Transparenca e tekstit <output id="trTransOut"></output></span>
-      <input type="range" id="trTransRange" min="0" max="60" step="5">
-    </label>
+    <div class="knobs">
+      <div class="kf"><span class="label">Madhësia <output id="trSizeOut"></output></span><input type="range" id="trSizeRange" min="14" max="26" step="1"></div>
+      <div class="kf"><span class="label">Transparenca <output id="trTransOut"></output></span><input type="range" id="trTransRange" min="0" max="60" step="5"></div>
+    </div>
   </div>
   <div class="preview" id="preview">
     <p class="ar" lang="ar" dir="rtl" id="previewAr"></p>
     <p class="tr">Me emrin e Allahut, të Gjithëmëshirshmit, Mëshirëplotit!</p>
   </div>
+  <button class="link-btn" data-open="history">↺ Historiku i ndryshimeve — kthehu pas</button>
   <button class="link-btn" data-open="about">Rreth aplikacionit dhe burimet</button>
+</section>
+
+<section class="sheet" id="sheet-history" role="dialog" aria-modal="true" aria-labelledby="histTitle" hidden>
+  <div class="grip"></div>
+  <header class="sheet-head"><h2 id="histTitle">Historiku i ndryshimeve</h2><button class="icon-btn" data-close aria-label="Mbyll"><svg><use href="#i-close"/></svg></button></header>
+  <p class="hint">Çdo ndryshim i shënjuesve, i xhuzeve, i hatmes dhe i cilësimeve ruhet këtu. "Kthehu" e kthen gjithçka si ishte para atij ndryshimi (edhe kthimi mund të zhbëhet).</p>
+  <ol class="hist" id="histList"></ol>
+</section>
+
+<section class="sheet" id="sheet-khat" role="dialog" aria-modal="true" aria-labelledby="khatTitle" hidden>
+  <div class="grip"></div>
+  <header class="sheet-head"><h2 id="khatTitle">Hatmja</h2><button class="icon-btn" data-close aria-label="Mbyll"><svg><use href="#i-close"/></svg></button></header>
+  <p class="hint">Kur'ani nga fillimi në fund, me shënjuesin e vet. Lexo pa afat — sa të të duhet — ose zgjidh një afat dhe JUZ të tregon sa faqe në ditë.</p>
+  <div class="kdays" id="khatDays">
+    <button data-kdays="0">Pa afat</button><button data-kdays="7">1 javë</button><button data-kdays="15">15 ditë</button>
+    <button data-kdays="30">1 muaj</button><button data-kdays="40">40 ditë</button><button data-kdays="60">2 muaj</button>
+    <button data-kdays="90">3 muaj</button><button data-kdays="180">6 muaj</button><button data-kdays="365">1 vit</button>
+  </div>
+  <label class="field"><span class="label">Ose sa ditë</span><input type="number" id="khatCustom" min="1" max="3650" inputmode="numeric" placeholder="p.sh. 45"></label>
+  <p class="hint" id="khatNow"></p>
+  <button class="btn" id="khatReset">Fillo hatmen nga e para</button>
 </section>
 
 <section class="sheet" id="sheet-sync" role="dialog" aria-modal="true" aria-labelledby="syncTitle" hidden>
