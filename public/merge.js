@@ -10,6 +10,7 @@ export const SCHEMA = {
     bs: 'v',   // shënjuesi i ajetit në mënyrën sure { s, a, p }
     wj: 'v',   // xhuzi i caktuar { w, j } — w = java kur u nis; vazhdon javët e tjera derisa të përfundojë
     kf: 'v',   // Kehfi i xhumasë { w, p, d? } (d = 1: u lexua)
+    bf: 'v',   // shënjuesi i Kehfit të xhumasë { s, a, p, w } — më vete nga xhuzi, sureja dhe hatmja
     pg: 'm',   // xhuzi → { w, c } faqja e shënjuesit në atë xhuz këtë javë
     sp: 'm',   // sureja → faqja e shënjuesit
     bk: 'v',   // shënjuesi i hatmes { j, s, a, p }

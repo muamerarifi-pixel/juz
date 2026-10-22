@@ -184,7 +184,7 @@ const HIST_KEY = 'juz.hist';
 let HIST = []; try { HIST = JSON.parse(lsGet(HIST_KEY, '[]')) || []; } catch {}
 let histT = 0, histOff = false;
 const QUIET = new Set(['dv', 'dl', 'wk', 'st']); // pajisjet, ditari, seritë: rrjedhin vetë
-const NOTE = { bj: 'Shënjuesi i xhuzit', bs: 'Shënjuesi i sures', bk: 'Shënjuesi i hatmes', wj: 'Xhuzi i javës', done: 'Xhuz i përfunduar', kf: 'Kehfi', kt: 'Hatmja', pg: 'Shënjuesi i xhuzit', sp: 'Shënjuesi i sures' };
+const NOTE = { bj: 'Shënjuesi i xhuzit', bs: 'Shënjuesi i sures', bk: 'Shënjuesi i hatmes', wj: 'Xhuzi i javës', done: 'Xhuz i përfunduar', kf: 'Kehfi', bf: 'Shënjuesi i Kehfit', kt: 'Hatmja', pg: 'Shënjuesi i xhuzit', sp: 'Shënjuesi i sures' };
 function remember(note) {
   if (histOff) return;
   const now = Date.now();
@@ -927,14 +927,15 @@ function renderKahf() {
   const count = pageCount(su.pg);
   const read = thisWeek ? (k.d ? count : clamp(k.p - su.pg[0] + 1, 0, count)) : 0;
   const pct = Math.round((read / count) * 100);
-  const bs = val(S.bs);
-  const resume = bs && bs.s === KAHF && thisWeek && !k.d;
+  const bf = friBm();
+  const at = bf;
+  const resume = at && thisWeek && !k.d;
   el.innerHTML = `<div class="k-top"><span class="k-ic"><svg><use href="#i-cave"/></svg></span>
       <div><strong>${new Date().getDay() === 5 ? 'Xhuma mubarek' : 'Nesër është xhuma'} — Sureja Kehf</strong><span class="k-sub">Shpella · ${su.c} ajete · ${count} faqe</span></div></div>
     <div class="bar"><span style="width:${pct}%"></span></div>
     <div class="row">${pct >= 100
       ? `<span class="k-sub">✓ E lexove Kehfin këtë xhuma — Allahu ta pranoftë!</span>`
-      : `<button class="btn gold small" data-link="${resume ? `#/s/${KAHF}/${bs.s}:${bs.a}` : `#/s/${KAHF}`}">${resume ? `Vazhdo · ${read}/${count} faqe` : 'Lexo Kehfin'}</button>`}</div>`;
+      : `<button class="btn gold small" data-link="${resume ? `#/f/${KAHF}/${at.s}:${at.a}` : `#/f/${KAHF}`}">${resume ? `Vazhdo · ${read}/${count} faqe` : 'Lexo Kehfin'}</button>`}</div>`;
 }
 
 function renderStats() {
@@ -1214,12 +1215,12 @@ const renderEnd = safe(() => {
   } else {
     const su = surah(R.n);
     const next = R.n < 114 ? surah(R.n + 1) : null;
-    const isKahf = R.n === KAHF;
+    const isKahf = R.fri && R.n === KAHF;
     const k = val(S.kf);
     const kahfDone = isKahf && k && k.w === weekKey() && k.d;
     html = `<h3>Fundi i sures ${esc(su.sq)}</h3><p>${isKahf ? 'Allahu ta bëftë dritë mes dy xhumave.' : 'Mashallah! Vazhdo me suren tjetër.'}</p>
       <div class="row">${isKahf ? (kahfDone ? '<span class="muted">✓ Kehfi u shënua për këtë xhuma</span>' : '<button class="btn gold" data-act="kahf">✓ E lexova Kehfin</button>') : ''}
-      ${next ? `<button class="btn ${isKahf ? '' : 'primary'}" data-act="next">${next.n}. ${esc(next.sq)} →</button>` : ''}</div>`;
+      ${next && !R.fri ? `<button class="btn ${isKahf ? '' : 'primary'}" data-act="next">${next.n}. ${esc(next.sq)} →</button>` : ''}</div>`;
   }
   el.innerHTML = html;
 });
@@ -1327,7 +1328,7 @@ const updatePill = safe(() => {
   $('#pillMp').innerHTML = `<svg><use href="#i-book"/></svg>Mus'hafi <b>${mp}</b>`;
   $('#pillMp').title = `Faqja ${mp} e Mus'hafit`;
   const b = bmOf();
-  const pr = R.kind === 'j' ? juzProgress(R.n) : R.kind === 'k' ? khatJuzProg(R.n) : surahProgress(R.n);
+  const pr = R.fri ? kahfProgress() : R.kind === 'j' ? juzProgress(R.n) : R.kind === 'k' ? khatJuzProg(R.n) : surahProgress(R.n);
   const showBm = !!b && bmInUnit(b);
   $('#pillBm').hidden = !showBm && !pr.read;
   $('#pillBmTxt').textContent = `${pr.read}/${pr.count}`;
@@ -1336,7 +1337,13 @@ const updatePill = safe(() => {
 });
 
 // ================================================================ shënjuesi = progresi
-const bmOf = () => (R.kind === 'j' ? val(S.bj) : R.kind === 'k' ? val(S.bk) : val(S.bs));
+const friBm = () => { const b = val(S.bf); return b && b.w === weekKey() ? b : null; };
+function kahfProgress() {
+  const su = surah(KAHF), count = pageCount(su.pg), k = val(S.kf);
+  const read = k && k.w === weekKey() ? (k.d ? count : clamp(k.p - su.pg[0] + 1, 0, count)) : 0;
+  return { read, count, pct: Math.round((read / count) * 100) };
+}
+const bmOf = () => (R.fri ? friBm() : R.kind === 'j' ? val(S.bj) : R.kind === 'k' ? val(S.bk) : val(S.bs));
 const bmInUnit = (b) => (R.kind === 's' ? b.s === R.n : b.j === R.n);
 function decorateBm() {
   for (const el of $$('#readerBody .bm')) el.classList.remove('bm');
@@ -1347,11 +1354,22 @@ function toggleAyahBm(k) {
   const [s, a] = k.split(':').map(Number);
   const pg = R.pages.find((g) => g.items.some((x) => x.s === s && x.a === a));
   if (!pg) return;
-  const field = R.kind === 'j' ? 'bj' : R.kind === 'k' ? 'bk' : 'bs';
-  const b = val(S[field]);
+  const field = R.fri ? 'bf' : R.kind === 'j' ? 'bj' : R.kind === 'k' ? 'bk' : 'bs';
+  const b = R.fri ? friBm() : val(S[field]);
   if (b && b.s === s && b.a === a && bmInUnit(b)) {
     setVal(field, null);
     toast('Shënjuesi u hoq (progresi mbetet).', 4000, undoAction());
+  } else if (R.fri) {
+    // Kehfi i xhumasë: vetëm shënjuesi i vet dhe progresi i kësaj xhumaje; shënjuesi i sureve mbetet ku ishte
+    const w = weekKey(), kf = val(S.kf), su = surah(KAHF);
+    const before = kf && kf.w === w ? (kf.d ? su.pg[1] : kf.p) : su.pg[0] - 1;
+    const last = pg.p === su.pg[1] && a === su.c;
+    setVal('bf', { s, a, p: pg.p, w });
+    setVal('kf', { w, p: pg.p, ...((kf && kf.w === w && kf.d) || last ? { d: 1 } : {}) });
+    if (!(kf && kf.w === w && kf.d)) logAdd(pg.p - before);
+    updateWeekTotal();
+    const pr = kahfProgress();
+    toast(`🔖 Kehfi i xhumasë · ${s}:${a} · ${pr.read}/${pr.count} faqe`, 4000, undoAction());
   } else if (R.kind === 'k') {
     const prev = val(S.bk)?.p ?? juzMeta(R.n).pg[0] - 1;
     setVal('bk', { j: R.n, s, a, p: pg.p });
@@ -1376,11 +1394,7 @@ function toggleAyahBm(k) {
       setKey('sp', s, pg.p);
       keepOnly('sp', s);
     }
-    if (R.kind === 's' && s === KAHF) {
-      const kf = val(S.kf);
-      const last = pg.p === surah(KAHF).pg[1] && a === surah(KAHF).c;
-      setVal('kf', { w, p: pg.p, ...((kf && kf.w === w && kf.d) || last ? { d: 1 } : {}) });
-    }
+    // (7.6: Kehfi i xhumasë ka shënjuesin dhe progresin e vet — leximi i sures 18 këtu nuk e prek)
     if (before !== null) logAdd(pg.p - before);
     updateWeekTotal();
     const pr = R.kind === 'j' ? juzProgress(R.n) : surahProgress(R.n);
@@ -1409,7 +1423,7 @@ function markDone(j, on) {
 function markKahf() {
   const k = val(S.kf);
   const su = surah(KAHF);
-  const from = Math.max(su.pg[0] - 1, k && k.w === weekKey() ? k.p : 0, unitPos('s', KAHF));
+  const from = Math.max(su.pg[0] - 1, k && k.w === weekKey() ? k.p : 0, R.fri ? 0 : unitPos('s', KAHF));
   if (!(k && k.w === weekKey() && k.d)) logAdd(su.pg[1] - from);
   setVal('kf', { w: weekKey(), p: surah(KAHF).pg[1], d: 1 });
   updateWeekTotal();
@@ -1422,7 +1436,7 @@ async function openReader(kind, n, target) {
   $('#home').hidden = true;
   $('#reader').hidden = false;
   $('#reader').classList.remove('hide-bars');
-  $('#reader').dataset.kind = kind; // ngjyra e shënjuesit: ari për xhuzin, blu për suret, e gjelbër për hatmen
+  $('#reader').dataset.kind = R.fri ? 'f' : kind; // ngjyra e shënjuesit: ari për xhuzin, blu për suret, e gjelbër për hatmen
   document.documentElement.style.setProperty('--rtop', `${$('.reader-top').offsetHeight}px`);
   const token = ++R.token;
   if (kind === 'k') {
@@ -1433,6 +1447,10 @@ async function openReader(kind, n, target) {
     const jm = juzMeta(n);
     $('#rTitle').textContent = `Xhuzi ${n}${activeJuz() === n ? (activeWeekNo() > 1 ? ` · java e ${ordinal(activeWeekNo())}` : ' · kjo javë') : ''}`;
     $('#rSub').textContent = `${surah(jm.s[0]).sq} ${jm.s.join(':')} – ${surah(jm.e[0]).sq} ${jm.e.join(':')} · ${pageCount(jm.pg)} faqe`;
+  } else if (R.fri) {
+    const su = surah(n);
+    $('#rTitle').textContent = `Kehfi i xhumasë · ${su.sq}`;
+    $('#rSub').textContent = `${su.c} ajete · ${pageCount(su.pg)} faqe · shënjues më vete`;
   } else {
     const su = surah(n);
     $('#rTitle').textContent = `${n}. ${su.sq} — ${su.mn}`;
@@ -1672,16 +1690,18 @@ let pendingFromHome = false;
 function navigate(hash) { if (location.hash === hash) handleRoute(); else location.hash = hash; }
 const handleRoute = safe(() => {
   const h = location.hash.replace(/^#\/?/, '');
-  const m = h.match(/^([jsk])\/(\d{1,3})(?:\/(\d{1,3}:\d{1,3}))?/);
+  const m = h.match(/^([jskf])\/(\d{1,3})(?:\/(\d{1,3}:\d{1,3}))?/);
   flushReading(); // koha e lexuar deri tani i përket faqes së mëparshme
   closeSheet(true);
-  if (m && ((m[1] !== 's' && +m[2] >= 1 && +m[2] <= 30) || (m[1] === 's' && +m[2] >= 1 && +m[2] <= 114))) {
+  if (m && ((m[1] === 'f' && +m[2] === KAHF) || (m[1] !== 's' && m[1] !== 'f' && +m[2] >= 1 && +m[2] <= 30) || (m[1] === 's' && +m[2] >= 1 && +m[2] <= 114))) {
     cameFromHome = pendingFromHome && route.name === 'home';
     pendingFromHome = false;
     route.name = 'reader';
-    openReader(m[1], +m[2], m[3] || null);
+    R.fri = m[1] === 'f'; // Kehfi i xhumasë: sureja 18 me shënjuesin e vet, ndaras nga tri mënyrat
+    openReader(R.fri ? 's' : m[1], +m[2], m[3] || null);
   } else {
     route.name = 'home';
+    R.fri = false;
     R.token++;
     R.io?.disconnect();
     $('#reader').hidden = true;
