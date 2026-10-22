@@ -89,6 +89,14 @@ function cleanValue(field, v) {
     case 'kf': return typeof v.w === 'string' && WEEK.test(v.w) && int(v.p, ...PAGE) ? (v.d === 1 ? { w: v.w, p: v.p, d: 1 } : { w: v.w, p: v.p }) : undefined;
     case 'bj': return int(v.j, 1, 30) && int(v.s, 1, 114) && int(v.a, 1, 286) && int(v.p, ...PAGE) ? { j: v.j, s: v.s, a: v.a, p: v.p } : undefined;
     case 'bs': return int(v.s, 1, 114) && int(v.a, 1, 286) && int(v.p, ...PAGE) ? { s: v.s, a: v.a, p: v.p } : undefined;
+    case 'bf': return int(v.s, 1, 114) && int(v.a, 1, 286) && int(v.p, ...PAGE) && typeof v.w === 'string' && WEEK.test(v.w) ? { s: v.s, a: v.a, p: v.p, w: v.w } : undefined;
+    case 'bk': return int(v.j, 1, 30) && int(v.s, 1, 114) && int(v.a, 1, 286) && int(v.p, ...PAGE) ? { j: v.j, s: v.s, a: v.a, p: v.p } : undefined;
+    case 'kt': {
+      if (typeof v.start !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v.start)) return undefined;
+      const o = { start: v.start, days: int(v.days, 0, 3650) ? v.days : 0 };
+      if (int(v.c, 1, 1000)) o.c = v.c;
+      return o;
+    }
     case 'pg': return typeof v.w === 'string' && WEEK.test(v.w) && int(v.c, ...PAGE) ? { w: v.w, c: v.c } : undefined;
     case 'st': {
       const o = {};
