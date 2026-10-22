@@ -1788,19 +1788,19 @@ function bind() {
   {
     const body = $('#readerBody');
     let px = null, py = 0, pid = null;
-    body.addEventListener('pointerdown', (e) => { if (!paged() || (e.pointerType === 'mouse' && e.button)) return; px = e.clientX; py = e.clientY; pid = e.pointerId; }, true);
-    const end = (e) => {
-      if (px === null || e.pointerId !== pid) return;
-      const dx = e.clientX - px, dy = e.clientY - py;
-      px = null;
+    const turn = (dx, dy) => {
       if (Math.abs(dx) < 45 || Math.abs(dx) < Math.abs(dy) * 1.3) return;
       R.swipedAt = Date.now();
       const fwd = settings.pager === 'rtl' ? dx > 0 : dx < 0;
       const to = clamp(Math.max(0, R.idx) + (fwd ? 1 : -1), 0, count());
       if (to !== R.idx) { goTo(to); haptic(8); }
     };
-    addEventListener('pointerup', end, true);
-    addEventListener('pointercancel', () => { px = null; }, true);
+    // gishti: ngjarjet e prekjes (shfletuesi nuk i anulon kur e merr vetë lëvizjen)
+    body.addEventListener('touchstart', (e) => { if (!paged() || e.touches.length !== 1) { px = null; return; } px = e.touches[0].clientX; py = e.touches[0].clientY; }, { passive: true });
+    body.addEventListener('touchend', (e) => { if (px === null) return; const t = e.changedTouches[0]; const x = px; px = null; turn(t.clientX - x, t.clientY - py); }, { passive: true });
+    // miu ose lapsi
+    body.addEventListener('pointerdown', (e) => { if (!paged() || e.pointerType === 'touch' || e.button) return; px = e.clientX; py = e.clientY; pid = e.pointerId; }, true);
+    addEventListener('pointerup', (e) => { if (px === null || e.pointerType === 'touch' || e.pointerId !== pid) return; const x = px; px = null; turn(e.clientX - x, e.clientY - py); }, true);
   }
   $('#readerBody').addEventListener('click', safe((e) => {
     if (Date.now() - (R.swipedAt || 0) < 450) return; // ishte rrëshqitje, jo prekje

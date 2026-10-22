@@ -574,7 +574,7 @@ body.paged #reader .reader-body { position: fixed; top: var(--rtop, 64px); botto
 body.paged[data-pager="rtl"] #reader .reader-body { direction: rtl; }
 body.paged #reader .reader-body::-webkit-scrollbar { display: none; }
 body.paged #reader .reader-body > * { flex: 0 0 100%; width: 100%; max-width: none; margin: 0; scroll-snap-align: start; scroll-snap-stop: always; direction: ltr;
-  overflow-y: auto; overscroll-behavior: contain; position: relative; padding: 10px max(18px, calc((100% - 780px) / 2)) 130px; }
+  overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; position: relative; padding: 10px max(18px, calc((100% - 780px) / 2)) 130px; }
 body.paged #reader .reader-body > .end { padding-top: 40px; }
 body.paged .hide-bars .reader-top { transform: none; }
 /* one hand: the home buttons and the sheets come down to the thumb */
