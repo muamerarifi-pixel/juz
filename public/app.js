@@ -125,7 +125,7 @@ function motivate(pct) {
 
 // ================================================================ pajisja
 const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches || navigator.standalone === true;
 function deviceName() {
   const ua = navigator.userAgent;
   let os = 'Pajisje';
@@ -273,6 +273,8 @@ function applyRemote(d) {
 // ================================================================ cilësimet
 let settings = { ...DEFAULTS };
 try { settings = { ...DEFAULTS, ...JSON.parse(lsGet(LS.settings, '{}')) }; } catch {}
+// 7.6.3: the app installed on a phone opens full screen (first tap) unless you turned it off in the settings
+try { if (!('fs' in JSON.parse(lsGet(LS.settings, '{}'))) && isStandalone() && matchMedia('(pointer: coarse)').matches) settings.fs = true; } catch {}
 function normalizeSettings() {
   settings.weight = +settings.weight || 400;
   for (const [k, allowed] of Object.entries(SYNCED_SETTINGS)) if (!allowed.includes(settings[k])) settings[k] = DEFAULTS[k];
