@@ -327,6 +327,7 @@ function applySyncedSettings() {
 
 function applySettings() {
   const root = document.documentElement;
+  { const d = $('#fszDown'), u = $('#fszUp'); if (d) d.disabled = settings.size <= 22 && settings.trSize <= 14; if (u) u.disabled = settings.size >= 50 && settings.trSize >= 26; }
   const f = arFont();
   root.dataset.bg = settings.bg;
   root.dataset.theme = settings.theme;
@@ -1330,9 +1331,9 @@ const updatePill = safe(() => {
   if (route.name !== 'reader' || !count()) return;
   const n = count();
   const pos = Math.min(Math.max(R.idx, 0) + 1, n);
-  $('#pillPg').innerHTML = `Faqja <b>${pos}</b> / ${n}`;
+  $('#pillPg').innerHTML = `<span class="lbl">Faqja </span><b>${pos}</b> / ${n}`;
   const mp = printed(R.pages[pos - 1].p);
-  $('#pillMp').innerHTML = `<svg><use href="#i-book"/></svg>Mus'hafi <b>${mp}</b>`;
+  $('#pillMp').innerHTML = `<svg><use href="#i-book"/></svg><span class="lbl">Mus'hafi </span><b>${mp}</b>`;
   $('#pillMp').title = `Faqja ${mp} e Mus'hafit`;
   const b = bmOf();
   const pr = R.fri ? kahfProgress() : R.kind === 'j' ? juzProgress(R.n) : R.kind === 'k' ? khatJuzProg(R.n) : surahProgress(R.n);

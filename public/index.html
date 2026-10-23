@@ -25,6 +25,8 @@
   <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-fwd" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-aa" viewBox="0 0 24 24"><path d="M3 18l5-12 5 12M4.8 14h6.4M15 18v-5.5a2.5 2.5 0 0 1 5 0V18M15 15h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-tdn" viewBox="0 0 24 24"><path d="M3.5 18l4.5-11 4.5 11M5.2 14h5.6M15.5 12.5h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-tup" viewBox="0 0 24 24"><path d="M2.5 20l6-15 6 15M4.7 15h7.6M19 9v7M15.5 12.5h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-sync" viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-14.3 4.9M4 12a8 8 0 0 1 14.3-4.9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18.5 3v4.2h-4.2M5.5 21v-4.2h4.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
@@ -97,14 +99,16 @@
       </div>
     </header>
     <div id="readerBody" class="reader-body"></div>
-    <button class="fsz" id="fszDown" aria-label="Tekst më i vogël">A<span>−</span></button>
-    <button class="fsz" id="fszUp" aria-label="Tekst më i madh">A<span>+</span></button>
-    <button class="pill" id="pill" aria-label="Shko te shënjuesi">
-      <span class="pill-pg" id="pillPg"></span>
-      <span class="pill-mp" id="pillMp" title="Faqja në Mus'haf"></span>
-      <span class="pill-bm" id="pillBm" hidden><svg><use href="#i-bm"/></svg><span id="pillBmTxt"></span></span>
-      <span class="pill-bar"><span id="pillBar"></span></span>
-    </button>
+    <div class="rbar" id="rbar">
+      <button class="fsz" id="fszDown" aria-label="Tekst më i vogël" title="Tekst më i vogël"><svg><use href="#i-tdn"/></svg></button>
+      <button class="pill" id="pill" aria-label="Shko te shënjuesi">
+        <span class="pill-pg" id="pillPg"></span>
+        <span class="pill-mp" id="pillMp" title="Faqja në Mus'haf"></span>
+        <span class="pill-bm" id="pillBm" hidden><svg><use href="#i-bm"/></svg><span id="pillBmTxt"></span></span>
+        <span class="pill-bar"><span id="pillBar"></span></span>
+      </button>
+      <button class="fsz" id="fszUp" aria-label="Tekst më i madh" title="Tekst më i madh"><svg><use href="#i-tup"/></svg></button>
+    </div>
   </section>
 </main>
 
