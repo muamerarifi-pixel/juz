@@ -35,10 +35,10 @@
   color-scheme: light;
 }
 :root[data-bg="night"] {
-  --bg: #13120f; --surface: #1f1d18; --surface-2: #2a2721; --ink: #ebe3cf; --muted: #a39989;
-  --line: rgb(255 240 210 / .09); --accent: #86c7a4; --accent-2: #a0d6b8; --accent-ink: #0c1912; --accent-soft: #1d3327;
-  --gold: #cfa95e; --gold-soft: #3a3020; --danger: #e27a6d; --mark: rgb(207 169 94 / .2);
-  --tr-bg: rgb(255 245 225 / .035);
+  --bg: #0e1c17; --surface: #152720; --surface-2: #1c3229; --ink: #ece6d4; --muted: #a2b0a3;
+  --line: rgb(220 240 225 / .09); --accent: #8fd0ac; --accent-2: #a6dcbd; --accent-ink: #0c1912; --accent-soft: #1d3a2c;
+  --gold: #d4b067; --gold-soft: #3a3622; --danger: #e27a6d; --mark: rgb(212 176 103 / .2);
+  --tr-bg: rgb(235 250 240 / .035);
   --tex: url(/textures/grain-night.webp); --shc: 0 0 0; --hi: rgb(255 245 225 / .06);
   --sbm: #8db4e8; --sbm-2: #a9c7f0; --smark: rgb(120 165 230 / .22); --sbm-soft: #1b283a;
   color-scheme: dark;
@@ -592,3 +592,33 @@ body.paged .hide-bars .reader-top { transform: none; }
 @media (pointer: coarse) { #readerBody, #readerBody .pg-ar, #readerBody .pg-tr p, #readerBody .ar-txt { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; } }
 /* 7.7.1: the ayah sheet and the whole reader too — no "Copy / Web search" bar or Google bar on phones (use Kopjo) */
 @media (pointer: coarse) { #reader, #sheet-ayah, #sheet-ayah * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; } #sheet-ayah input, #sheet-ayah textarea { -webkit-user-select: text; user-select: text; } }
+
+/* ================= 7.8: temat e sfondit (ditën) — tekstura të lehta CSS/SVG; nata: e gjelbër e thellë =================
+   Teksturat e letrës (Tekstura e letrës) kanë përparësi kur zgjidhen. */
+:root { --tx-geo: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Cg fill='none' stroke='%23a47727' stroke-opacity='.16' stroke-width='1'%3E%3Crect x='18' y='18' width='24' height='24'/%3E%3Crect x='18' y='18' width='24' height='24' transform='rotate(45 30 30)'/%3E%3Ccircle cx='30' cy='30' r='5'/%3E%3Cpath d='M0 30h13M47 30h13M30 0v13M30 47v13'/%3E%3C/g%3E%3C/svg%3E"); --tx-sprig: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cg fill='none' stroke='%237d9670' stroke-width='1.3' stroke-linecap='round' opacity='.6'%3E%3Cpath d='M175 5C140 30 120 60 108 100C100 128 96 150 94 176'/%3E%3Cpath d='M150 24c-14-2-24 6-26 16c12 2 22-4 26-16z'/%3E%3Cpath d='M132 46c-14 0-22 9-22 19c12 0 21-7 22-19z'/%3E%3Cpath d='M121 72c-13 2-20 12-19 22c12-2 19-10 19-22z'/%3E%3Cpath d='M151 30c10 8 12 20 6 28c-8-6-10-18-6-28z'/%3E%3Cpath d='M136 56c10 8 11 20 5 28c-8-7-9-18-5-28z'/%3E%3Cpath d='M124 84c9 8 10 19 4 27c-8-7-8-18-4-27z'/%3E%3C/g%3E%3C/svg%3E"); --tx-sprig2: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cg fill='none' stroke='%237d9670' stroke-width='1.3' stroke-linecap='round' opacity='.6' transform='rotate(180 90 90)'%3E%3Cpath d='M175 5C140 30 120 60 108 100C100 128 96 150 94 176'/%3E%3Cpath d='M150 24c-14-2-24 6-26 16c12 2 22-4 26-16z'/%3E%3Cpath d='M132 46c-14 0-22 9-22 19c12 0 21-7 22-19z'/%3E%3Cpath d='M121 72c-13 2-20 12-19 22c12-2 19-10 19-22z'/%3E%3Cpath d='M151 30c10 8 12 20 6 28c-8-6-10-18-6-28z'/%3E%3Cpath d='M136 56c10 8 11 20 5 28c-8-7-9-18-5-28z'/%3E%3Cpath d='M124 84c9 8 10 19 4 27c-8-7-8-18-4-27z'/%3E%3C/g%3E%3C/svg%3E"); }
+:root[data-bg="paper"][data-paper="classic"][data-theme="geometry"], .tp[data-th="geometry"] {
+  --bg: #efe6d2; --surface: #faf5ea; --surface-2: #e6dbc3; --tex: var(--tx-geo), url(/textures/grain-day.webp); --tex-size: 60px, 256px; }
+:root[data-bg="paper"][data-paper="classic"][data-theme="linen"], .tp[data-th="linen"] {
+  --bg: #ebe5d8; --surface: #f8f4ec; --surface-2: #e2dacb; --tex: repeating-linear-gradient(0deg, rgb(110 90 55 / .045) 0 1px, transparent 1px 3px), repeating-linear-gradient(90deg, rgb(110 90 55 / .035) 0 1px, transparent 1px 3px), url(/textures/grain-day.webp); --tex-size: auto, auto, 256px; }
+:root[data-bg="paper"][data-paper="classic"][data-theme="sage"], .tp[data-th="sage"] {
+  --bg: #e2e8d9; --surface: #f4f7ef; --surface-2: #d6dfcb; --line: rgb(55 85 55 / .15); --tr-bg: rgb(250 253 245 / .55); --tex: url(/textures/grain-day.webp); --tex-size: 256px; }
+:root[data-bg="paper"][data-paper="classic"][data-theme="ivory"], .tp[data-th="ivory"] {
+  --bg: #f6f2e8; --surface: #fffdf8; --surface-2: #ebe6da; --line: rgb(90 75 40 / .12); --tr-bg: rgb(255 255 255 / .6); --tex: none; }
+.tp[data-th="parchment"] { --bg: #ece2cb; --surface: #f7f0e1; --tex: url(/textures/grain-day.webp); --tex-size: 128px; }
+/* Kur'ani lexohet në sipërfaqe të pastër: në lexues pa motive, vetëm kokrriza e letrës */
+:root[data-bg="paper"][data-paper="classic"][data-theme="geometry"]:has(#reader:not([hidden])),
+:root[data-bg="paper"][data-paper="classic"][data-theme="linen"]:has(#reader:not([hidden])) { --tex: url(/textures/grain-day.webp); --tex-size: 256px; }
+/* Sherebelë: degë të holla në qoshet e faqes kryesore */
+:root[data-bg="paper"][data-paper="classic"][data-theme="sage"] body::after {
+  content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: var(--tx-sprig) no-repeat right -18px top -14px / 190px, var(--tx-sprig2) no-repeat left -18px bottom -14px / 190px; }
+:root[data-theme="sage"]:has(#reader:not([hidden])) body::after { display: none; }
+/* parapamjet në cilësime */
+.themes { grid-template-columns: repeat(auto-fit, minmax(86px, 1fr)); }
+.themes .tp { position: relative; display: block; width: 100%; height: 62px; border-radius: 9px; overflow: hidden;
+  background-color: var(--bg); background-image: var(--tex); background-size: var(--tex-size, 128px); box-shadow: inset 0 0 0 1px rgb(0 0 0 / .08), 0 1px 2px rgb(0 0 0 / .08); }
+.themes .tp b { position: absolute; left: 11%; right: 11%; top: 14%; height: 36%; border-radius: 6px; background: var(--surface); box-shadow: 0 1px 3px rgb(70 48 15 / .16); }
+.themes .tp s { position: absolute; left: 11%; width: 44%; bottom: 13%; height: 13%; border-radius: 5px; background: linear-gradient(90deg, #a47727, #c59a45); }
+.themes .tp[data-th="sage"]::after { content: ''; position: absolute; right: -8px; top: -6px; width: 56px; height: 56px; background: var(--tx-sprig) no-repeat center / contain; }
+.themes button span { font-size: 12px; }
+.field > .label small { display: block; font-weight: 400; font-size: 12px; color: var(--muted); margin-top: 2px; }

@@ -68,6 +68,7 @@ export const SYNCED_SETTINGS = {
   trans: [true, false],
   latin: ['literata', 'lora', 'inter'],
   paper: ['classic', 'none', 'smooth', 'cotton', 'recycled', 'laid', 'linen', 'washi', 'antique'],
+  theme: ['parchment', 'geometry', 'linen', 'sage', 'ivory'], // 7.8: tema e sfondit
 };
 
 const WEEK = /^\d{4}-W\d{2}$/;

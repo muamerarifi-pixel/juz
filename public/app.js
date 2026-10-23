@@ -20,8 +20,11 @@ const AR_FONT = { hamdullah: "'Hamdullah'", scheherazade: "'Scheherazade New'", 
 // Fontet kanë madhësi të ndryshme për të njëjtin numër: kjo i barazon me Scheherazade.
 const AR_SCALE = { hamdullah: 1, scheherazade: 1, naskh: 1, harmattan: 1.12, sans: 0.95, kufi: 0.88, qcf: 1.12 };
 const LATIN = { literata: "'Literata'", lora: "'Lora'", inter: "'Inter'" };
-const THEME_COLOR = { paper: '#ece2cb', night: '#13120f' };
-const DEFAULTS = { bg: 'paper', font: 'hamdullah', weight: 400, trans: true, latin: 'literata', size: 30, trSize: 17, home: 'juz', paper: 'classic', arTrans: 0, trTrans: 0, hold: true, shadow: 0, dimDay: 0, dimNight: 0, autoBg: true, fs: false, pager: 'scroll' };
+const THEME_COLOR = { paper: '#ece2cb', night: '#0e1c17' };
+// 7.8: temat e sfondit (ditën); nata është gjithmonë e gjelbër e thellë
+const THEMES = [['parchment', 'Pergamenë'], ['geometry', 'Gjeometri'], ['linen', 'Li i butë'], ['sage', 'Sherebelë'], ['ivory', 'Fildish']];
+const THEME_TONES = { parchment: '#ece2cb', geometry: '#efe6d2', linen: '#ebe5d8', sage: '#e2e8d9', ivory: '#f6f2e8' };
+const DEFAULTS = { bg: 'paper', font: 'hamdullah', weight: 400, trans: true, latin: 'literata', size: 30, trSize: 17, home: 'juz', paper: 'classic', arTrans: 0, trTrans: 0, hold: true, shadow: 0, dimDay: 0, dimNight: 0, autoBg: true, fs: false, pager: 'scroll', theme: 'parchment' };
 const SYNC_URL = '/api/sync';
 const CH = SCHEMA.sync;
 const DAYS = ['e diel', 'e hënë', 'e martë', 'e mërkurë', 'e enjte', 'e premte', 'e shtunë'];
@@ -326,6 +329,7 @@ function applySettings() {
   const root = document.documentElement;
   const f = arFont();
   root.dataset.bg = settings.bg;
+  root.dataset.theme = settings.theme;
   window.JUZPaper?.apply(settings.paper, settings.bg === 'night');
   root.style.setProperty('--ar-size', `${settings.size}px`);
   root.style.setProperty('--ar-scale', AR_SCALE[f] || 1);
@@ -342,7 +346,8 @@ function applySettings() {
   document.body.classList.toggle('qcf', f === 'qcf');
   document.body.classList.toggle('hold', settings.hold);
   $('#holdToggle').checked = settings.hold;
-  const tone = settings.bg === 'paper' && window.JUZPaper?.TONES[settings.paper];
+  const tone = settings.bg === 'paper' && (window.JUZPaper?.TONES[settings.paper] || THEME_TONES[settings.theme]);
+  for (const b of $$('#themeGrid button')) { const on = b.dataset.th === settings.theme && (settings.paper === 'classic' || settings.paper === 'none'); b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); }
   $('meta[name="theme-color"]').content = tone || THEME_COLOR[settings.bg];
   for (const b of $$('#paperGrid button')) { const on = b.dataset.paper === settings.paper; b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); }
   $('#arTransRange').value = settings.arTrans;
@@ -1677,6 +1682,8 @@ function initRot() {
 
 // ================================================================ sfondi i letrës
 function buildPaperGrid() {
+  const tg = $('#themeGrid');
+  if (tg && !tg.childElementCount) tg.innerHTML = THEMES.map(([v, n]) => `<button type="button" role="radio" data-th="${v}" aria-checked="false"><i class="tp" data-th="${v}"><b></b><s></s></i><span>${esc(n)}</span></button>`).join('');
   const g = $('#paperGrid');
   if (g.childElementCount || !window.JUZPaper) return;
   const P = window.JUZPaper;
@@ -1896,6 +1903,7 @@ function bind() {
   $('#arTransRange').addEventListener('input', (e) => { remember('Cilësimet'); settings.arTrans = +e.target.value; saveSettings(); applySettings(); });
   $('#trTransRange').addEventListener('input', (e) => { remember('Cilësimet'); settings.trTrans = +e.target.value; saveSettings(); applySettings(); });
   $('#paperGrid').addEventListener('click', (e) => { const b = e.target.closest('[data-paper]'); if (b) setSetting('paper', b.dataset.paper); });
+  $('#themeGrid').addEventListener('click', (e) => { const b = e.target.closest('[data-th]'); if (!b) return; if (settings.paper !== 'classic') setSetting('paper', 'classic'); setSetting('theme', b.dataset.th); });
 
   // rrotullimi
   // A− / A+ dhe ajeti para/pas
