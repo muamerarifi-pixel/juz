@@ -588,3 +588,5 @@ body.paged .hide-bars .reader-top { transform: none; }
   .home-body { padding-bottom: calc(var(--hero-h, 190px) + 96px + var(--safe-b)) !important; }
   .sheet { max-height: 80vh; max-height: 80dvh; }
 }
+/* 7.7: tapping an ayah never starts Chrome's "Touch to Search" — on phones the reading text isn't selectable (copy is in the ayah sheet) */
+@media (pointer: coarse) { #readerBody, #readerBody .pg-ar, #readerBody .pg-tr p, #readerBody .ar-txt { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; } }

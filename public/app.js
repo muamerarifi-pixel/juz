@@ -273,8 +273,7 @@ function applyRemote(d) {
 // ================================================================ cilësimet
 let settings = { ...DEFAULTS };
 try { settings = { ...DEFAULTS, ...JSON.parse(lsGet(LS.settings, '{}')) }; } catch {}
-// 7.6.3: the app installed on a phone opens full screen (first tap) unless you turned it off in the settings
-try { if (!('fs' in JSON.parse(lsGet(LS.settings, '{}'))) && isStandalone() && matchMedia('(pointer: coarse)').matches) settings.fs = true; } catch {}
+settings.fs = false; // 7.7: full screen removed (it stuttered)
 function normalizeSettings() {
   settings.weight = +settings.weight || 400;
   for (const [k, allowed] of Object.entries(SYNCED_SETTINGS)) if (!allowed.includes(settings[k])) settings[k] = DEFAULTS[k];
@@ -373,7 +372,7 @@ function applySettings() {
   $('#shadowRange').value = settings.shadow;
   $('#autoToggle').checked = settings.autoBg;
   $('#fsToggle').checked = settings.fs;
-  $('#fsRow').hidden = !document.documentElement.requestFullscreen;
+  $('#fsRow').hidden = true;
   document.body.classList.toggle('paged', settings.pager !== 'scroll');
   document.body.dataset.pager = settings.pager;
   for (const show of KNOBS) show();
@@ -477,7 +476,8 @@ function autoTheme(force = false) {
   lsSet('juz.autoMark', mark);
   setSetting('bg', day ? 'paper' : 'night', true);
 }
-const enterFS = () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen?.({ navigationUI: 'hide' }).catch(() => {}); };
+const enterFS = () => {}; // 7.7: full screen removed
+if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
 
 function setSetting(k, v, quiet = false) {
   if (settings[k] === v) return;
@@ -1656,7 +1656,7 @@ async function setRotLock(on, quiet = false) {
   }
   let ok = await tryLock();
   // Në shfletues (jo si aplikacion i instaluar) kyçja lejohet vetëm në ekran të plotë.
-  if (!ok && !quiet && !isStandalone() && document.documentElement.requestFullscreen) {
+  if (false) { // 7.7: rotating never switches to full screen
     try { await document.documentElement.requestFullscreen({ navigationUI: 'hide' }); ROT.fs = true; ok = await tryLock(); } catch {}
     if (!ok && ROT.fs) { ROT.fs = false; document.exitFullscreen().catch(() => {}); }
   }
