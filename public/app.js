@@ -1939,7 +1939,8 @@ function bind() {
       if (!on) return;
       on = false;
       const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
-      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) stepAyah(dx < 0 ? 1 : -1);
+      // the same way as the pages in the reader (Cilësimet → page direction): Faqe ⟵ forward with a swipe to the right
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) stepAyah((settings.pager === 'rtl' ? dx > 0 : dx < 0) ? 1 : -1);
     }, { passive: true });
   }
   $('#rotToggle').addEventListener('change', (e) => setRotLock(e.target.checked));
