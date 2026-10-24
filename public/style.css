@@ -660,3 +660,5 @@ body.paged .hide-bars .reader-top { transform: none; }
 .rbar .fsz-aa svg { width: 21px; height: 21px; }
 @media (max-width: 380px) { .rbar .pill-pg .lbl { display: none; } }
 @media (max-width: 350px) { .rbar .fsz { width: 34px; height: 34px; } .rbar .pill { padding-left: 8px; padding-right: 8px; } }
+/* 7.12.2: no Mus'hafi page in the bar (each page already shows it at its end) */
+.rbar .pill-mp { display: none !important; }
