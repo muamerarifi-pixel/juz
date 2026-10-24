@@ -656,3 +656,7 @@ body.paged .hide-bars .reader-top { transform: none; }
 .rbar .fsz-night { position: relative; margin-left: 3px; }
 .rbar .fsz-night::before { content: ''; position: absolute; left: -3px; top: 11px; bottom: 11px; width: 1px; background: var(--line); }
 .rbar .fsz-night svg { width: 20px; height: 20px; }
+/* 7.12: the settings (Aa) at the end of the page bar too, within reach of the thumb */
+.rbar .fsz-aa svg { width: 21px; height: 21px; }
+@media (max-width: 380px) { .rbar .pill-pg .lbl { display: none; } }
+@media (max-width: 350px) { .rbar .fsz { width: 34px; height: 34px; } .rbar .pill { padding-left: 8px; padding-right: 8px; } }
