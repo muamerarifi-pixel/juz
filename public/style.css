@@ -651,3 +651,8 @@ body.paged .hide-bars .reader-top { transform: none; }
   #home .topbar .actions { right: 14px; bottom: calc(var(--hero-h, 190px) + 18px + var(--safe-b)); box-shadow: var(--sh-2); background: var(--surface); backdrop-filter: none; -webkit-backdrop-filter: none; }
   #home:not([hidden])::after { height: calc(var(--hero-h, 190px) + 92px + var(--safe-b)); background: linear-gradient(to bottom, transparent, var(--bg) 30%); }
 }
+
+/* 7.11: day / night in one tap, at the end of the page bar (within reach of the thumb) */
+.rbar .fsz-night { position: relative; margin-left: 3px; }
+.rbar .fsz-night::before { content: ''; position: absolute; left: -3px; top: 11px; bottom: 11px; width: 1px; background: var(--line); }
+.rbar .fsz-night svg { width: 20px; height: 20px; }
