@@ -790,18 +790,25 @@ const renderHome = safe(() => {
   if (mode === 'surah') renderSurahList(); else if (mode === 'khatmah') renderKhatGrid(); else renderJuzGrid();
 });
 
+// Progress colour: red at the start → orange → yellow → green near the end → gold when finished
+function pcol(p) { return p >= 100 ? '#d4a52a' : p >= 75 ? '#2fae63' : p >= 50 ? '#a3c43b' : p >= 25 ? '#f0a12c' : '#e8604c'; }
+const pbar = (p) => `width:${p}%;--pc:${pcol(p)}`;
+// The floating card: title, one colour-coded bar, one short line, a big button
+function heroCard(o) {
+  return `<div class="w-head"><div class="w-title"><b>${o.title}</b>${o.ar ? `<span lang="ar">${o.ar}</span>` : ''}</div>${o.change || ''}</div>
+    ${o.pct != null ? `<div class="w-prog"><span class="w-bar"><span style="${pbar(o.pct)}"></span></span><span class="w-pct">${o.pct}%</span></div>` : ''}
+    ${o.sub ? `<p class="w-sub">${o.sub}</p>` : ''}
+    <button class="w-go" ${o.link ? `data-link="${o.link}"` : `data-assign="${o.assign}"`}><span class="w-go-t"><b>${o.go}</b>${o.goSub ? `<small>${o.goSub}</small>` : ''}</span><span class="w-go-i"><svg><use href="#i-fwd"/></svg></span></button>`;
+}
 function renderWeek() {
   const j = activeJuz();
   const el = $('#weekCard');
   if (!j) {
     const s = suggestedJuz();
     const jm = juzMeta(s);
-    el.innerHTML = `<div class="w-top"><span class="w-kicker">Xhuzi i radhës</span><button class="w-change" data-open="pick">Zgjidh tjetër</button></div>
-      <div class="w-title"><b>Xhuzi ${s}</b><span>${arNum(s)}</span></div>
-      <div class="w-range">${esc(surah(jm.s[0]).sq)} ${jm.s.join(':')} – ${esc(surah(jm.e[0]).sq)} ${jm.e.join(':')} · ${pageCount(jm.pg)} faqe</div>
-      <p class="w-pace">${daysLeftInWeek()} ditë deri të dielën · rreth ${Math.ceil(pageCount(jm.pg) / daysLeftInWeek())} faqe në ditë</p>
-      <p class="w-mot">Bismilah — cakto xhuzin dhe fillo. Nëse nuk e mbaron këtë javë, vazhdon edhe javën tjetër.</p>
-      <button class="w-go" data-assign="${s}"><span>Fillo xhuzin ${s}</span><svg><use href="#i-fwd"/></svg></button>`;
+    const n = pageCount(jm.pg);
+    el.innerHTML = heroCard({ title: `Xhuzi ${s}`, ar: arNum(s), change: '<button class="w-change" data-open="pick">Zgjidh tjetër</button>',
+      sub: `Xhuzi i radhës · ${n} faqe · ~${Math.ceil(n / daysLeftInWeek())} në ditë deri të dielën`, go: `Fillo xhuzin ${s}`, assign: s });
     return;
   }
   const jm = juzMeta(j);
@@ -811,19 +818,12 @@ function renderWeek() {
   const wn = activeWeekNo();
   const bj = val(S.bj);
   const resume = bj && bj.j === j;
-  const kicker = wn > 1 ? `Xhuzi aktual · java e ${ordinal(wn)}` : 'Xhuzi i kësaj jave';
-  const pace = pr.pct >= 100
-    ? `E përfundove xhuzin${wn > 1 ? ` për ${wn} javë` : ''} — Elhamdulilah!`
-    : `Edhe ${left} faqe · rreth ${Math.ceil(left / days)} në ditë deri të dielën${wn > 1 ? ', ose me ritmin tënd' : ''}`;
-  el.innerHTML = `<div class="w-top"><span class="w-kicker">${kicker}</span><button class="w-change" data-open="pick">Ndrysho</button></div>
-    <div class="w-title"><b>Xhuzi ${j}</b><span>${arNum(j)}</span></div>
-    <div class="w-range">${esc(surah(jm.s[0]).sq)} ${jm.s.join(':')} – ${esc(surah(jm.e[0]).sq)} ${jm.e.join(':')} · Mus'hafi f. ${printed(jm.pg[0])}–${printed(jm.pg[1])}</div>
-    <div class="w-prog"><span class="w-bar"><span style="width:${pr.pct}%"></span></span><span class="w-num">${pr.read} / ${pr.count} faqe · ${pr.pct}%</span></div>
-    <p class="w-pace">${pace}</p>
-    <p class="w-mot">${motivate(pr.pct)}</p>
-    <button class="w-go" data-link="${resume ? `#/j/${j}/${bj.s}:${bj.a}` : `#/j/${j}`}">
-      <span>${pr.pct >= 100 ? 'Rilexo xhuzin' : resume ? 'Vazhdo leximin' : 'Fillo leximin'}${resume ? `<small>${esc(surah(bj.s).sq)} ${bj.s}:${bj.a} · faqja ${pr.read} nga ${pr.count} · Mus'hafi f. ${printed(bj.p)}</small>` : ''}</span>
-      <svg><use href="#i-fwd"/></svg></button>`;
+  const sub = pr.pct >= 100
+    ? `E përfundove${wn > 1 ? ` për ${wn} javë` : ''} — Elhamdulilah!`
+    : `${wn > 1 ? `Java e ${ordinal(wn)} · ` : ''}${pr.read} / ${pr.count} faqe · ~${Math.ceil(left / days)} në ditë deri të dielën`;
+  el.innerHTML = heroCard({ title: `Xhuzi ${j}`, ar: arNum(j), change: '<button class="w-change" data-open="pick">Ndrysho</button>', pct: pr.pct, sub,
+    go: pr.pct >= 100 ? 'Rilexo xhuzin' : resume ? 'Vazhdo leximin' : 'Fillo leximin', goSub: resume ? `${esc(surah(bj.s).sq)} ${bj.s}:${bj.a}` : '',
+    link: resume ? `#/j/${j}/${bj.s}:${bj.a}` : `#/j/${j}` });
 }
 
 // Mënyra "Suret": karta kryesore tregon suren që po lexon (shënjuesi i sureve, me ngjyrën e vet).
@@ -832,11 +832,8 @@ function renderSurahHero() {
   const s = currentSurah();
   if (!s) {
     const su = surah(1);
-    el.innerHTML = `<div class="w-top"><span class="w-kicker">Suret</span><button class="w-change" data-focus-search>Kërko</button></div>
-      <div class="w-title"><b>Zgjidh një sure</b></div>
-      <p class="w-pace">Hape një sure dhe prek ajetin ku ndalon — shënjuesi i sureve ruan progresin, veçmas nga xhuzi.</p>
-      <p class="w-mot">Bismilah — çdo sure është një fillim i ri.</p>
-      <button class="w-go" data-link="#/s/1"><span>Fillo me ${su.n}. ${esc(su.sq)}<small>${esc(su.mn)} · ${su.c} ajete</small></span><svg><use href="#i-fwd"/></svg></button>`;
+    el.innerHTML = heroCard({ title: 'Zgjidh një sure', change: '<button class="w-change" data-focus-search>Kërko</button>',
+      sub: 'Hape një sure dhe prek ajetin ku ndalon — progresi ruhet vetë.', go: `Fillo me ${su.n}. ${esc(su.sq)}`, goSub: `${su.c} ajete`, link: '#/s/1' });
     return;
   }
   const su = surah(s);
@@ -846,18 +843,12 @@ function renderSurahHero() {
   const left = pr.count - pr.read;
   const next = s < 114 ? surah(s + 1) : null;
   const finished = pr.pct >= 100;
-  const go = finished && next
-    ? `<button class="w-go" data-link="#/s/${next.n}"><span>Vazhdo me ${next.n}. ${esc(next.sq)}<small>${esc(next.mn)} · ${next.c} ajete · ${pageCount(next.pg)} faqe</small></span><svg><use href="#i-fwd"/></svg></button>`
-    : `<button class="w-go" data-link="${resume ? `#/s/${s}/${bs.s}:${bs.a}` : `#/s/${s}`}">
-        <span>${finished ? 'Rilexo suren' : resume ? 'Vazhdo leximin' : 'Fillo leximin'}${resume ? `<small>${esc(su.sq)} ${bs.s}:${bs.a} · faqja ${pr.read} nga ${pr.count} · Mus'hafi f. ${printed(bs.p)}</small>` : ''}</span>
-        <svg><use href="#i-fwd"/></svg></button>`;
-  el.innerHTML = `<div class="w-top"><span class="w-kicker">Sureja që po lexon</span><button class="w-change" data-focus-search>Kërko</button></div>
-    <div class="w-title"><b>${s}. ${esc(su.sq)}</b><span lang="ar">${esc(su.ar)}</span></div>
-    <div class="w-range">${esc(su.mn)} · ${su.c} ajete · ${su.r === 'M' ? 'Medinase' : 'Mekase'} · Mus'hafi f. ${printed(su.pg[0])}${su.pg[1] > su.pg[0] ? `–${printed(su.pg[1])}` : ''}</div>
-    <div class="w-prog"><span class="w-bar"><span style="width:${pr.pct}%"></span></span><span class="w-num">${pr.read} / ${pr.count} faqe · ${pr.pct}%</span></div>
-    <p class="w-pace">${finished ? `Të ${su.c} ajetet, ${pr.count} faqe — të gjitha të lexuara.` : `Edhe ${left} faqe deri në fund të sures`}</p>
-    <p class="w-mot">${motivate(pr.pct)}</p>
-    ${go}`;
+  const nxt = finished && next;
+  el.innerHTML = heroCard({ title: `${s}. ${esc(su.sq)}`, ar: esc(su.ar), change: '<button class="w-change" data-focus-search>Kërko</button>', pct: pr.pct,
+    sub: finished ? `Të gjitha ${pr.count} faqet u lexuan — Elhamdulilah!` : `${pr.read} / ${pr.count} faqe · edhe ${left}`,
+    go: nxt ? `Vazhdo me ${next.n}. ${esc(next.sq)}` : finished ? 'Rilexo suren' : resume ? 'Vazhdo leximin' : 'Fillo leximin',
+    goSub: nxt ? `${next.c} ajete · ${pageCount(next.pg)} faqe` : resume ? `${esc(su.sq)} ${bs.s}:${bs.a}` : '',
+    link: nxt ? `#/s/${next.n}` : resume ? `#/s/${s}/${bs.s}:${bs.a}` : `#/s/${s}` });
 }
 
 // ---- Hatmja: Kur'ani nga fillimi në fund, me shënjuesin e vet, pa afat ose me afat
@@ -884,17 +875,11 @@ function renderKhatHero() {
   const k = khatInfo();
   const j = k.b ? k.b.j : 1;
   const left = k.total - k.read;
-  const pace = k.pace
-    ? (k.pace.late ? `Afati kaloi — vazhdo me ritmin tënd, edhe ${left} faqe` : `Edhe ${k.pace.left} ditë · rreth ${k.pace.per} faqe në ditë`)
-    : `Pa nxitim — edhe ${left} faqe, sa të të duhet`;
-  el.innerHTML = `<div class="w-top"><span class="w-kicker">Hatmja${k.t.c ? ` e ${ordinal(k.t.c + 1)}` : ''}</span><button class="w-change" data-open="khat">${khatTargetLabel(k.t.days)}</button></div>
-    <div class="w-title"><b>${k.b ? `Xhuzi ${j}` : 'Hatme nga fillimi'}</b><span>${arNum(j)}</span></div>
-    <div class="w-prog"><span class="w-bar"><span style="width:${k.pct}%"></span></span><span class="w-num">${k.read} / ${k.total} faqe · ${k.pct}%</span></div>
-    <p class="w-pace">${pace}</p>
-    <p class="w-mot">${motivate(k.pct)}</p>
-    <button class="w-go" data-link="${k.b ? `#/k/${k.b.j}/${k.b.s}:${k.b.a}` : '#/k/1'}">
-      <span>${k.b ? 'Vazhdo hatmen' : 'Fillo me El-Fatihan'}${k.b ? `<small>${esc(surah(k.b.s).sq)} ${k.b.s}:${k.b.a} · Mus'hafi f. ${printed(k.b.p)}</small>` : ''}</span>
-      <svg><use href="#i-fwd"/></svg></button>`;
+  const pace = k.pace ? (k.pace.late ? 'afati kaloi, me ritmin tënd' : `~${k.pace.per} në ditë · ${k.pace.left} ditë`) : `edhe ${left}`;
+  el.innerHTML = heroCard({ title: k.b ? `Xhuzi ${j}` : 'Hatme nga fillimi', ar: arNum(j), change: `<button class="w-change" data-open="khat">${khatTargetLabel(k.t.days)}</button>`, pct: k.pct,
+    sub: `${k.t.c ? `Hatmja e ${ordinal(k.t.c + 1)} · ` : ''}${k.read} / ${k.total} faqe · ${pace}`,
+    go: k.b ? 'Vazhdo hatmen' : 'Fillo me El-Fatihan', goSub: k.b ? `${esc(surah(k.b.s).sq)} ${k.b.s}:${k.b.a}` : '',
+    link: k.b ? `#/k/${k.b.j}/${k.b.s}:${k.b.a}` : '#/k/1' });
 }
 function renderKhatGrid() {
   const b = val(S.bk);
@@ -907,7 +892,7 @@ function renderKhatGrid() {
       <span class="n">${j.n}</span>
       <span class="from">${esc(su.sq)} ${j.s[0]}:${j.s[1]}</span>
       ${done ? '<span class="seal" aria-hidden="true"><svg><use href="#i-check"/></svg></span>' : `<span class="jar">${arNum(j.n)}</span>`}
-      <span class="pr"><span class="bar"><span style="width:${pr.pct}%"></span></span><span class="pt">${done ? 'Lexuar · <b>100%</b>' : pr.read ? `<b>${pr.read}</b> / ${pr.count} faqe` : `${pr.count} faqe`}</span></span>
+      <span class="pr"><span class="bar"><span style="${pbar(pr.pct)}"></span></span><span class="pt">${done ? 'Lexuar · <b>100%</b>' : pr.read ? `<b>${pr.read}</b> / ${pr.count} faqe` : `${pr.count} faqe`}</span></span>
     </button></li>`;
   }).join('');
 }
@@ -940,7 +925,7 @@ function renderKahf() {
   const resume = at && thisWeek && !k.d;
   el.innerHTML = `<div class="k-top"><span class="k-ic"><svg><use href="#i-cave"/></svg></span>
       <div><strong>${new Date().getDay() === 5 ? 'Xhuma mubarek' : 'Nesër është xhuma'} — Sureja Kehf</strong><span class="k-sub">Shpella · ${su.c} ajete · ${count} faqe</span></div></div>
-    <div class="bar"><span style="width:${pct}%"></span></div>
+    <div class="bar"><span style="${pbar(pct)}"></span></div>
     <div class="row">${pct >= 100
       ? `<span class="k-sub">✓ E lexove Kehfin këtë xhuma — Allahu ta pranoftë!</span>`
       : `<button class="btn gold small" data-link="${resume ? `#/f/${KAHF}/${at.s}:${at.a}` : `#/f/${KAHF}`}">${resume ? `Vazhdo · ${read}/${count} faqe` : 'Lexo Kehfin'}</button>`}</div>`;
@@ -1028,7 +1013,7 @@ function renderJuzGrid() {
       <span class="from">${esc(su.sq)} ${j.s[0]}:${j.s[1]}</span>
       ${pr.state === 'done' ? '<span class="seal" aria-hidden="true"><svg><use href="#i-check"/></svg></span>' : `<span class="jar">${arNum(j.n)}</span>`}
       ${j.n === wj && pr.state !== 'done' ? `<span class="tag-w">${wTag}</span>` : ''}
-      <span class="pr"><span class="bar"><span style="width:${bar}%"></span></span><span class="pt">${label}</span></span>
+      <span class="pr"><span class="bar"><span style="${pbar(bar)}"></span></span><span class="pt">${label}</span></span>
     </button></li>`;
   }).join('');
 }
@@ -1045,7 +1030,7 @@ function renderSurahList() {
     return `<li><button class="surah-row card${s.n === cur ? ' cur' : ''}" data-s="${s.n}">
       <span class="star-num">${s.n}</span>
       <span class="nm"><strong>${esc(s.sq)} <i>· ${esc(s.mn)}</i></strong><span>${s.c} ajete · ${s.r === 'M' ? 'Medinase' : 'Mekase'} · ${pr.count} faqe${pr.read ? ` · <b>${pr.read}/${pr.count}</b>` : ''}</span>
-      ${pr.read ? `<span class="bar"><span style="width:${pr.pct}%"></span></span>` : ''}</span>
+      ${pr.read ? `<span class="bar"><span style="${pbar(pr.pct)}"></span></span>` : ''}</span>
       <span class="ar-nm" lang="ar">${esc(s.ar)}</span>
     </button></li>`;
   }).join('') : '<li class="empty">Asnjë sure me këtë emër.</li>';
@@ -1341,6 +1326,7 @@ const updatePill = safe(() => {
   $('#pillBm').hidden = !showBm && !pr.read;
   $('#pillBmTxt').textContent = `${pr.read}/${pr.count}`;
   $('#pillBar').style.width = `${pr.pct}%`;
+  $('#pillBar').style.setProperty('--pc', pcol(pr.pct));
   $('#pill').setAttribute('aria-label', `Faqja ${pos} nga ${n}, faqja ${mp} e Mus'hafit.${showBm ? ' Shko te shënjuesi.' : ''}`);
 });
 

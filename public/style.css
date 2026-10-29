@@ -662,3 +662,24 @@ body.paged .hide-bars .reader-top { transform: none; }
 @media (max-width: 350px) { .rbar .fsz { width: 34px; height: 34px; } .rbar .pill { padding-left: 8px; padding-right: 8px; } }
 /* 7.12.2: no Mus'hafi page in the bar (each page already shows it at its end) */
 .rbar .pill-mp { display: none !important; }
+
+/* 7.13: progress colours (red → orange → yellow → green → gold when finished), the same in every mode */
+.bar span[style*="--pc"], .w-bar span[style*="--pc"], .pill-bar span[style*="--pc"] {
+  background: linear-gradient(90deg, var(--pc), color-mix(in srgb, var(--pc) 70%, white)) !important; }
+/* 7.13: the floating card — title, one coloured bar with the %, one short line, a big button */
+#weekCard { padding: 12px 14px 12px; }
+.w-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+#weekCard .w-title { margin: 0; min-width: 0; flex-wrap: nowrap; overflow: hidden; }
+#weekCard .w-title b { font-size: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#weekCard .w-title span { font-size: 21px; white-space: nowrap; }
+#weekCard .w-prog { margin: 9px 0 0; gap: 10px; }
+#weekCard .w-bar { height: 10px; border-radius: 6px; background: rgb(0 0 0 / .16); box-shadow: inset 0 1px 2px rgb(0 0 0 / .18); }
+#weekCard .w-bar span { border-radius: 6px; }
+.w-pct { font: 800 17px/1 Inter, sans-serif; font-variant-numeric: tabular-nums; min-width: 3.2ch; text-align: right; }
+.w-sub { font-size: 13px; font-weight: 600; opacity: .9; margin: 6px 0 10px; line-height: 1.35; }
+#weekCard .w-go { min-height: 60px; border-radius: 17px; padding: 0 9px 0 18px; }
+.w-go-t { min-width: 0; text-align: left; }
+.w-go-t b { display: block; font-size: 18px; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.w-go-t small { display: block; font-size: 12.5px; font-weight: 600; opacity: .75; margin-top: 2px; }
+.w-go-i { flex: none; width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; background: color-mix(in srgb, currentColor 14%, transparent); }
+.w-go-i svg { width: 22px; height: 22px; }
