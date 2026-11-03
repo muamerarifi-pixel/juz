@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-// Import pure math functions for pinch to zoom
+// Pure math functions for pinch to zoom
 export function calcPinchScale(s0, d0, d, min = 0.75, max = 4.5) {
   if (d0 <= 0) return s0;
   const ratio = d / d0;
@@ -78,6 +78,60 @@ test('calcFocalPoint and calcTranslate: keeps focal point stationary during zoom
 
   assert.equal(Math.round(screenX), cx);
   assert.equal(Math.round(screenY), cy);
+});
+
+test('dynamic focal point recalculation: keeps target stationary without wiping out panning', () => {
+  const L0 = 20, T0 = 60;
+  let s = 2.0;
+  let tx = -180, ty = -240;
+
+  // User pans by (+30, +40)
+  tx += 30; // -150
+  ty += 40; // -200
+
+  // Touchpad pinch at cursor cx=200, cy=300
+  const cx = 200, cy = 300;
+  // Dynamic focal point at current transform state
+  const { lx, ly } = calcFocalPoint(cx, cy, L0, T0, s, tx, ty);
+  assert.equal(lx, 165);
+  assert.equal(ly, 220);
+
+  const newScale = 2.5;
+  const { tx: newTx, ty: newTy } = calcTranslate(cx, cy, L0, T0, lx, ly, newScale);
+
+  // Screen position of focal point at new scale
+  const screenX = L0 + newTx + lx * newScale;
+  const screenY = T0 + newTy + ly * newScale;
+
+  assert.equal(Math.round(screenX), cx);
+  assert.equal(Math.round(screenY), cy);
+
+  // If factor was 1.0 (zero scale change), translation is preserved exactly
+  const { tx: sameTx, ty: sameTy } = calcTranslate(cx, cy, L0, T0, lx, ly, s);
+  assert.equal(sameTx, tx);
+  assert.equal(sameTy, ty);
+});
+
+test('scrollTop compensation: preserves view position when zooming scrolled page in paged mode', () => {
+  const rectTop = 64;
+  const scrollTop = 150;
+  const s0 = 1.0;
+  const L0 = 0;
+  const T0 = rectTop;
+  const tx0 = 0;
+  const ty0 = -scrollTop; // Initial translation offsets scrollTop
+
+  const cx = 200, cy = 300;
+  const { lx, ly } = calcFocalPoint(cx, cy, L0, T0, s0, tx0, ty0);
+  assert.equal(ly, 386);
+
+  // Zoom to 2.0x
+  const s1 = 2.0;
+  const { tx: tx1, ty: ty1 } = calcTranslate(cx, cy, L0, T0, lx, ly, s1);
+  const screenY = T0 + ty1 + ly * s1;
+
+  assert.equal(Math.round(screenY), cy);
+  assert.equal(ty1, -536);
 });
 
 test('clampTranslate: bounds in paged mode when scaled content exceeds container', () => {

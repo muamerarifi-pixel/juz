@@ -1257,13 +1257,26 @@ const PZ = {
   px: 0,
   py: 0,
   lastAt: 0,
+  scrollTop0: 0,
+  resetTimer: null,
+  indicatorEl: null,
 };
 
 function getReaderBounds() {
   const body = $('#readerBody');
-  if (paged()) return body.getBoundingClientRect();
   const topH = $('.reader-top')?.offsetHeight || 60;
   const botH = 80;
+  if (paged()) {
+    const r = body.getBoundingClientRect();
+    return {
+      left: r.left,
+      top: r.top,
+      right: r.right,
+      bottom: Math.max(r.top + 100, r.bottom - botH),
+      width: r.width,
+      height: Math.max(100, r.height - botH),
+    };
+  }
   return {
     left: 0,
     top: topH,
@@ -1274,15 +1287,54 @@ function getReaderBounds() {
   };
 }
 
+function updateZoomIndicator(show) {
+  let b = $('#zoomBadge');
+  if (!show || !PZ.el || PZ.s <= 1.05) {
+    if (b) { b.remove(); PZ.indicatorEl = null; }
+    return;
+  }
+  if (!b) {
+    b = document.createElement('button');
+    b.id = 'zoomBadge';
+    b.className = 'zoom-badge';
+    b.setAttribute('aria-label', 'Kthe zmadhimin në 1×');
+    b.title = 'Kthe në 1×';
+    b.innerHTML = `<span class="zb-txt"></span><svg><use href="#i-close"/></svg>`;
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      resetZoom(true);
+    });
+    $('#reader')?.appendChild(b);
+    PZ.indicatorEl = b;
+  }
+  const txt = b.querySelector('.zb-txt');
+  if (txt) txt.textContent = `${PZ.s.toFixed(1)}×`;
+}
+
 function initPZTarget(pg, cx, cy) {
   if (!pg) return false;
+  if (PZ.resetTimer) {
+    clearTimeout(PZ.resetTimer);
+    PZ.resetTimer = null;
+  }
   if (PZ.el && PZ.el !== pg) resetZoom(false);
   PZ.el = pg;
+  pg.style.transition = 'none';
+
   const rect = pg.getBoundingClientRect();
   PZ.L0 = rect.left - PZ.tx;
   PZ.T0 = rect.top - PZ.ty;
   PZ.W0 = rect.width / PZ.s;
   PZ.H0 = Math.max(rect.height / PZ.s, pg.scrollHeight || 0);
+
+  if (PZ.s <= 1.02 && pg.scrollTop > 0) {
+    PZ.scrollTop0 = pg.scrollTop;
+    PZ.T0 = rect.top;
+    PZ.ty = -PZ.scrollTop0;
+  } else if (PZ.s <= 1.02) {
+    PZ.scrollTop0 = 0;
+  }
+
   PZ.s0 = PZ.s;
   PZ.tx0 = PZ.tx;
   PZ.ty0 = PZ.ty;
@@ -1325,47 +1377,64 @@ function applyPZTransform(smooth = false) {
     el.style.transformOrigin = '0 0';
     el.style.transition = smooth ? 'transform .25s cubic-bezier(0.2, 0, 0.2, 1)' : 'none';
     el.style.transform = `translate3d(${PZ.tx.toFixed(1)}px, ${PZ.ty.toFixed(1)}px, 0) scale(${PZ.s.toFixed(4)})`;
+    updateZoomIndicator(true);
   } else {
     el.style.transition = smooth ? 'transform .25s cubic-bezier(0.2, 0, 0.2, 1)' : 'none';
     el.style.transform = 'translate3d(0, 0, 0) scale(1)';
+    updateZoomIndicator(false);
     if (!smooth) {
       el.style.transform = '';
       el.style.transformOrigin = '';
       el.style.transition = '';
       el.classList.remove('zoomed', 'panning');
+      if (PZ.scrollTop0 && el.scrollTop === 0) el.scrollTop = PZ.scrollTop0;
+      PZ.scrollTop0 = 0;
       PZ.el = null;
     }
   }
 }
 
 function resetZoom(smooth = false) {
+  if (PZ.resetTimer) {
+    clearTimeout(PZ.resetTimer);
+    PZ.resetTimer = null;
+  }
+  updateZoomIndicator(false);
   if (!PZ.el && PZ.s <= 1.02) return false;
   const el = PZ.el;
+  const prevScrollTop = PZ.scrollTop0;
   PZ.s = 1;
   PZ.tx = 0;
   PZ.ty = 0;
   PZ.pinching = false;
   PZ.panning = false;
   PZ.dragged = false;
+  PZ.scrollTop0 = 0;
   PZ.lastAt = Date.now();
   if (el) {
     if (smooth) {
       el.style.transition = 'transform .25s cubic-bezier(0.2, 0, 0.2, 1)';
       el.style.transform = 'translate3d(0, 0, 0) scale(1)';
-      setTimeout(() => {
-        el.style.transform = '';
-        el.style.transformOrigin = '';
-        el.style.transition = '';
-        el.classList.remove('zoomed', 'panning');
+      PZ.resetTimer = setTimeout(() => {
+        PZ.resetTimer = null;
+        if (PZ.s <= 1.02) {
+          el.style.transform = '';
+          el.style.transformOrigin = '';
+          el.style.transition = '';
+          el.classList.remove('zoomed', 'panning');
+          if (prevScrollTop && el.scrollTop === 0) el.scrollTop = prevScrollTop;
+          if (PZ.el === el) PZ.el = null;
+        }
       }, 260);
     } else {
       el.style.transform = '';
       el.style.transformOrigin = '';
       el.style.transition = '';
       el.classList.remove('zoomed', 'panning');
+      if (prevScrollTop && el.scrollTop === 0) el.scrollTop = prevScrollTop;
+      PZ.el = null;
     }
   }
-  PZ.el = null;
   return true;
 }
 
@@ -1963,7 +2032,7 @@ function bind() {
     LP.fired = false;
     clearTimeout(LP.t);
     if (!settings.hold || (e.pointerType === 'mouse' && e.button !== 0)) return;
-    if (PZ.pinching || (e.pointerType === 'touch' && PZ.s > 1.05)) return;
+    if (PZ.pinching || PZ.s > 1.05) return;
     const el = e.target.closest('.ay, .pg-tr p[data-k]');
     if (!el) return;
     LP.x = e.clientX; LP.y = e.clientY;
@@ -1980,7 +2049,6 @@ function bind() {
   });
 
   // Zmadhimi me dy gishta (pinch to zoom) në telefon dhe me touchpad në PC
-  let lastTapTime = 0, lastTapX = 0, lastTapY = 0;
   body.addEventListener('touchstart', (e) => {
     if (route.name !== 'reader') return;
     if (e.touches.length >= 2) {
@@ -2068,23 +2136,6 @@ function bind() {
   body.addEventListener('touchend', endTouch, { passive: true });
   body.addEventListener('touchcancel', endTouch, { passive: true });
 
-  // Prekja e dyfishtë (double tap) në telefon: kthen ose zmadhon
-  body.addEventListener('touchend', (e) => {
-    if (route.name !== 'reader' || e.touches.length !== 0 || PZ.pinching || PZ.dragged) return;
-    const now = Date.now();
-    const t = e.changedTouches[0];
-    if (now - lastTapTime < 300 && Math.hypot(t.clientX - lastTapX, t.clientY - lastTapY) < 30) {
-      lastTapTime = 0;
-      PZ.lastAt = now;
-      if (PZ.s > 1.05) resetZoom(true);
-      else zoomToPoint(2.2, t.clientX, t.clientY);
-      return;
-    }
-    lastTapTime = now;
-    lastTapX = t.clientX;
-    lastTapY = t.clientY;
-  }, { passive: true });
-
   // Touchpad (PC): pinch me dy gishta (Ctrl + wheel) dhe lëvizje anash kur është i zmadhuar
   const readerEl = $('#reader');
   readerEl.addEventListener('wheel', (e) => {
@@ -2095,15 +2146,22 @@ function bind() {
       const pg = document.elementFromPoint(e.clientX, e.clientY)?.closest?.('.pg') || $(`#readerBody [data-i="${Math.max(0, R.idx)}"]`) || $('#readerBody .pg');
       if (!pg) return;
       if (!PZ.el || PZ.el !== pg) initPZTarget(pg, e.clientX, e.clientY);
-      const factor = Math.exp(-e.deltaY * 0.008);
+
+      const lx = (e.clientX - PZ.L0 - PZ.tx) / PZ.s;
+      const ly = (e.clientY - PZ.T0 - PZ.ty) / PZ.s;
+      const delta = Math.max(-80, Math.min(80, e.deltaY));
+      const factor = Math.exp(-delta * 0.006);
       const newScale = clamp(PZ.s * factor, 1.0, 4.0);
+
       if (newScale <= 1.02) {
         resetZoom(true);
         return;
       }
-      PZ.tx = e.clientX - PZ.L0 - PZ.lx * newScale;
-      PZ.ty = e.clientY - PZ.T0 - PZ.ly * newScale;
       PZ.s = newScale;
+      PZ.tx = e.clientX - PZ.L0 - lx * newScale;
+      PZ.ty = e.clientY - PZ.T0 - ly * newScale;
+      PZ.lx = lx;
+      PZ.ly = ly;
       clampPZ(false);
       return;
     }
@@ -2116,13 +2174,41 @@ function bind() {
     }
   }, { passive: false });
 
-  // Klikimi i dyfishtë në PC
-  body.addEventListener('dblclick', (e) => {
+  // Mac / Safari Trackpad gestures (gesturestart, gesturechange, gestureend)
+  let gScale0 = 1;
+  body.addEventListener('gesturestart', (e) => {
     if (route.name !== 'reader') return;
+    e.preventDefault();
+    const pg = document.elementFromPoint(e.clientX, e.clientY)?.closest?.('.pg') || $(`#readerBody [data-i="${Math.max(0, R.idx)}"]`) || $('#readerBody .pg');
+    if (!pg) return;
+    initPZTarget(pg, e.clientX, e.clientY);
+    gScale0 = PZ.s;
+    PZ.pinching = true;
     PZ.lastAt = Date.now();
-    if (PZ.s > 1.05) resetZoom(true);
-    else zoomToPoint(2.2, e.clientX, e.clientY);
-  });
+  }, { passive: false });
+  body.addEventListener('gesturechange', (e) => {
+    if (route.name !== 'reader' || !PZ.el) return;
+    e.preventDefault();
+    const lx = (e.clientX - PZ.L0 - PZ.tx) / PZ.s;
+    const ly = (e.clientY - PZ.T0 - PZ.ty) / PZ.s;
+    const newScale = clamp(gScale0 * (e.scale || 1), 0.8, 4.2);
+    PZ.s = newScale;
+    PZ.tx = e.clientX - PZ.L0 - lx * newScale;
+    PZ.ty = e.clientY - PZ.T0 - ly * newScale;
+    PZ.lx = lx;
+    PZ.ly = ly;
+    PZ.dragged = true;
+    PZ.lastAt = Date.now();
+    applyPZTransform(false);
+  }, { passive: false });
+  body.addEventListener('gestureend', (e) => {
+    if (route.name !== 'reader' || !PZ.el) return;
+    e.preventDefault();
+    PZ.pinching = false;
+    PZ.lastAt = Date.now();
+    if (PZ.s < 1.05) resetZoom(true);
+    else clampPZ(true);
+  }, { passive: false });
 
   // Tërheqja me mi (drag) kur është i zmadhuar në PC
   body.addEventListener('pointerdown', (e) => {
@@ -2159,10 +2245,6 @@ function bind() {
   };
   body.addEventListener('pointerup', endMousePan);
   body.addEventListener('pointercancel', endMousePan);
-
-  for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) {
-    body.addEventListener(ev, (e) => e.preventDefault(), { passive: false });
-  }
 
   // Kthimi i faqeve anash: me gisht ose me mi, një faqe në çdo rrëshqitje
   {

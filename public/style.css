@@ -218,10 +218,10 @@ a { color: var(--accent); }
 
 /* ================= Lexuesi: faqe e plotë, pa korniza ================= */
 #reader { min-height: 100vh; min-height: 100dvh; }
-.reader-body { width: 100%; max-width: var(--w); margin: 0 auto; padding: 8px 0 120px; touch-action: pan-y pinch-zoom; }
+.reader-body { width: 100%; max-width: var(--w); margin: 0 auto; padding: 8px 0 120px; touch-action: pan-y; }
 .hide-bars .reader-top { transform: translateY(-110%); }
 /* the reader's bar: compact, so the text gets the room */
-.reader-top { min-height: 0; gap: 2px; padding-top: calc(3px + var(--safe-t)); padding-bottom: 3px; }
+.reader-top { min-height: 0; gap: 2px; padding-top: calc(3px + var(--safe-t)); padding-bottom: 3px; z-index: 40; }
 .reader-top .icon-btn { width: 40px; height: 40px; border-radius: 12px; }
 .reader-top .icon-btn svg { width: 21px; height: 21px; }
 .reader-top .r-title { line-height: 1.15; }
@@ -230,9 +230,12 @@ a { color: var(--accent); }
 .ay-nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 12px; }
 .ay-nav .btn svg { width: 16px; height: 16px; }
 .ay-nav .btn:disabled { opacity: .35; pointer-events: none; }
-.pg { margin: 0 auto; padding: 10px 18px 0; max-width: 780px; scroll-margin-top: 70px; touch-action: pan-y pinch-zoom; }
+.pg { margin: 0 auto; padding: 10px 18px 0; max-width: 780px; scroll-margin-top: 70px; touch-action: pan-y; }
 .pg.zoomed { z-index: 30; background-color: var(--bg); background-image: var(--tex); background-size: var(--tex-size, 256px); box-shadow: var(--sh-3); border-radius: 18px; overflow: visible !important; cursor: grab; touch-action: none !important; will-change: transform; }
 .pg.zoomed.panning { cursor: grabbing; }
+.zoom-badge { position: fixed; top: calc(var(--rtop, 64px) + 10px); right: 14px; z-index: 45; display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px 5px 12px; border-radius: 99px; background: color-mix(in srgb, var(--surface) 90%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--line); box-shadow: var(--sh-2); color: var(--ink); font: 600 13px/1 Inter, sans-serif; cursor: pointer; transition: opacity .2s, transform .2s; }
+.zoom-badge svg { width: 14px; height: 14px; opacity: .7; }
+.zoom-badge:hover { background: var(--surface); color: var(--gold); }
 @media (min-width: 1000px) {
   body:not(.no-trans) .pg { max-width: none; padding: 10px 28px 0; }
   /* arabisht + përkthimi në një rresht; ndarësi i faqes jashtë, që karta ngjitëse të mos e mbulojë */
@@ -296,7 +299,7 @@ a { color: var(--accent); }
 
 /* Numëruesi i faqes — gjithmonë i dukshëm */
 /* One bar: A− · page info · A+ */
-.rbar { position: fixed; left: 50%; bottom: calc(14px + var(--safe-b)); transform: translateX(-50%); z-index: 12; display: flex; align-items: center; gap: 2px;
+.rbar { position: fixed; left: 50%; bottom: calc(14px + var(--safe-b)); transform: translateX(-50%); z-index: 40; display: flex; align-items: center; gap: 2px;
   max-width: calc(100% - 20px); padding: 4px; border-radius: 26px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--sh-3), inset 0 1px 0 var(--hi); }
 .fsz { flex: none; display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; border: 0; background: transparent; color: var(--ink); cursor: pointer; transition: background .15s, transform .1s, opacity .2s; }
 .fsz svg { width: 22px; height: 22px; }
@@ -576,11 +579,11 @@ body::before { content: ''; position: fixed; inset: 0; background: #000; opacity
 #reader[data-kind="k"] { --bmc: #8a5a9c; --bmk: rgb(138 90 156 / .17); }
 /* pages turned sideways, one by one */
 body.paged #reader .reader-body { position: fixed; top: var(--rtop, 64px); bottom: 0; left: 0; right: 0; max-width: none; display: flex; padding: 0;
-  overflow: hidden; overscroll-behavior: contain; scrollbar-width: none; direction: ltr; touch-action: pan-y pinch-zoom; -webkit-user-select: none; user-select: none; }
+  overflow: hidden; overscroll-behavior: contain; scrollbar-width: none; direction: ltr; touch-action: pan-y; -webkit-user-select: none; user-select: none; }
 body.paged[data-pager="rtl"] #reader .reader-body { direction: rtl; }
 body.paged #reader .reader-body::-webkit-scrollbar { display: none; }
 body.paged #reader .reader-body > * { flex: 0 0 100%; width: 100%; max-width: none; margin: 0; scroll-snap-align: start; scroll-snap-stop: always; direction: ltr;
-  overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y pinch-zoom; position: relative; padding: 10px max(18px, calc((100% - 780px) / 2)) 130px; }
+  overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; position: relative; padding: 10px max(18px, calc((100% - 780px) / 2)) 130px; }
 body.paged #reader .reader-body > .end { padding-top: 40px; }
 body.paged .hide-bars .reader-top { transform: none; }
 /* one hand: the home buttons and the sheets come down to the thumb */
