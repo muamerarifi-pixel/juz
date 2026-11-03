@@ -100,7 +100,7 @@ a { color: var(--accent); }
 #home { touch-action: pan-y; }
 .home-body { max-width: var(--w); margin: 0 auto; padding: 16px 14px calc(40px + var(--safe-b)); touch-action: pan-y; }
 #home * { touch-action: pan-y; }
-#home input { touch-action: manipulation; }
+#home input { touch-action: pan-x pan-y; }
 .top-row { display: grid; gap: 14px; margin-bottom: 20px; }
 @media (min-width: 880px) { .top-row { grid-template-columns: 1.25fr 1fr; align-items: start; } }
 .side { display: grid; gap: 12px; }
@@ -341,7 +341,7 @@ a { color: var(--accent); }
   background-color: var(--surface); background-image: var(--tex); background-size: var(--tex-size, 256px); border-radius: 26px 26px 0 0; padding: 6px 18px calc(22px + var(--safe-b)); box-shadow: var(--sh-3), inset 0 1px 0 var(--hi);
   animation: up .26s cubic-bezier(.2, .8, .2, 1); max-width: 620px; margin: 0 auto; }
 .sheet * { touch-action: pan-y; }
-.sheet input, .sheet input[type="range"] { touch-action: manipulation; }
+.sheet input, .sheet input[type="range"] { touch-action: pan-x pan-y; }
 @keyframes up { from { transform: translateY(56px); } }
 @media (min-width: 720px) and (min-height: 560px) {
   .sheet { top: 50%; bottom: auto; left: 50%; right: auto; width: min(560px, calc(100% - 40px)); transform: translate(-50%, -50%); border-radius: 24px; max-height: 86vh; animation: pop .22s cubic-bezier(.2, .8, .2, 1); padding-bottom: 22px; }

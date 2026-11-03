@@ -2050,7 +2050,8 @@ function bind() {
 
   // Mos lejo zmadhimin në ballinë / faqe navigimi (#home) dhe dritare: vetëm faqet e Kur'anit lejohen të zmadhohen
   const homeEl = $('#home');
-  const isNavView = (e) => route.name !== 'reader' || !e.target?.closest?.('#readerBody');
+  const navTargetEl = (t) => (t && t.nodeType === 3 ? t.parentElement : t);
+  const isNavView = (e) => route.name !== 'reader' || !navTargetEl(e.target)?.closest?.('#readerBody');
 
   // 1. Prekjet me shumë gishta (pinch) në ballinë
   const preventHomeMultiTouch = (e) => {
