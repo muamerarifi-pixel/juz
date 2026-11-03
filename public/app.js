@@ -1235,7 +1235,158 @@ async function loadUnit(kind, n) {
   return pages;
 }
 
+// ================================================================ zmadhimi me dy gishta (pinch-to-zoom)
+const PZ = {
+  el: null,
+  s: 1,
+  tx: 0,
+  ty: 0,
+  pinching: false,
+  panning: false,
+  dragged: false,
+  d0: 0,
+  s0: 1,
+  tx0: 0,
+  ty0: 0,
+  lx: 0,
+  ly: 0,
+  L0: 0,
+  T0: 0,
+  W0: 0,
+  H0: 0,
+  px: 0,
+  py: 0,
+  lastAt: 0,
+};
+
+function getReaderBounds() {
+  const body = $('#readerBody');
+  if (paged()) return body.getBoundingClientRect();
+  const topH = $('.reader-top')?.offsetHeight || 60;
+  const botH = 80;
+  return {
+    left: 0,
+    top: topH,
+    right: window.innerWidth,
+    bottom: window.innerHeight - botH,
+    width: window.innerWidth,
+    height: Math.max(100, window.innerHeight - botH - topH),
+  };
+}
+
+function initPZTarget(pg, cx, cy) {
+  if (!pg) return false;
+  if (PZ.el && PZ.el !== pg) resetZoom(false);
+  PZ.el = pg;
+  const rect = pg.getBoundingClientRect();
+  PZ.L0 = rect.left - PZ.tx;
+  PZ.T0 = rect.top - PZ.ty;
+  PZ.W0 = rect.width / PZ.s;
+  PZ.H0 = Math.max(rect.height / PZ.s, pg.scrollHeight || 0);
+  PZ.s0 = PZ.s;
+  PZ.tx0 = PZ.tx;
+  PZ.ty0 = PZ.ty;
+  PZ.lx = (cx - PZ.L0 - PZ.tx) / PZ.s;
+  PZ.ly = (cy - PZ.T0 - PZ.ty) / PZ.s;
+  return true;
+}
+
+function clampPZ(smooth = false) {
+  if (!PZ.el || PZ.s <= 1.02) return;
+  const cRect = getReaderBounds();
+  const Ws = PZ.W0 * PZ.s;
+  const Hs = PZ.H0 * PZ.s;
+  let minX, maxX, minY, maxY;
+
+  if (Ws > cRect.width) {
+    minX = cRect.right - PZ.L0 - Ws;
+    maxX = cRect.left - PZ.L0;
+  } else {
+    minX = maxX = cRect.left - PZ.L0 + (cRect.width - Ws) / 2;
+  }
+
+  if (Hs > cRect.height) {
+    minY = cRect.bottom - PZ.T0 - Hs;
+    maxY = cRect.top - PZ.T0;
+  } else {
+    minY = maxY = cRect.top - PZ.T0 + Math.max(0, (cRect.height - Hs) / 2);
+  }
+
+  PZ.tx = Math.max(minX, Math.min(maxX, PZ.tx));
+  PZ.ty = Math.max(minY, Math.min(maxY, PZ.ty));
+  applyPZTransform(smooth);
+}
+
+function applyPZTransform(smooth = false) {
+  if (!PZ.el) return;
+  const el = PZ.el;
+  if (PZ.s > 1.02) {
+    el.classList.add('zoomed');
+    el.style.transformOrigin = '0 0';
+    el.style.transition = smooth ? 'transform .25s cubic-bezier(0.2, 0, 0.2, 1)' : 'none';
+    el.style.transform = `translate3d(${PZ.tx.toFixed(1)}px, ${PZ.ty.toFixed(1)}px, 0) scale(${PZ.s.toFixed(4)})`;
+  } else {
+    el.style.transition = smooth ? 'transform .25s cubic-bezier(0.2, 0, 0.2, 1)' : 'none';
+    el.style.transform = 'translate3d(0, 0, 0) scale(1)';
+    if (!smooth) {
+      el.style.transform = '';
+      el.style.transformOrigin = '';
+      el.style.transition = '';
+      el.classList.remove('zoomed', 'panning');
+      PZ.el = null;
+    }
+  }
+}
+
+function resetZoom(smooth = false) {
+  if (!PZ.el && PZ.s <= 1.02) return false;
+  const el = PZ.el;
+  PZ.s = 1;
+  PZ.tx = 0;
+  PZ.ty = 0;
+  PZ.pinching = false;
+  PZ.panning = false;
+  PZ.dragged = false;
+  PZ.lastAt = Date.now();
+  if (el) {
+    if (smooth) {
+      el.style.transition = 'transform .25s cubic-bezier(0.2, 0, 0.2, 1)';
+      el.style.transform = 'translate3d(0, 0, 0) scale(1)';
+      setTimeout(() => {
+        el.style.transform = '';
+        el.style.transformOrigin = '';
+        el.style.transition = '';
+        el.classList.remove('zoomed', 'panning');
+      }, 260);
+    } else {
+      el.style.transform = '';
+      el.style.transformOrigin = '';
+      el.style.transition = '';
+      el.classList.remove('zoomed', 'panning');
+    }
+  }
+  PZ.el = null;
+  return true;
+}
+
+function zoomToPoint(targetScale, cx, cy) {
+  if (route.name !== 'reader') return;
+  const pg = document.elementFromPoint(cx, cy)?.closest?.('.pg') || $(`#readerBody [data-i="${Math.max(0, R.idx)}"]`) || $('#readerBody .pg');
+  if (!pg) return;
+  initPZTarget(pg, cx, cy);
+  PZ.s = clamp(targetScale, 1.0, 4.0);
+  if (PZ.s <= 1.02) {
+    resetZoom(true);
+    return;
+  }
+  PZ.tx = cx - PZ.L0 - PZ.lx * PZ.s;
+  PZ.ty = cy - PZ.T0 - PZ.ly * PZ.s;
+  clampPZ(true);
+  PZ.lastAt = Date.now();
+}
+
 function buildReader() {
+  resetZoom(false);
   R.io?.disconnect();
   const body = $('#readerBody');
   body.innerHTML = R.pages.map(pageHTML).join('') + endHTML();
@@ -1282,6 +1433,7 @@ function visibleAyah() {
 }
 
 function goTo(i, smooth = true) {
+  resetZoom(false);
   i = clamp(i, 0, count());
   const el = $(`#readerBody [data-i="${i}"]`);
   if (!el) return;
@@ -1291,6 +1443,7 @@ function goTo(i, smooth = true) {
   setIdx(i);
 }
 function scrollToAyah(k, flash = true) {
+  resetZoom(false);
   const el = $(`#readerBody .ay[data-k="${k}"]`);
   if (!el) return;
   const pg = el.closest('.pg');
@@ -1685,6 +1838,7 @@ let cameFromHome = false;
 let pendingFromHome = false;
 function navigate(hash) { if (location.hash === hash) handleRoute(); else location.hash = hash; }
 const handleRoute = safe(() => {
+  resetZoom(false);
   const h = location.hash.replace(/^#\/?/, '');
   const m = h.match(/^([jskf])\/(\d{1,3})(?:\/(\d{1,3}:\d{1,3}))?/);
   flushReading(); // koha e lexuar deri tani i përket faqes së mëparshme
@@ -1724,8 +1878,12 @@ function bind() {
     if (link) { pendingFromHome = route.name === 'home'; navigate(link.dataset.link); }
   });
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeSheet();
+    if (e.key === 'Escape') {
+      if (resetZoom(true)) return;
+      closeSheet();
+    }
     if (route.name === 'reader' && paged() && !openSheetEl && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !e.target.closest?.('.sl, input')) {
+      resetZoom(false);
       const fwd = (e.key === 'ArrowLeft') === (settings.pager === 'rtl');
       goTo(Math.max(0, R.idx) + (fwd ? 1 : -1));
     }
@@ -1805,6 +1963,7 @@ function bind() {
     LP.fired = false;
     clearTimeout(LP.t);
     if (!settings.hold || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    if (PZ.pinching || (e.pointerType === 'touch' && PZ.s > 1.05)) return;
     const el = e.target.closest('.ay, .pg-tr p[data-k]');
     if (!el) return;
     LP.x = e.clientX; LP.y = e.clientY;
@@ -1820,11 +1979,197 @@ function bind() {
     if (!LP.fired) { LP.fired = true; showAyah(el.dataset.k); }
   });
 
+  // Zmadhimi me dy gishta (pinch to zoom) në telefon dhe me touchpad në PC
+  let lastTapTime = 0, lastTapX = 0, lastTapY = 0;
+  body.addEventListener('touchstart', (e) => {
+    if (route.name !== 'reader') return;
+    if (e.touches.length >= 2) {
+      clearTimeout(LP.t);
+      LP.fired = false;
+      const t0 = e.touches[0], t1 = e.touches[1];
+      const cx = (t0.clientX + t1.clientX) / 2;
+      const cy = (t0.clientY + t1.clientY) / 2;
+      const pg = document.elementFromPoint(cx, cy)?.closest?.('.pg') || $(`#readerBody [data-i="${Math.max(0, R.idx)}"]`) || $('#readerBody .pg');
+      if (initPZTarget(pg, cx, cy)) {
+        PZ.d0 = Math.max(10, Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY));
+        PZ.pinching = true;
+        PZ.panning = false;
+        PZ.dragged = false;
+        PZ.lastAt = Date.now();
+      }
+      e.preventDefault();
+      return;
+    }
+    if (e.touches.length === 1 && PZ.s > 1.05) {
+      clearTimeout(LP.t);
+      LP.fired = false;
+      PZ.panning = true;
+      PZ.dragged = false;
+      PZ.px = e.touches[0].clientX;
+      PZ.py = e.touches[0].clientY;
+      PZ.tx0 = PZ.tx;
+      PZ.ty0 = PZ.ty;
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  body.addEventListener('touchmove', (e) => {
+    if (route.name !== 'reader') return;
+    if (e.touches.length >= 2 && PZ.pinching && PZ.el) {
+      e.preventDefault();
+      const t0 = e.touches[0], t1 = e.touches[1];
+      const d = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+      const cx = (t0.clientX + t1.clientX) / 2;
+      const cy = (t0.clientY + t1.clientY) / 2;
+      const ratio = d / PZ.d0;
+      let newScale = PZ.s0 * ratio;
+      if (newScale < 1.0) newScale = 1.0 - (1.0 - newScale) * 0.35;
+      if (newScale > 4.0) newScale = 4.0 + (newScale - 4.0) * 0.35;
+      PZ.s = Math.max(0.75, Math.min(4.5, newScale));
+      PZ.tx = cx - PZ.L0 - PZ.lx * PZ.s;
+      PZ.ty = cy - PZ.T0 - PZ.ly * PZ.s;
+      PZ.lastAt = Date.now();
+      PZ.dragged = true;
+      applyPZTransform(false);
+      return;
+    }
+    if (e.touches.length === 1 && PZ.panning && PZ.s > 1.05) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - PZ.px;
+      const dy = e.touches[0].clientY - PZ.py;
+      if (Math.hypot(dx, dy) > 4) PZ.dragged = true;
+      PZ.tx = PZ.tx0 + dx;
+      PZ.ty = PZ.ty0 + dy;
+      PZ.lastAt = Date.now();
+      applyPZTransform(false);
+    }
+  }, { passive: false });
+
+  const endTouch = (e) => {
+    if (route.name !== 'reader') return;
+    if (PZ.pinching && e.touches.length < 2) {
+      PZ.pinching = false;
+      PZ.lastAt = Date.now();
+      if (e.touches.length === 1 && PZ.s > 1.05) {
+        PZ.panning = true;
+        PZ.px = e.touches[0].clientX;
+        PZ.py = e.touches[0].clientY;
+        PZ.tx0 = PZ.tx;
+        PZ.ty0 = PZ.ty;
+        return;
+      }
+    }
+    if (e.touches.length === 0) {
+      PZ.panning = false;
+      if (PZ.s < 1.05) resetZoom(true);
+      else clampPZ(true);
+    }
+  };
+  body.addEventListener('touchend', endTouch, { passive: true });
+  body.addEventListener('touchcancel', endTouch, { passive: true });
+
+  // Prekja e dyfishtë (double tap) në telefon: kthen ose zmadhon
+  body.addEventListener('touchend', (e) => {
+    if (route.name !== 'reader' || e.touches.length !== 0 || PZ.pinching || PZ.dragged) return;
+    const now = Date.now();
+    const t = e.changedTouches[0];
+    if (now - lastTapTime < 300 && Math.hypot(t.clientX - lastTapX, t.clientY - lastTapY) < 30) {
+      lastTapTime = 0;
+      PZ.lastAt = now;
+      if (PZ.s > 1.05) resetZoom(true);
+      else zoomToPoint(2.2, t.clientX, t.clientY);
+      return;
+    }
+    lastTapTime = now;
+    lastTapX = t.clientX;
+    lastTapY = t.clientY;
+  }, { passive: true });
+
+  // Touchpad (PC): pinch me dy gishta (Ctrl + wheel) dhe lëvizje anash kur është i zmadhuar
+  const readerEl = $('#reader');
+  readerEl.addEventListener('wheel', (e) => {
+    if (route.name !== 'reader') return;
+    if (e.ctrlKey) {
+      e.preventDefault();
+      PZ.lastAt = Date.now();
+      const pg = document.elementFromPoint(e.clientX, e.clientY)?.closest?.('.pg') || $(`#readerBody [data-i="${Math.max(0, R.idx)}"]`) || $('#readerBody .pg');
+      if (!pg) return;
+      if (!PZ.el || PZ.el !== pg) initPZTarget(pg, e.clientX, e.clientY);
+      const factor = Math.exp(-e.deltaY * 0.008);
+      const newScale = clamp(PZ.s * factor, 1.0, 4.0);
+      if (newScale <= 1.02) {
+        resetZoom(true);
+        return;
+      }
+      PZ.tx = e.clientX - PZ.L0 - PZ.lx * newScale;
+      PZ.ty = e.clientY - PZ.T0 - PZ.ly * newScale;
+      PZ.s = newScale;
+      clampPZ(false);
+      return;
+    }
+    if (PZ.s > 1.05) {
+      e.preventDefault();
+      PZ.tx -= e.deltaX;
+      PZ.ty -= e.deltaY;
+      PZ.lastAt = Date.now();
+      clampPZ(false);
+    }
+  }, { passive: false });
+
+  // Klikimi i dyfishtë në PC
+  body.addEventListener('dblclick', (e) => {
+    if (route.name !== 'reader') return;
+    PZ.lastAt = Date.now();
+    if (PZ.s > 1.05) resetZoom(true);
+    else zoomToPoint(2.2, e.clientX, e.clientY);
+  });
+
+  // Tërheqja me mi (drag) kur është i zmadhuar në PC
+  body.addEventListener('pointerdown', (e) => {
+    if (route.name !== 'reader' || e.pointerType === 'touch' || e.button !== 0) return;
+    if (PZ.s > 1.05) {
+      PZ.panning = true;
+      PZ.dragged = false;
+      PZ.px = e.clientX;
+      PZ.py = e.clientY;
+      PZ.tx0 = PZ.tx;
+      PZ.ty0 = PZ.ty;
+      PZ.el?.classList.add('panning');
+      try { body.setPointerCapture(e.pointerId); } catch {}
+    }
+  });
+  body.addEventListener('pointermove', (e) => {
+    if (PZ.panning && e.pointerType !== 'touch' && PZ.s > 1.05) {
+      const dx = e.clientX - PZ.px;
+      const dy = e.clientY - PZ.py;
+      if (Math.hypot(dx, dy) > 4) PZ.dragged = true;
+      PZ.tx = PZ.tx0 + dx;
+      PZ.ty = PZ.ty0 + dy;
+      PZ.lastAt = Date.now();
+      applyPZTransform(false);
+    }
+  });
+  const endMousePan = (e) => {
+    if (PZ.panning && e.pointerType !== 'touch') {
+      PZ.panning = false;
+      PZ.el?.classList.remove('panning');
+      clampPZ(true);
+      try { body.releasePointerCapture(e.pointerId); } catch {}
+    }
+  };
+  body.addEventListener('pointerup', endMousePan);
+  body.addEventListener('pointercancel', endMousePan);
+
+  for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) {
+    body.addEventListener(ev, (e) => e.preventDefault(), { passive: false });
+  }
+
   // Kthimi i faqeve anash: me gisht ose me mi, një faqe në çdo rrëshqitje
   {
     const body = $('#readerBody');
     let px = null, py = 0, pid = null;
     const turn = (dx, dy) => {
+      if (PZ.s > 1.05 || PZ.pinching || PZ.panning || Date.now() - PZ.lastAt < 350) return;
       if (Math.abs(dx) < 45 || Math.abs(dx) < Math.abs(dy) * 1.3) return;
       R.swipedAt = Date.now();
       const fwd = settings.pager === 'rtl' ? dx > 0 : dx < 0;
@@ -1832,14 +2177,16 @@ function bind() {
       if (to !== R.idx) { goTo(to); haptic(8); }
     };
     // gishti: ngjarjet e prekjes (shfletuesi nuk i anulon kur e merr vetë lëvizjen)
-    body.addEventListener('touchstart', (e) => { if (!paged() || e.touches.length !== 1) { px = null; return; } px = e.touches[0].clientX; py = e.touches[0].clientY; }, { passive: true });
+    body.addEventListener('touchstart', (e) => { if (!paged() || e.touches.length !== 1 || PZ.s > 1.05) { px = null; return; } px = e.touches[0].clientX; py = e.touches[0].clientY; }, { passive: true });
     body.addEventListener('touchend', (e) => { if (px === null) return; const t = e.changedTouches[0]; const x = px; px = null; turn(t.clientX - x, t.clientY - py); }, { passive: true });
     // miu ose lapsi
-    body.addEventListener('pointerdown', (e) => { if (!paged() || e.pointerType === 'touch' || e.button) return; px = e.clientX; py = e.clientY; pid = e.pointerId; }, true);
+    body.addEventListener('pointerdown', (e) => { if (!paged() || e.pointerType === 'touch' || e.button || PZ.s > 1.05) return; px = e.clientX; py = e.clientY; pid = e.pointerId; }, true);
     addEventListener('pointerup', (e) => { if (px === null || e.pointerType === 'touch' || e.pointerId !== pid) return; const x = px; px = null; turn(e.clientX - x, e.clientY - py); }, true);
   }
   $('#readerBody').addEventListener('click', safe((e) => {
     if (Date.now() - (R.swipedAt || 0) < 450) return; // ishte rrëshqitje, jo prekje
+    if (Date.now() - (PZ.lastAt || 0) < 400) return; // ishte pinch ose pan, jo prekje
+    if (PZ.s > 1.05 && PZ.dragged) return;
     if (LP.fired) { LP.fired = false; return; } // gishti i mbajtur hapi përkthimin; mos e shëno ajetin
     const act = e.target.closest('[data-act]');
     if (act) {
