@@ -2048,6 +2048,71 @@ function bind() {
     if (!LP.fired) { LP.fired = true; showAyah(el.dataset.k); }
   });
 
+  // Mos lejo zmadhimin në ballinë / faqe navigimi (#home) dhe dritare: vetëm faqet e Kur'anit lejohen të zmadhohen
+  const homeEl = $('#home');
+  const isNavView = (e) => route.name !== 'reader' || !e.target?.closest?.('#readerBody');
+
+  // 1. Prekjet me shumë gishta (pinch) në ballinë
+  const preventHomeMultiTouch = (e) => {
+    if (e.touches && e.touches.length > 1) {
+      e.preventDefault();
+    }
+  };
+  homeEl?.addEventListener('touchstart', preventHomeMultiTouch, { passive: false });
+  homeEl?.addEventListener('touchmove', preventHomeMultiTouch, { passive: false });
+
+  // 2. Touchpad në PC (Ctrl + wheel) në ballinë
+  homeEl?.addEventListener('wheel', (e) => {
+    if (e.ctrlKey) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  // 3. Zhestet e Safari / Mac trackpad në ballinë
+  const preventHomeGesture = (e) => {
+    e.preventDefault();
+  };
+  homeEl?.addEventListener('gesturestart', preventHomeGesture, { passive: false });
+  homeEl?.addEventListener('gesturechange', preventHomeGesture, { passive: false });
+  homeEl?.addEventListener('gestureend', preventHomeGesture, { passive: false });
+
+  // 4. Mbrojtje globale në nivel dritareje për çdo pjesë jashtë faqeve të Kur'anit
+  window.addEventListener('wheel', (e) => {
+    if (e.ctrlKey && isNavView(e)) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  window.addEventListener('touchstart', (e) => {
+    if (e.touches && e.touches.length > 1 && isNavView(e)) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  window.addEventListener('touchmove', (e) => {
+    if (e.touches && e.touches.length > 1 && !PZ.pinching && isNavView(e)) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  window.addEventListener('gesturestart', (e) => {
+    if (isNavView(e)) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  window.addEventListener('gesturechange', (e) => {
+    if (!PZ.pinching && isNavView(e)) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  window.addEventListener('gestureend', (e) => {
+    if (!PZ.pinching && isNavView(e)) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+
   // Zmadhimi me dy gishta (pinch to zoom) në telefon dhe me touchpad në PC
   body.addEventListener('touchstart', (e) => {
     if (route.name !== 'reader') return;
