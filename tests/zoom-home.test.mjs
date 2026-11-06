@@ -31,13 +31,14 @@ test('style.css: touch-action configuration disables zoom on #home & sheets with
 
   // Quran pages maintain proper touch-action
   assert.match(css, /\.pg\s*\{[^}]*touch-action:\s*pan-y/);
-  assert.match(css, /\.pg\.zoomed\s*\{[^}]*touch-action:\s*none\s*!important/);
+  assert.doesNotMatch(css, /\.pg\.zoomed/);
+  assert.doesNotMatch(css, /\.zoom-badge/);
 });
 
-test('sw.js: cache VERSION is bumped to v7.13.4', () => {
+test('sw.js: cache VERSION is bumped to v7.13.5', () => {
   const swPath = path.resolve('public/sw.js');
   const sw = fs.readFileSync(swPath, 'utf8');
-  assert.match(sw, /const VERSION = 'juz-v7\.13\.4-cf';/);
+  assert.match(sw, /const VERSION = 'juz-v7\.13\.5-cf';/);
 });
 
 test('app.js: static verification of zoom blocking handlers on #home and window', () => {
@@ -64,7 +65,7 @@ test('app.js: static verification of zoom blocking handlers on #home and window'
 // 2. Behavioral Testing of View Classification & Event Interception
 test('Home navigation vs Reader zoom event routing & edge cases', () => {
   const route = { name: 'home' };
-  const PZ = { pinching: false, s: 1, el: null };
+  const FSZ = { pinching: false };
 
   // Mock DOM tree
   const homeEl = {
@@ -78,19 +79,36 @@ test('Home navigation vs Reader zoom event routing & edge cases', () => {
     parentElement: homeEl,
     closest: (sel) => (sel === '#home' ? homeEl : null),
   };
-  const readerTop = {
-    id: 'readerTop',
+  const homeInput = {
+    id: 'surahSearch',
     nodeType: 1,
-    closest: (sel) => (sel === '#reader' ? readerEl : null),
+    parentElement: homeEl,
+    closest: (sel) => (sel === '#home' ? homeEl : null),
   };
-  const rbar = {
-    id: 'rbar',
+
+  const sheetSettings = {
+    id: 'sheet-settings',
     nodeType: 1,
-    closest: (sel) => (sel === '#reader' ? readerEl : null),
+    closest: (sel) => (sel === '.sheet' || sel === '#sheet-settings' ? sheetSettings : null),
   };
+
   const readerEl = {
     id: 'reader',
     nodeType: 1,
+    closest: (sel) => (sel === '#reader' ? readerEl : null),
+  };
+  const readerTop = {
+    id: 'readerTop',
+    className: 'topbar reader-top',
+    nodeType: 1,
+    parentElement: readerEl,
+    closest: (sel) => (sel === '#reader' ? readerEl : null),
+  };
+  const readerBar = {
+    id: 'rbar',
+    className: 'rbar',
+    nodeType: 1,
+    parentElement: readerEl,
     closest: (sel) => (sel === '#reader' ? readerEl : null),
   };
   const readerBody = {
@@ -100,29 +118,22 @@ test('Home navigation vs Reader zoom event routing & edge cases', () => {
     closest: (sel) => (sel === '#readerBody' ? readerBody : sel === '#reader' ? readerEl : null),
   };
   const pgEl = {
-    id: 'pg1',
+    className: 'pg',
     nodeType: 1,
     parentElement: readerBody,
-    closest: (sel) => (sel === '.pg' ? pgEl : sel === '#readerBody' ? readerBody : sel === '#reader' ? readerEl : null),
+    closest: (sel) => (sel === '.pg' ? pgEl : sel === '#readerBody' ? readerBody : null),
   };
-  const ayahEl = {
-    id: 'ay-1-1',
+  const ayEl = {
+    className: 'ay',
     nodeType: 1,
     parentElement: pgEl,
-    closest: (sel) => (sel === '.ay' ? ayahEl : sel === '.pg' ? pgEl : sel === '#readerBody' ? readerBody : sel === '#reader' ? readerEl : null),
+    closest: (sel) => (sel === '.ay' ? ayEl : sel === '.pg' ? pgEl : sel === '#readerBody' ? readerBody : null),
   };
-  const ayahTextNode = {
+  const arabicTextNode = {
     nodeType: 3, // Text node
-    nodeValue: 'بِسْمِ اللَّهِ',
-    parentElement: ayahEl,
-  };
-  const sheetSettings = {
-    id: 'sheet-settings',
-    nodeType: 1,
-    closest: (sel) => (sel === '.sheet' || sel === '#sheet-settings' ? sheetSettings : null),
+    parentElement: ayEl,
   };
 
-  // Identical logic to public/app.js
   const navTargetEl = (t) => (t && t.nodeType === 3 ? t.parentElement : t);
   const isNavView = (e) => route.name !== 'reader' || !navTargetEl(e.target)?.closest?.('#readerBody');
 
@@ -133,7 +144,7 @@ test('Home navigation vs Reader zoom event routing & edge cases', () => {
   };
 
   const handleTouchMove = (e) => {
-    if (e.touches && e.touches.length > 1 && !PZ.pinching && isNavView(e)) {
+    if (e.touches && e.touches.length > 1 && !FSZ.pinching && isNavView(e)) {
       e.preventDefault();
     }
   };
@@ -151,7 +162,7 @@ test('Home navigation vs Reader zoom event routing & edge cases', () => {
   };
 
   const handleGestureChange = (e) => {
-    if (!PZ.pinching && isNavView(e)) {
+    if (!FSZ.pinching && isNavView(e)) {
       e.preventDefault();
     }
   };
@@ -170,123 +181,79 @@ test('Home navigation vs Reader zoom event routing & edge cases', () => {
   // --- Tests on HOME view (route.name = 'home') ---
   route.name = 'home';
 
-  // 1. Two-finger touchstart on #home MUST be prevented
-  {
-    const ev = createEvent('touchstart', homeEl, { touches: [{ clientX: 100 }, { clientX: 200 }] });
-    handleTouchStart(ev);
-    assert.equal(ev.defaultPrevented, true, '2-finger touchstart on home must be prevented');
-  }
+  // Multi-touch pinch on homeCard: MUST be prevented
+  const homePinchStart = createEvent('touchstart', homeCard, { touches: [{ clientX: 10, clientY: 10 }, { clientX: 50, clientY: 50 }] });
+  handleTouchStart(homePinchStart);
+  assert.equal(homePinchStart.defaultPrevented, true, 'Multi-touch on home card must be prevented');
 
-  // 2. Two-finger touchmove on #home card MUST be prevented
-  {
-    const ev = createEvent('touchmove', homeCard, { touches: [{ clientX: 105 }, { clientX: 205 }] });
-    handleTouchMove(ev);
-    assert.equal(ev.defaultPrevented, true, '2-finger touchmove on home card must be prevented');
-  }
+  const homePinchMove = createEvent('touchmove', homeCard, { touches: [{ clientX: 10, clientY: 10 }, { clientX: 60, clientY: 60 }] });
+  handleTouchMove(homePinchMove);
+  assert.equal(homePinchMove.defaultPrevented, true, 'Multi-touch move on home card must be prevented');
 
-  // 3. Single-finger touch on #home MUST NOT be prevented (preserves scrolling & tapping)
-  {
-    const evStart = createEvent('touchstart', homeEl, { touches: [{ clientX: 100 }] });
-    handleTouchStart(evStart);
-    assert.equal(evStart.defaultPrevented, false, '1-finger touchstart on home must NOT be prevented');
+  // Single-touch scroll on homeCard: MUST NOT be prevented
+  const homeScrollStart = createEvent('touchstart', homeCard, { touches: [{ clientX: 10, clientY: 10 }] });
+  handleTouchStart(homeScrollStart);
+  assert.equal(homeScrollStart.defaultPrevented, false, 'Single touch scroll on home must be permitted');
 
-    const evMove = createEvent('touchmove', homeEl, { touches: [{ clientX: 105 }] });
-    handleTouchMove(evMove);
-    assert.equal(evMove.defaultPrevented, false, '1-finger touchmove on home must NOT be prevented');
-  }
+  const homeScrollMove = createEvent('touchmove', homeCard, { touches: [{ clientX: 10, clientY: 20 }] });
+  handleTouchMove(homeScrollMove);
+  assert.equal(homeScrollMove.defaultPrevented, false, 'Single touch scroll move on home must be permitted');
 
-  // 4. Ctrl + wheel (touchpad pinch) on #home MUST be prevented
-  {
-    const ev = createEvent('wheel', homeEl, { ctrlKey: true, deltaY: -50 });
-    handleWheel(ev);
-    assert.equal(ev.defaultPrevented, true, 'Ctrl+wheel on home must be prevented');
-  }
+  // Multi-touch on home search input: MUST be prevented
+  const inputPinch = createEvent('touchstart', homeInput, { touches: [{ clientX: 10, clientY: 10 }, { clientX: 50, clientY: 50 }] });
+  handleTouchStart(inputPinch);
+  assert.equal(inputPinch.defaultPrevented, true, 'Multi-touch on search input must be prevented');
 
-  // 5. Normal wheel (page scrolling) on #home MUST NOT be prevented
-  {
-    const ev = createEvent('wheel', homeEl, { ctrlKey: false, deltaY: 50 });
-    handleWheel(ev);
-    assert.equal(ev.defaultPrevented, false, 'Normal wheel scrolling on home must NOT be prevented');
-  }
+  // Ctrl+wheel (PC touchpad pinch) on home: MUST be prevented
+  const homeWheel = createEvent('wheel', homeCard, { ctrlKey: true, deltaY: -20 });
+  handleWheel(homeWheel);
+  assert.equal(homeWheel.defaultPrevented, true, 'Touchpad Ctrl+wheel zoom on home must be prevented');
 
-  // 6. Safari gesturestart & gesturechange on #home MUST be prevented
-  {
-    const evStart = createEvent('gesturestart', homeEl, { scale: 1.5 });
-    handleGestureStart(evStart);
-    assert.equal(evStart.defaultPrevented, true, 'Safari gesturestart on home must be prevented');
+  // Trackpad gesture on home: MUST be prevented
+  const homeGesture = createEvent('gesturestart', homeCard, {});
+  handleGestureStart(homeGesture);
+  assert.equal(homeGesture.defaultPrevented, true, 'Trackpad gesture on home must be prevented');
 
-    const evChange = createEvent('gesturechange', homeEl, { scale: 1.6 });
-    handleGestureChange(evChange);
-    assert.equal(evChange.defaultPrevented, true, 'Safari gesturechange on home must be prevented');
-  }
-
-  // 7. Dialog / Sheet open on home view MUST have zoom gestures prevented
-  {
-    const ev = createEvent('touchstart', sheetSettings, { touches: [{ clientX: 120 }, { clientX: 220 }] });
-    handleTouchStart(ev);
-    assert.equal(ev.defaultPrevented, true, 'Multi-touch on settings sheet must be prevented');
-
-    const evWheel = createEvent('wheel', sheetSettings, { ctrlKey: true, deltaY: -30 });
-    handleWheel(evWheel);
-    assert.equal(evWheel.defaultPrevented, true, 'Ctrl+wheel on settings sheet must be prevented');
-  }
+  // Multi-touch inside sheet modal (settings): MUST be prevented
+  const sheetPinch = createEvent('touchstart', sheetSettings, { touches: [{ clientX: 10, clientY: 10 }, { clientX: 50, clientY: 50 }] });
+  handleTouchStart(sheetPinch);
+  assert.equal(sheetPinch.defaultPrevented, true, 'Multi-touch inside sheet dialogs must be prevented');
 
   // --- Tests on READER view (route.name = 'reader') ---
   route.name = 'reader';
 
-  // 8. Two-finger touch on Quran page (.pg in #readerBody) MUST NOT be blocked by nav handlers
-  {
-    const ev = createEvent('touchstart', pgEl, { touches: [{ clientX: 100 }, { clientX: 200 }] });
-    handleTouchStart(ev);
-    assert.equal(ev.defaultPrevented, false, '2-finger touchstart on Quran page must not be prevented by nav handler');
-  }
+  // Multi-touch on Quran page (inside readerBody): MUST NOT be prevented by navigation handlers
+  const readerPinch = createEvent('touchstart', pgEl, { touches: [{ clientX: 10, clientY: 10 }, { clientX: 50, clientY: 50 }] });
+  handleTouchStart(readerPinch);
+  assert.equal(readerPinch.defaultPrevented, false, 'Quran page pinch must NOT be suppressed by nav handler');
 
-  // 9. Two-finger touch on Text node inside ayah on Quran page MUST NOT be blocked by nav handlers (WebKit bug fix)
-  {
-    const ev = createEvent('touchstart', ayahTextNode, { touches: [{ clientX: 100 }, { clientX: 200 }] });
-    handleTouchStart(ev);
-    assert.equal(ev.defaultPrevented, false, '2-finger touchstart on Quran text node must not be prevented by nav handler');
-  }
+  // Multi-touch directly on Arabic text node: MUST NOT be prevented by navigation handlers
+  const textNodePinch = createEvent('touchstart', arabicTextNode, { touches: [{ clientX: 10, clientY: 10 }, { clientX: 50, clientY: 50 }] });
+  handleTouchStart(textNodePinch);
+  assert.equal(textNodePinch.defaultPrevented, false, 'Arabic Text node touch must NOT be suppressed by nav handler');
 
-  // 10. Ctrl+wheel on Quran page MUST NOT be blocked by nav handler (so reader can zoom)
-  {
-    const ev = createEvent('wheel', pgEl, { ctrlKey: true, deltaY: -50 });
-    handleWheel(ev);
-    assert.equal(ev.defaultPrevented, false, 'Ctrl+wheel on Quran page must not be prevented by nav handler');
-  }
+  // Ctrl+wheel on Quran page: MUST NOT be prevented by navigation handlers
+  const readerWheel = createEvent('wheel', pgEl, { ctrlKey: true, deltaY: -20 });
+  handleWheel(readerWheel);
+  assert.equal(readerWheel.defaultPrevented, false, 'Quran page Ctrl+wheel must NOT be suppressed by nav handler');
 
-  // 11. Safari gesturestart on Quran page MUST NOT be blocked by nav handler
-  {
-    const ev = createEvent('gesturestart', pgEl, { scale: 1.5 });
-    handleGestureStart(ev);
-    assert.equal(ev.defaultPrevented, false, 'Safari gesturestart on Quran page must not be prevented by nav handler');
-  }
+  // Trackpad gesture on Arabic text node: MUST NOT be prevented by navigation handlers
+  const textNodeGesture = createEvent('gesturestart', arabicTextNode, {});
+  handleGestureStart(textNodeGesture);
+  assert.equal(textNodeGesture.defaultPrevented, false, 'Arabic text node trackpad gesture must NOT be suppressed by nav handler');
 
-  // 12. Touch on readerTop (outside #readerBody) MUST be prevented from viewport zoom
-  {
-    const ev = createEvent('touchstart', readerTop, { touches: [{ clientX: 100 }, { clientX: 200 }] });
-    handleTouchStart(ev);
-    assert.equal(ev.defaultPrevented, true, '2-finger touch on reader header must be prevented from viewport zoom');
-  }
+  // Touch on Reader topbar (#readerTop): MUST be prevented
+  const topbarPinch = createEvent('touchstart', readerTop, { touches: [{ clientX: 10, clientY: 10 }, { clientX: 50, clientY: 50 }] });
+  handleTouchStart(topbarPinch);
+  assert.equal(topbarPinch.defaultPrevented, true, 'Reader topbar pinch must be prevented');
 
-  // 13. Touch on rbar (toolbar outside #readerBody) MUST be prevented from viewport zoom
-  {
-    const ev = createEvent('touchstart', rbar, { touches: [{ clientX: 100 }, { clientX: 200 }] });
-    handleTouchStart(ev);
-    assert.equal(ev.defaultPrevented, true, '2-finger touch on reader toolbar must be prevented from viewport zoom');
-  }
+  // Touch on Reader bottom bar (#rbar): MUST be prevented
+  const barPinch = createEvent('touchstart', readerBar, { touches: [{ clientX: 10, clientY: 10 }, { clientX: 50, clientY: 50 }] });
+  handleTouchStart(barPinch);
+  assert.equal(barPinch.defaultPrevented, true, 'Reader bottom bar pinch must be prevented');
 
-  // 14. Sheet opened while in reader mode MUST be prevented from viewport zoom
-  {
-    const ev = createEvent('touchstart', sheetSettings, { touches: [{ clientX: 100 }, { clientX: 200 }] });
-    handleTouchStart(ev);
-    assert.equal(ev.defaultPrevented, true, '2-finger touch on sheet in reader must be prevented from viewport zoom');
-  }
-
-  // 15. Null target or document target safely handled without error and prevented
-  {
-    const evNull = createEvent('touchstart', null, { touches: [{ clientX: 100 }, { clientX: 200 }] });
-    handleTouchStart(evNull);
-    assert.equal(evNull.defaultPrevented, true, 'null target must be prevented from viewport zoom');
-  }
+  // Null/document target: safely blocked without throwing
+  const nullEvent = createEvent('touchstart', null, { touches: [{ clientX: 10, clientY: 10 }, { clientX: 50, clientY: 50 }] });
+  handleTouchStart(nullEvent);
+  assert.equal(nullEvent.defaultPrevented, true, 'Null target multi-touch must be safely prevented');
 });

@@ -1235,223 +1235,84 @@ async function loadUnit(kind, n) {
   return pages;
 }
 
-// ================================================================ zmadhimi me dy gishta (pinch-to-zoom)
-const PZ = {
-  el: null,
-  s: 1,
-  tx: 0,
-  ty: 0,
+// ================================================================ ndryshimi i madhësisë së tekstit me dy gishta (pinch-to-scale font)
+const FSZ = {
   pinching: false,
-  panning: false,
-  dragged: false,
-  d0: 0,
-  s0: 1,
-  tx0: 0,
-  ty0: 0,
-  lx: 0,
-  ly: 0,
-  L0: 0,
-  T0: 0,
-  W0: 0,
-  H0: 0,
-  px: 0,
-  py: 0,
+  startDist: 0,
+  startSize: 30,
+  startTrSize: 17,
+  anchorEl: null,
+  anchorTop: 0,
+  moved: false,
   lastAt: 0,
-  scrollTop0: 0,
-  resetTimer: null,
-  indicatorEl: null,
+  rafId: null,
 };
 
-function getReaderBounds() {
-  const body = $('#readerBody');
-  const topH = $('.reader-top')?.offsetHeight || 60;
-  const botH = 80;
-  if (paged()) {
-    const r = body.getBoundingClientRect();
-    return {
-      left: r.left,
-      top: r.top,
-      right: r.right,
-      bottom: Math.max(r.top + 100, r.bottom - botH),
-      width: r.width,
-      height: Math.max(100, r.height - botH),
-    };
+const resetZoom = () => false;
+
+function anchorAyahElement(cx, cy) {
+  let el = null;
+  if (typeof cx === 'number' && typeof cy === 'number') {
+    el = document.elementFromPoint(cx, cy)?.closest?.('.ay, .pg-tr p');
   }
-  return {
-    left: 0,
-    top: topH,
-    right: window.innerWidth,
-    bottom: window.innerHeight - botH,
-    width: window.innerWidth,
-    height: Math.max(100, window.innerHeight - botH - topH),
-  };
+  if (!el) {
+    const k = visibleAyah();
+    if (k) el = $(`#readerBody .ay[data-k="${k}"]`);
+  }
+  if (!el) el = $('#readerBody .ay');
+  return el;
 }
 
-function updateZoomIndicator(show) {
-  let b = $('#zoomBadge');
-  if (!show || !PZ.el || PZ.s <= 1.05) {
-    if (b) { b.remove(); PZ.indicatorEl = null; }
-    return;
-  }
-  if (!b) {
-    b = document.createElement('button');
-    b.id = 'zoomBadge';
-    b.className = 'zoom-badge';
-    b.setAttribute('aria-label', 'Kthe zmadhimin në 1×');
-    b.title = 'Kthe në 1×';
-    b.innerHTML = `<span class="zb-txt"></span><svg><use href="#i-close"/></svg>`;
-    b.addEventListener('click', (e) => {
-      e.stopPropagation();
-      resetZoom(true);
-    });
-    $('#reader')?.appendChild(b);
-    PZ.indicatorEl = b;
-  }
-  const txt = b.querySelector('.zb-txt');
-  if (txt) txt.textContent = `${PZ.s.toFixed(1)}×`;
-}
+function updateFontPinch(targetSize, targetTrSize) {
+  targetSize = clamp(targetSize, 22, 50);
+  targetTrSize = clamp(targetTrSize, 14, 26);
 
-function initPZTarget(pg, cx, cy) {
-  if (!pg) return false;
-  if (PZ.resetTimer) {
-    clearTimeout(PZ.resetTimer);
-    PZ.resetTimer = null;
-  }
-  if (PZ.el && PZ.el !== pg) resetZoom(false);
-  PZ.el = pg;
-  pg.style.transition = 'none';
+  const root = document.documentElement;
+  root.style.setProperty('--ar-size', `${targetSize.toFixed(1)}px`);
+  root.style.setProperty('--tr-size', `${targetTrSize.toFixed(1)}px`);
 
-  const rect = pg.getBoundingClientRect();
-  PZ.L0 = rect.left - PZ.tx;
-  PZ.T0 = rect.top - PZ.ty;
-  PZ.W0 = rect.width / PZ.s;
-  PZ.H0 = Math.max(rect.height / PZ.s, pg.scrollHeight || 0);
-
-  if (PZ.s <= 1.02 && pg.scrollTop > 0) {
-    PZ.scrollTop0 = pg.scrollTop;
-    PZ.T0 = rect.top;
-    PZ.ty = -PZ.scrollTop0;
-  } else if (PZ.s <= 1.02) {
-    PZ.scrollTop0 = 0;
-  }
-
-  PZ.s0 = PZ.s;
-  PZ.tx0 = PZ.tx;
-  PZ.ty0 = PZ.ty;
-  PZ.lx = (cx - PZ.L0 - PZ.tx) / PZ.s;
-  PZ.ly = (cy - PZ.T0 - PZ.ty) / PZ.s;
-  return true;
-}
-
-function clampPZ(smooth = false) {
-  if (!PZ.el || PZ.s <= 1.02) return;
-  const cRect = getReaderBounds();
-  const Ws = PZ.W0 * PZ.s;
-  const Hs = PZ.H0 * PZ.s;
-  let minX, maxX, minY, maxY;
-
-  if (Ws > cRect.width) {
-    minX = cRect.right - PZ.L0 - Ws;
-    maxX = cRect.left - PZ.L0;
-  } else {
-    minX = maxX = cRect.left - PZ.L0 + (cRect.width - Ws) / 2;
-  }
-
-  if (Hs > cRect.height) {
-    minY = cRect.bottom - PZ.T0 - Hs;
-    maxY = cRect.top - PZ.T0;
-  } else {
-    minY = maxY = cRect.top - PZ.T0 + Math.max(0, (cRect.height - Hs) / 2);
-  }
-
-  PZ.tx = Math.max(minX, Math.min(maxX, PZ.tx));
-  PZ.ty = Math.max(minY, Math.min(maxY, PZ.ty));
-  applyPZTransform(smooth);
-}
-
-function applyPZTransform(smooth = false) {
-  if (!PZ.el) return;
-  const el = PZ.el;
-  if (PZ.s > 1.02) {
-    el.classList.add('zoomed');
-    el.style.transformOrigin = '0 0';
-    el.style.transition = smooth ? 'transform .25s cubic-bezier(0.2, 0, 0.2, 1)' : 'none';
-    el.style.transform = `translate3d(${PZ.tx.toFixed(1)}px, ${PZ.ty.toFixed(1)}px, 0) scale(${PZ.s.toFixed(4)})`;
-    updateZoomIndicator(true);
-  } else {
-    el.style.transition = smooth ? 'transform .25s cubic-bezier(0.2, 0, 0.2, 1)' : 'none';
-    el.style.transform = 'translate3d(0, 0, 0) scale(1)';
-    updateZoomIndicator(false);
-    if (!smooth) {
-      el.style.transform = '';
-      el.style.transformOrigin = '';
-      el.style.transition = '';
-      el.classList.remove('zoomed', 'panning');
-      if (PZ.scrollTop0 && el.scrollTop === 0) el.scrollTop = PZ.scrollTop0;
-      PZ.scrollTop0 = 0;
-      PZ.el = null;
+  if (FSZ.anchorEl && FSZ.anchorEl.isConnected) {
+    const curTop = FSZ.anchorEl.getBoundingClientRect().top;
+    const diff = curTop - FSZ.anchorTop;
+    if (Math.abs(diff) > 0.5) {
+      if (paged()) {
+        const pg = FSZ.anchorEl.closest('.pg');
+        if (pg) pg.scrollTop += diff;
+      } else {
+        window.scrollBy({ top: diff, behavior: 'instant' });
+      }
     }
   }
+
+  const intSize = Math.round(targetSize);
+  const intTr = Math.round(targetTrSize);
+  const d = $('#fszDown'), u = $('#fszUp');
+  if (d) d.disabled = intSize <= 22 && intTr <= 14;
+  if (u) u.disabled = intSize >= 50 && intTr >= 26;
+  const sr = $('#sizeRange'), trr = $('#trSizeRange');
+  if (sr) sr.value = intSize;
+  if (trr) trr.value = intTr;
+  const so = $('#sizeOut'), tro = $('#trSizeOut');
+  if (so) so.textContent = intSize;
+  if (tro) tro.textContent = intTr;
 }
 
-function resetZoom(smooth = false) {
-  if (PZ.resetTimer) {
-    clearTimeout(PZ.resetTimer);
-    PZ.resetTimer = null;
-  }
-  updateZoomIndicator(false);
-  if (!PZ.el && PZ.s <= 1.02) return false;
-  const el = PZ.el;
-  const prevScrollTop = PZ.scrollTop0;
-  PZ.s = 1;
-  PZ.tx = 0;
-  PZ.ty = 0;
-  PZ.pinching = false;
-  PZ.panning = false;
-  PZ.dragged = false;
-  PZ.scrollTop0 = 0;
-  PZ.lastAt = Date.now();
-  if (el) {
-    if (smooth) {
-      el.style.transition = 'transform .25s cubic-bezier(0.2, 0, 0.2, 1)';
-      el.style.transform = 'translate3d(0, 0, 0) scale(1)';
-      PZ.resetTimer = setTimeout(() => {
-        PZ.resetTimer = null;
-        if (PZ.s <= 1.02) {
-          el.style.transform = '';
-          el.style.transformOrigin = '';
-          el.style.transition = '';
-          el.classList.remove('zoomed', 'panning');
-          if (prevScrollTop && el.scrollTop === 0) el.scrollTop = prevScrollTop;
-          if (PZ.el === el) PZ.el = null;
-        }
-      }, 260);
-    } else {
-      el.style.transform = '';
-      el.style.transformOrigin = '';
-      el.style.transition = '';
-      el.classList.remove('zoomed', 'panning');
-      if (prevScrollTop && el.scrollTop === 0) el.scrollTop = prevScrollTop;
-      PZ.el = null;
-    }
-  }
-  return true;
-}
+function commitFontPinch() {
+  const root = document.documentElement;
+  const rawSize = parseFloat(root.style.getPropertyValue('--ar-size')) || settings.size;
+  const rawTr = parseFloat(root.style.getPropertyValue('--tr-size')) || settings.trSize;
+  const finalSize = Math.round(clamp(rawSize, 22, 50));
+  const finalTr = Math.round(clamp(rawTr, 14, 26));
 
-function zoomToPoint(targetScale, cx, cy) {
-  if (route.name !== 'reader') return;
-  const pg = document.elementFromPoint(cx, cy)?.closest?.('.pg') || $(`#readerBody [data-i="${Math.max(0, R.idx)}"]`) || $('#readerBody .pg');
-  if (!pg) return;
-  initPZTarget(pg, cx, cy);
-  PZ.s = clamp(targetScale, 1.0, 4.0);
-  if (PZ.s <= 1.02) {
-    resetZoom(true);
-    return;
+  if (finalSize !== settings.size || finalTr !== settings.trSize) {
+    settings.size = finalSize;
+    settings.trSize = finalTr;
+    saveSettings();
+    applySettings();
+    remember('Cilësimet');
+  } else {
+    applySettings();
   }
-  PZ.tx = cx - PZ.L0 - PZ.lx * PZ.s;
-  PZ.ty = cy - PZ.T0 - PZ.ly * PZ.s;
-  clampPZ(true);
-  PZ.lastAt = Date.now();
 }
 
 function buildReader() {
@@ -2032,7 +1893,7 @@ function bind() {
     LP.fired = false;
     clearTimeout(LP.t);
     if (!settings.hold || (e.pointerType === 'mouse' && e.button !== 0)) return;
-    if (PZ.pinching || PZ.s > 1.05) return;
+    if (FSZ.pinching || Date.now() - FSZ.lastAt < 400) return;
     const el = e.target.closest('.ay, .pg-tr p[data-k]');
     if (!el) return;
     LP.x = e.clientX; LP.y = e.clientY;
@@ -2091,7 +1952,7 @@ function bind() {
   }, { passive: false });
 
   window.addEventListener('touchmove', (e) => {
-    if (e.touches && e.touches.length > 1 && !PZ.pinching && isNavView(e)) {
+    if (e.touches && e.touches.length > 1 && !FSZ.pinching && isNavView(e)) {
       e.preventDefault();
     }
   }, { passive: false });
@@ -2103,18 +1964,18 @@ function bind() {
   }, { passive: false });
 
   window.addEventListener('gesturechange', (e) => {
-    if (!PZ.pinching && isNavView(e)) {
+    if (!FSZ.pinching && isNavView(e)) {
       e.preventDefault();
     }
   }, { passive: false });
 
   window.addEventListener('gestureend', (e) => {
-    if (!PZ.pinching && isNavView(e)) {
+    if (!FSZ.pinching && isNavView(e)) {
       e.preventDefault();
     }
   }, { passive: false });
 
-  // Zmadhimi me dy gishta (pinch to zoom) në telefon dhe me touchpad në PC
+  // Ndryshimi i madhësisë së tekstit me dy gishta (pinch to scale font) në telefon dhe me touchpad në PC
   body.addEventListener('touchstart', (e) => {
     if (route.name !== 'reader') return;
     if (e.touches.length >= 2) {
@@ -2123,201 +1984,126 @@ function bind() {
       const t0 = e.touches[0], t1 = e.touches[1];
       const cx = (t0.clientX + t1.clientX) / 2;
       const cy = (t0.clientY + t1.clientY) / 2;
-      const pg = document.elementFromPoint(cx, cy)?.closest?.('.pg') || $(`#readerBody [data-i="${Math.max(0, R.idx)}"]`) || $('#readerBody .pg');
-      if (initPZTarget(pg, cx, cy)) {
-        PZ.d0 = Math.max(10, Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY));
-        PZ.pinching = true;
-        PZ.panning = false;
-        PZ.dragged = false;
-        PZ.lastAt = Date.now();
-      }
+      FSZ.pinching = true;
+      FSZ.moved = false;
+      FSZ.startDist = Math.max(10, Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY));
+      FSZ.startSize = settings.size;
+      FSZ.startTrSize = settings.trSize;
+      FSZ.anchorEl = anchorAyahElement(cx, cy);
+      FSZ.anchorTop = FSZ.anchorEl ? FSZ.anchorEl.getBoundingClientRect().top : 0;
+      FSZ.lastAt = Date.now();
       e.preventDefault();
       return;
-    }
-    if (e.touches.length === 1 && PZ.s > 1.05) {
-      clearTimeout(LP.t);
-      LP.fired = false;
-      PZ.panning = true;
-      PZ.dragged = false;
-      PZ.px = e.touches[0].clientX;
-      PZ.py = e.touches[0].clientY;
-      PZ.tx0 = PZ.tx;
-      PZ.ty0 = PZ.ty;
-      e.preventDefault();
     }
   }, { passive: false });
 
   body.addEventListener('touchmove', (e) => {
     if (route.name !== 'reader') return;
-    if (e.touches.length >= 2 && PZ.pinching && PZ.el) {
+    if (e.touches.length >= 2 && FSZ.pinching) {
       e.preventDefault();
       const t0 = e.touches[0], t1 = e.touches[1];
-      const d = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
-      const cx = (t0.clientX + t1.clientX) / 2;
-      const cy = (t0.clientY + t1.clientY) / 2;
-      const ratio = d / PZ.d0;
-      let newScale = PZ.s0 * ratio;
-      if (newScale < 1.0) newScale = 1.0 - (1.0 - newScale) * 0.35;
-      if (newScale > 4.0) newScale = 4.0 + (newScale - 4.0) * 0.35;
-      PZ.s = Math.max(0.75, Math.min(4.5, newScale));
-      PZ.tx = cx - PZ.L0 - PZ.lx * PZ.s;
-      PZ.ty = cy - PZ.T0 - PZ.ly * PZ.s;
-      PZ.lastAt = Date.now();
-      PZ.dragged = true;
-      applyPZTransform(false);
+      const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+      if (Math.abs(dist - FSZ.startDist) > 5) FSZ.moved = true;
+      const ratio = dist / FSZ.startDist;
+      const targetSize = clamp(FSZ.startSize * ratio, 22, 50);
+      const targetTrSize = clamp(FSZ.startTrSize + (targetSize - FSZ.startSize) * 0.5, 14, 26);
+      if (FSZ.rafId) cancelAnimationFrame(FSZ.rafId);
+      FSZ.rafId = requestAnimationFrame(() => {
+        FSZ.rafId = null;
+        updateFontPinch(targetSize, targetTrSize);
+      });
+      FSZ.lastAt = Date.now();
       return;
-    }
-    if (e.touches.length === 1 && PZ.panning && PZ.s > 1.05) {
-      e.preventDefault();
-      const dx = e.touches[0].clientX - PZ.px;
-      const dy = e.touches[0].clientY - PZ.py;
-      if (Math.hypot(dx, dy) > 4) PZ.dragged = true;
-      PZ.tx = PZ.tx0 + dx;
-      PZ.ty = PZ.ty0 + dy;
-      PZ.lastAt = Date.now();
-      applyPZTransform(false);
     }
   }, { passive: false });
 
   const endTouch = (e) => {
     if (route.name !== 'reader') return;
-    if (PZ.pinching && e.touches.length < 2) {
-      PZ.pinching = false;
-      PZ.lastAt = Date.now();
-      if (e.touches.length === 1 && PZ.s > 1.05) {
-        PZ.panning = true;
-        PZ.px = e.touches[0].clientX;
-        PZ.py = e.touches[0].clientY;
-        PZ.tx0 = PZ.tx;
-        PZ.ty0 = PZ.ty;
-        return;
+    if (FSZ.pinching && e.touches.length < 2) {
+      FSZ.pinching = false;
+      FSZ.lastAt = Date.now();
+      if (FSZ.rafId) { cancelAnimationFrame(FSZ.rafId); FSZ.rafId = null; }
+      if (FSZ.moved) {
+        commitFontPinch();
       }
-    }
-    if (e.touches.length === 0) {
-      PZ.panning = false;
-      if (PZ.s < 1.05) resetZoom(true);
-      else clampPZ(true);
     }
   };
   body.addEventListener('touchend', endTouch, { passive: true });
   body.addEventListener('touchcancel', endTouch, { passive: true });
 
-  // Touchpad (PC): pinch me dy gishta (Ctrl + wheel) dhe lëvizje anash kur është i zmadhuar
+  // Touchpad (PC): Ctrl + wheel për shkallëzimin e madhësisë së tekstit
   const readerEl = $('#reader');
+  let wheelTimer = null;
   readerEl.addEventListener('wheel', (e) => {
     if (route.name !== 'reader') return;
     if (e.ctrlKey) {
       e.preventDefault();
-      PZ.lastAt = Date.now();
-      const pg = document.elementFromPoint(e.clientX, e.clientY)?.closest?.('.pg') || $(`#readerBody [data-i="${Math.max(0, R.idx)}"]`) || $('#readerBody .pg');
-      if (!pg) return;
-      if (!PZ.el || PZ.el !== pg) initPZTarget(pg, e.clientX, e.clientY);
-
-      const lx = (e.clientX - PZ.L0 - PZ.tx) / PZ.s;
-      const ly = (e.clientY - PZ.T0 - PZ.ty) / PZ.s;
-      const delta = Math.max(-80, Math.min(80, e.deltaY));
-      const factor = Math.exp(-delta * 0.006);
-      const newScale = clamp(PZ.s * factor, 1.0, 4.0);
-
-      if (newScale <= 1.02) {
-        resetZoom(true);
-        return;
+      FSZ.lastAt = Date.now();
+      if (!FSZ.anchorEl) {
+        FSZ.anchorEl = anchorAyahElement(e.clientX, e.clientY);
+        FSZ.anchorTop = FSZ.anchorEl ? FSZ.anchorEl.getBoundingClientRect().top : 0;
       }
-      PZ.s = newScale;
-      PZ.tx = e.clientX - PZ.L0 - lx * newScale;
-      PZ.ty = e.clientY - PZ.T0 - ly * newScale;
-      PZ.lx = lx;
-      PZ.ly = ly;
-      clampPZ(false);
+      const delta = clamp(e.deltaY, -60, 60);
+      const step = -delta * 0.04;
+      const currentSize = parseFloat(document.documentElement.style.getPropertyValue('--ar-size')) || settings.size;
+      const targetSize = clamp(currentSize + step, 22, 50);
+      const targetTrSize = clamp(settings.trSize + (targetSize - settings.size) * 0.5, 14, 26);
+      updateFontPinch(targetSize, targetTrSize);
+
+      clearTimeout(wheelTimer);
+      wheelTimer = setTimeout(() => {
+        commitFontPinch();
+        FSZ.anchorEl = null;
+      }, 200);
       return;
-    }
-    if (PZ.s > 1.05) {
-      e.preventDefault();
-      PZ.tx -= e.deltaX;
-      PZ.ty -= e.deltaY;
-      PZ.lastAt = Date.now();
-      clampPZ(false);
     }
   }, { passive: false });
 
-  // Mac / Safari Trackpad gestures (gesturestart, gesturechange, gestureend)
-  let gScale0 = 1;
+  // Mac / Safari Trackpad gestures
   body.addEventListener('gesturestart', (e) => {
     if (route.name !== 'reader') return;
     e.preventDefault();
-    const pg = document.elementFromPoint(e.clientX, e.clientY)?.closest?.('.pg') || $(`#readerBody [data-i="${Math.max(0, R.idx)}"]`) || $('#readerBody .pg');
-    if (!pg) return;
-    initPZTarget(pg, e.clientX, e.clientY);
-    gScale0 = PZ.s;
-    PZ.pinching = true;
-    PZ.lastAt = Date.now();
-  }, { passive: false });
-  body.addEventListener('gesturechange', (e) => {
-    if (route.name !== 'reader' || !PZ.el) return;
-    e.preventDefault();
-    const lx = (e.clientX - PZ.L0 - PZ.tx) / PZ.s;
-    const ly = (e.clientY - PZ.T0 - PZ.ty) / PZ.s;
-    const newScale = clamp(gScale0 * (e.scale || 1), 0.8, 4.2);
-    PZ.s = newScale;
-    PZ.tx = e.clientX - PZ.L0 - lx * newScale;
-    PZ.ty = e.clientY - PZ.T0 - ly * newScale;
-    PZ.lx = lx;
-    PZ.ly = ly;
-    PZ.dragged = true;
-    PZ.lastAt = Date.now();
-    applyPZTransform(false);
-  }, { passive: false });
-  body.addEventListener('gestureend', (e) => {
-    if (route.name !== 'reader' || !PZ.el) return;
-    e.preventDefault();
-    PZ.pinching = false;
-    PZ.lastAt = Date.now();
-    if (PZ.s < 1.05) resetZoom(true);
-    else clampPZ(true);
+    FSZ.pinching = true;
+    FSZ.moved = false;
+    FSZ.startSize = settings.size;
+    FSZ.startTrSize = settings.trSize;
+    FSZ.anchorEl = anchorAyahElement(e.clientX, e.clientY);
+    FSZ.anchorTop = FSZ.anchorEl ? FSZ.anchorEl.getBoundingClientRect().top : 0;
+    FSZ.lastAt = Date.now();
   }, { passive: false });
 
-  // Tërheqja me mi (drag) kur është i zmadhuar në PC
-  body.addEventListener('pointerdown', (e) => {
-    if (route.name !== 'reader' || e.pointerType === 'touch' || e.button !== 0) return;
-    if (PZ.s > 1.05) {
-      PZ.panning = true;
-      PZ.dragged = false;
-      PZ.px = e.clientX;
-      PZ.py = e.clientY;
-      PZ.tx0 = PZ.tx;
-      PZ.ty0 = PZ.ty;
-      PZ.el?.classList.add('panning');
-      try { body.setPointerCapture(e.pointerId); } catch {}
+  body.addEventListener('gesturechange', (e) => {
+    if (route.name !== 'reader' || !FSZ.pinching) return;
+    e.preventDefault();
+    FSZ.moved = true;
+    const ratio = e.scale || 1;
+    const targetSize = clamp(FSZ.startSize * ratio, 22, 50);
+    const targetTrSize = clamp(FSZ.startTrSize + (targetSize - FSZ.startSize) * 0.5, 14, 26);
+    if (FSZ.rafId) cancelAnimationFrame(FSZ.rafId);
+    FSZ.rafId = requestAnimationFrame(() => {
+      FSZ.rafId = null;
+      updateFontPinch(targetSize, targetTrSize);
+    });
+    FSZ.lastAt = Date.now();
+  }, { passive: false });
+
+  body.addEventListener('gestureend', (e) => {
+    if (route.name !== 'reader' || !FSZ.pinching) return;
+    e.preventDefault();
+    FSZ.pinching = false;
+    FSZ.lastAt = Date.now();
+    if (FSZ.rafId) { cancelAnimationFrame(FSZ.rafId); FSZ.rafId = null; }
+    if (FSZ.moved) {
+      commitFontPinch();
     }
-  });
-  body.addEventListener('pointermove', (e) => {
-    if (PZ.panning && e.pointerType !== 'touch' && PZ.s > 1.05) {
-      const dx = e.clientX - PZ.px;
-      const dy = e.clientY - PZ.py;
-      if (Math.hypot(dx, dy) > 4) PZ.dragged = true;
-      PZ.tx = PZ.tx0 + dx;
-      PZ.ty = PZ.ty0 + dy;
-      PZ.lastAt = Date.now();
-      applyPZTransform(false);
-    }
-  });
-  const endMousePan = (e) => {
-    if (PZ.panning && e.pointerType !== 'touch') {
-      PZ.panning = false;
-      PZ.el?.classList.remove('panning');
-      clampPZ(true);
-      try { body.releasePointerCapture(e.pointerId); } catch {}
-    }
-  };
-  body.addEventListener('pointerup', endMousePan);
-  body.addEventListener('pointercancel', endMousePan);
+  }, { passive: false });
 
   // Kthimi i faqeve anash: me gisht ose me mi, një faqe në çdo rrëshqitje
   {
     const body = $('#readerBody');
     let px = null, py = 0, pid = null;
     const turn = (dx, dy) => {
-      if (PZ.s > 1.05 || PZ.pinching || PZ.panning || Date.now() - PZ.lastAt < 350) return;
+      if (FSZ.pinching || Date.now() - FSZ.lastAt < 350) return;
       if (Math.abs(dx) < 45 || Math.abs(dx) < Math.abs(dy) * 1.3) return;
       R.swipedAt = Date.now();
       const fwd = settings.pager === 'rtl' ? dx > 0 : dx < 0;
@@ -2325,16 +2111,15 @@ function bind() {
       if (to !== R.idx) { goTo(to); haptic(8); }
     };
     // gishti: ngjarjet e prekjes (shfletuesi nuk i anulon kur e merr vetë lëvizjen)
-    body.addEventListener('touchstart', (e) => { if (!paged() || e.touches.length !== 1 || PZ.s > 1.05) { px = null; return; } px = e.touches[0].clientX; py = e.touches[0].clientY; }, { passive: true });
+    body.addEventListener('touchstart', (e) => { if (!paged() || e.touches.length !== 1 || FSZ.pinching) { px = null; return; } px = e.touches[0].clientX; py = e.touches[0].clientY; }, { passive: true });
     body.addEventListener('touchend', (e) => { if (px === null) return; const t = e.changedTouches[0]; const x = px; px = null; turn(t.clientX - x, t.clientY - py); }, { passive: true });
     // miu ose lapsi
-    body.addEventListener('pointerdown', (e) => { if (!paged() || e.pointerType === 'touch' || e.button || PZ.s > 1.05) return; px = e.clientX; py = e.clientY; pid = e.pointerId; }, true);
+    body.addEventListener('pointerdown', (e) => { if (!paged() || e.pointerType === 'touch' || e.button || FSZ.pinching) return; px = e.clientX; py = e.clientY; pid = e.pointerId; }, true);
     addEventListener('pointerup', (e) => { if (px === null || e.pointerType === 'touch' || e.pointerId !== pid) return; const x = px; px = null; turn(e.clientX - x, e.clientY - py); }, true);
   }
   $('#readerBody').addEventListener('click', safe((e) => {
     if (Date.now() - (R.swipedAt || 0) < 450) return; // ishte rrëshqitje, jo prekje
-    if (Date.now() - (PZ.lastAt || 0) < 400) return; // ishte pinch ose pan, jo prekje
-    if (PZ.s > 1.05 && PZ.dragged) return;
+    if (Date.now() - (FSZ.lastAt || 0) < 400) return; // ishte pinch, jo prekje
     if (LP.fired) { LP.fired = false; return; } // gishti i mbajtur hapi përkthimin; mos e shëno ajetin
     const act = e.target.closest('[data-act]');
     if (act) {

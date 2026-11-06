@@ -1,163 +1,133 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-// Test simulated DOM pinch and wheel gestures
-test('Simulated pinch zoom state transitions with dynamic focal tracking and reset protection', () => {
-  // Mock element
-  const style = {};
-  const classes = new Set();
-  const el = {
-    classList: {
-      add: (c) => classes.add(c),
-      remove: (...cs) => cs.forEach((c) => classes.delete(c)),
-      contains: (c) => classes.has(c),
+test('Simulated font pinch scaling state transitions, CSS variable updates, and anchor stabilization', () => {
+  const cssVars = {};
+  const settings = { size: 30, trSize: 17 };
+  let savedSettings = null;
+
+  const root = {
+    style: {
+      setProperty: (k, v) => { cssVars[k] = v; },
+      getPropertyValue: (k) => cssVars[k] || '',
     },
-    style,
-    getBoundingClientRect: () => ({ left: 20, top: 60, width: 360, height: 600 }),
-    scrollHeight: 800,
-    scrollTop: 0,
   };
 
-  const PZ = {
-    el: null,
-    s: 1,
-    tx: 0,
-    ty: 0,
+  let scrollByAmount = 0;
+  let pagedScrollTop = 0;
+  let isPaged = false;
+
+  const pgEl = {
+    get scrollTop() { return pagedScrollTop; },
+    set scrollTop(v) { pagedScrollTop = v; },
+  };
+
+  const anchorEl = {
+    isConnected: true,
+    top: 150,
+    getBoundingClientRect: () => ({ top: anchorEl.top }),
+    closest: (sel) => (sel === '.pg' ? pgEl : null),
+  };
+
+  const FSZ = {
     pinching: false,
-    panning: false,
-    dragged: false,
-    d0: 0,
-    s0: 1,
-    tx0: 0,
-    ty0: 0,
-    lx: 0,
-    ly: 0,
-    L0: 0,
-    T0: 0,
-    W0: 0,
-    H0: 0,
-    px: 0,
-    py: 0,
+    startDist: 0,
+    startSize: 30,
+    startTrSize: 17,
+    anchorEl: null,
+    anchorTop: 0,
+    moved: false,
     lastAt: 0,
-    scrollTop0: 0,
-    resetTimer: null,
   };
 
-  function initPZ(targetEl, cx, cy) {
-    if (PZ.resetTimer) {
-      clearTimeout(PZ.resetTimer);
-      PZ.resetTimer = null;
-    }
-    PZ.el = targetEl;
-    const rect = targetEl.getBoundingClientRect();
-    PZ.L0 = rect.left - PZ.tx;
-    PZ.T0 = rect.top - PZ.ty;
-    PZ.W0 = rect.width / PZ.s;
-    PZ.H0 = Math.max(rect.height / PZ.s, targetEl.scrollHeight || 0);
+  function updateFontPinch(targetSize, targetTrSize) {
+    targetSize = Math.max(22, Math.min(50, targetSize));
+    targetTrSize = Math.max(14, Math.min(26, targetTrSize));
 
-    if (PZ.s <= 1.02 && targetEl.scrollTop > 0) {
-      PZ.scrollTop0 = targetEl.scrollTop;
-      PZ.T0 = rect.top;
-      PZ.ty = -PZ.scrollTop0;
-    } else if (PZ.s <= 1.02) {
-      PZ.scrollTop0 = 0;
-    }
+    root.style.setProperty('--ar-size', `${targetSize.toFixed(1)}px`);
+    root.style.setProperty('--tr-size', `${targetTrSize.toFixed(1)}px`);
 
-    PZ.s0 = PZ.s;
-    PZ.tx0 = PZ.tx;
-    PZ.ty0 = PZ.ty;
-    PZ.lx = (cx - PZ.L0 - PZ.tx) / PZ.s;
-    PZ.ly = (cy - PZ.T0 - PZ.ty) / PZ.s;
-  }
-
-  function applyTransform() {
-    if (!PZ.el) return;
-    if (PZ.s > 1.02) {
-      PZ.el.classList.add('zoomed');
-      PZ.el.style.transform = `translate3d(${PZ.tx.toFixed(1)}px, ${PZ.ty.toFixed(1)}px, 0) scale(${PZ.s.toFixed(4)})`;
-    } else {
-      PZ.el.classList.remove('zoomed', 'panning');
-      PZ.el.style.transform = '';
-      PZ.el = null;
+    if (FSZ.anchorEl && FSZ.anchorEl.isConnected) {
+      const curTop = FSZ.anchorEl.getBoundingClientRect().top;
+      const diff = curTop - FSZ.anchorTop;
+      if (Math.abs(diff) > 0.5) {
+        if (isPaged) {
+          const pg = FSZ.anchorEl.closest('.pg');
+          if (pg) pg.scrollTop += diff;
+        } else {
+          scrollByAmount += diff;
+        }
+      }
     }
   }
 
-  function resetZoom() {
-    if (!PZ.el && PZ.s <= 1.02) return;
-    PZ.s = 1;
-    PZ.tx = 0;
-    PZ.ty = 0;
-    applyTransform();
+  function commitFontPinch() {
+    const rawSize = parseFloat(root.style.getPropertyValue('--ar-size')) || settings.size;
+    const rawTr = parseFloat(root.style.getPropertyValue('--tr-size')) || settings.trSize;
+    settings.size = Math.round(Math.max(22, Math.min(50, rawSize)));
+    settings.trSize = Math.round(Math.max(14, Math.min(26, rawTr)));
+    savedSettings = { ...settings };
   }
 
-  // 1. Initial state
-  assert.equal(PZ.s, 1);
-  assert.equal(PZ.el, null);
+  // 1. Initial State
+  assert.equal(FSZ.pinching, false);
+  assert.equal(settings.size, 30);
+  assert.equal(settings.trSize, 17);
 
-  // 2. Touchstart with 2 fingers at cx=200, cy=300
-  initPZ(el, 200, 300);
-  PZ.d0 = 100;
-  PZ.pinching = true;
+  // 2. Touchstart with 2 fingers
+  FSZ.pinching = true;
+  FSZ.moved = false;
+  FSZ.startDist = 100;
+  FSZ.startSize = settings.size;
+  FSZ.startTrSize = settings.trSize;
+  FSZ.anchorEl = anchorEl;
+  FSZ.anchorTop = anchorEl.getBoundingClientRect().top; // 150
+  FSZ.lastAt = Date.now();
 
-  assert.equal(PZ.el, el);
-  assert.equal(PZ.L0, 20);
-  assert.equal(PZ.T0, 60);
-  assert.equal(PZ.lx, 180);
-  assert.equal(PZ.ly, 240);
+  assert.equal(FSZ.pinching, true);
+  assert.equal(FSZ.startSize, 30);
+  assert.equal(FSZ.anchorTop, 150);
 
-  // 3. Touchmove: fingers spread to d=200 (2x zoom)
-  const d = 200;
-  const ratio = d / PZ.d0;
-  PZ.s = PZ.s0 * ratio; // 2.0
-  const cx = 200, cy = 300;
-  PZ.tx = cx - PZ.L0 - PZ.lx * PZ.s; // 200 - 20 - 180*2 = -180
-  PZ.ty = cy - PZ.T0 - PZ.ly * PZ.s; // 300 - 60 - 240*2 = -240
-  applyTransform();
+  // 3. Touchmove: fingers spread to 120px (ratio = 1.2)
+  const dist1 = 120;
+  const ratio1 = dist1 / FSZ.startDist; // 1.2
+  const targetSize1 = Math.max(22, Math.min(50, FSZ.startSize * ratio1)); // 36
+  const targetTrSize1 = Math.max(14, Math.min(26, FSZ.startTrSize + (targetSize1 - FSZ.startSize) * 0.5)); // 20
 
-  assert.equal(PZ.s, 2);
-  assert.equal(PZ.tx, -180);
-  assert.equal(PZ.ty, -240);
-  assert.equal(el.classList.contains('zoomed'), true);
-  assert.equal(style.transform, 'translate3d(-180.0px, -240.0px, 0) scale(2.0000)');
+  // Anchor element displaced downwards due to larger font
+  anchorEl.top = 175; // displaced by +25px
+  updateFontPinch(targetSize1, targetTrSize1);
 
-  // 4. One-finger pan while zoomed: move by dx=+30, dy=+40
-  PZ.tx += 30; // -150
-  PZ.ty += 40; // -200
-  applyTransform();
+  assert.equal(cssVars['--ar-size'], '36.0px');
+  assert.equal(cssVars['--tr-size'], '20.0px');
+  assert.equal(scrollByAmount, 25); // corrected by +25px
 
-  assert.equal(PZ.tx, -150);
-  assert.equal(PZ.ty, -200);
-  assert.equal(style.transform, 'translate3d(-150.0px, -200.0px, 0) scale(2.0000)');
+  // 4. Touchend: commit
+  FSZ.pinching = false;
+  commitFontPinch();
 
-  // 5. Touchpad pinch: dynamic focal point at (cx=200, cy=300) keeps pan preserved and point anchored
-  const lx = (cx - PZ.L0 - PZ.tx) / PZ.s; // (200 - 20 - (-150)) / 2 = 165
-  const ly = (cy - PZ.T0 - PZ.ty) / PZ.s; // (300 - 60 - (-200)) / 2 = 220
-  assert.equal(lx, 165);
-  assert.equal(ly, 220);
+  assert.equal(settings.size, 36);
+  assert.equal(settings.trSize, 20);
+  assert.deepEqual(savedSettings, { size: 36, trSize: 20 });
 
-  const deltaY = -50;
-  const factor = Math.exp(-deltaY * 0.008);
-  const newScale = PZ.s * factor;
-  PZ.s = newScale;
-  PZ.tx = cx - PZ.L0 - lx * newScale;
-  PZ.ty = cy - PZ.T0 - ly * newScale;
-  PZ.lx = lx;
-  PZ.ly = ly;
-  applyTransform();
+  // 5. Test in Paged Mode
+  isPaged = true;
+  FSZ.pinching = true;
+  FSZ.startDist = 100;
+  FSZ.startSize = settings.size; // 36
+  FSZ.startTrSize = settings.trSize; // 20
+  FSZ.anchorTop = 150;
+  anchorEl.top = 130; // displaced by -20px (pinching smaller)
 
-  assert.ok(PZ.s > 2.0);
-  assert.equal(el.classList.contains('zoomed'), true);
+  const dist2 = 80; // ratio = 0.8
+  const ratio2 = dist2 / FSZ.startDist;
+  const targetSize2 = FSZ.startSize * ratio2; // 28.8
+  const targetTrSize2 = FSZ.startTrSize + (targetSize2 - FSZ.startSize) * 0.5; // ~16.4
+  updateFontPinch(targetSize2, targetTrSize2);
 
-  // Screen position of focal point under cursor stays at 200, 300
-  const screenX = PZ.L0 + PZ.tx + lx * PZ.s;
-  const screenY = PZ.T0 + PZ.ty + ly * PZ.s;
-  assert.equal(Math.round(screenX), cx);
-  assert.equal(Math.round(screenY), cy);
+  assert.equal(pagedScrollTop, -20); // page scrollTop compensated by -20px
+  commitFontPinch();
 
-  // 6. Reset zoom
-  resetZoom();
-  assert.equal(PZ.s, 1);
-  assert.equal(PZ.el, null);
-  assert.equal(el.classList.contains('zoomed'), false);
-  assert.equal(style.transform, '');
+  assert.equal(settings.size, 29);
+  assert.equal(settings.trSize, 16);
 });
