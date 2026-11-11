@@ -129,21 +129,12 @@
   <div class="field">
     <div class="seg" data-setting="bg"><button data-v="paper">Ditë</button><button data-v="night">Natë</button></div>
   </div>
-  <label class="switch">
-    <span class="label">Ditë e natë sipas diellit<small>E ditës pas lindjes së diellit në Kosovë, e natës pas perëndimit. Mund ta ndryshosh me dorë kurdo.</small></span>
-    <input type="checkbox" class="toggle" id="autoToggle">
-  </label>
   <div class="knobs">
     <div class="kf"><span class="label">Errësimi i sfondit</span><input type="range" id="dimRange" min="0" max="70" step="5"><small id="dimFor"></small></div>
-    <div class="kf"><span class="label">Hija pas tekstit</span><input type="range" id="shadowRange" min="0" max="100" step="10"><small>0% = pa hije</small></div>
   </div>
   <div class="field">
     <span class="label">Tema e sfondit</span>
     <div class="papers themes" id="themeGrid" role="radiogroup" aria-label="Tema e sfondit"></div>
-  </div>
-  <div class="field">
-    <span class="label">Tekstura e letrës<small>Opsionale — zëvendëson teksturën e temës</small></span>
-    <div class="papers" id="paperGrid" role="radiogroup" aria-label="Sfondi i letrës"></div>
   </div>
 
   <h3 class="sec">Leximi</h3>
@@ -182,17 +173,12 @@
   </div>
   <div class="knobs">
     <div class="kf"><span class="label">Madhësia <output id="sizeOut"></output></span><input type="range" id="sizeRange" min="22" max="50" step="1"></div>
-    <div class="kf"><span class="label">Transparenca <output id="arTransOut"></output></span><input type="range" id="arTransRange" min="0" max="60" step="5"></div>
   </div>
 
   <h3 class="sec">Shqip</h3>
   <label class="switch">
     <span class="label">Përkthimi<small>Hassan Nahi, nën çdo faqe (anash në ekran të gjerë)</small></span>
     <input type="checkbox" class="toggle" id="transToggle">
-  </label>
-  <label class="switch">
-    <span class="label">Mbaj gishtin për përkthimin<small>Mbaj gishtin mbi një ajet (ose kliko me të djathtën) për ta lexuar shqip</small></span>
-    <input type="checkbox" class="toggle" id="holdToggle">
   </label>
   <div id="trFields">
     <div class="field">
@@ -205,9 +191,34 @@
     </div>
     <div class="knobs">
       <div class="kf"><span class="label">Madhësia <output id="trSizeOut"></output></span><input type="range" id="trSizeRange" min="14" max="26" step="1"></div>
-      <div class="kf"><span class="label">Transparenca <output id="trTransOut"></output></span><input type="range" id="trTransRange" min="0" max="60" step="5"></div>
     </div>
   </div>
+
+  <details class="adv-sec">
+    <summary>Rregullime të hollësishme (hija, transparenca, tekstura...)</summary>
+    <div class="adv-body">
+      <label class="switch">
+        <span class="label">Ditë e natë sipas diellit<small>E ditës pas lindjes së diellit në Kosovë, e natës pas perëndimit.</small></span>
+        <input type="checkbox" class="toggle" id="autoToggle">
+      </label>
+      <label class="switch">
+        <span class="label">Mbaj gishtin për përkthimin<small>Mbaj gishtin mbi një ajet (ose kliko me të djathtën) për ta lexuar shqip</small></span>
+        <input type="checkbox" class="toggle" id="holdToggle">
+      </label>
+      <div class="knobs">
+        <div class="kf"><span class="label">Hija pas tekstit</span><input type="range" id="shadowRange" min="0" max="100" step="10"><small>0% = pa hije</small></div>
+      </div>
+      <div class="knobs">
+        <div class="kf"><span class="label">Transparenca (Arabisht) <output id="arTransOut"></output></span><input type="range" id="arTransRange" min="0" max="60" step="5"></div>
+        <div class="kf"><span class="label">Transparenca (Shqip) <output id="trTransOut"></output></span><input type="range" id="trTransRange" min="0" max="60" step="5"></div>
+      </div>
+      <div class="field">
+        <span class="label">Tekstura e letrës<small>Opsionale — zëvendëson teksturën e temës</small></span>
+        <div class="papers" id="paperGrid" role="radiogroup" aria-label="Sfondi i letrës"></div>
+      </div>
+    </div>
+  </details>
+
   <div class="preview" id="preview">
     <p class="ar" lang="ar" dir="rtl" id="previewAr"></p>
     <p class="tr">Me emrin e Allahut, të Gjithëmëshirshmit, Mëshirëplotit!</p>
