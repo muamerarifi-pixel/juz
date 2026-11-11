@@ -373,8 +373,7 @@ function applySettings() {
   const night = settings.bg === 'night';
   root.style.setProperty('--txt-sh', settings.shadow / 100);
   root.style.setProperty('--dim', (night ? settings.dimNight : settings.dimDay) / 100);
-  $('#dimRange').value = night ? settings.dimNight : settings.dimDay;
-  $('#dimFor').textContent = night ? 'për natën' : 'për ditën';
+  const dimEl = $('#dimRange'); if (dimEl) { dimEl.value = night ? settings.dimNight : settings.dimDay; const df = $('#dimFor'); if (df) df.textContent = night ? 'për natën' : 'për ditën'; }
   $('#shadowRange').value = settings.shadow;
   $('#autoToggle').checked = settings.autoBg;
   $('#fsToggle').checked = settings.fs;
@@ -388,6 +387,7 @@ function applySettings() {
 const KNOBS = [];
 const SPAD = 15; // rrezja e dorezës
 function knob(input, fmt = (v) => `${v}`) {
+  if (!input) return;
   const min = +input.min, max = +input.max, step = +input.step || 1, span = (max - min) || 1;
   const n = Math.round(span / step), dots = n <= 10 ? n + 1 : 5;
   const el = document.createElement('div');
@@ -1858,9 +1858,9 @@ function bind() {
   });
   { let t = 0; document.addEventListener('pointerup', () => { if (settings.fs && !document.fullscreenElement && Date.now() - t > 4000) { t = Date.now(); enterFS(); } }, true); }
   $('#autoToggle').addEventListener('change', (e) => { setSetting('autoBg', e.target.checked); if (e.target.checked) autoTheme(true); });
-  $('#dimRange').addEventListener('input', (e) => { remember('Cilësimet'); settings[settings.bg === 'night' ? 'dimNight' : 'dimDay'] = +e.target.value; saveSettings(); applySettings(); });
+  $('#dimRange')?.addEventListener('input', (e) => { remember('Cilësimet'); settings[settings.bg === 'night' ? 'dimNight' : 'dimDay'] = +e.target.value; saveSettings(); applySettings(); });
   $('#shadowRange').addEventListener('input', (e) => { remember('Cilësimet'); settings.shadow = +e.target.value; saveSettings(); applySettings(); });
-  for (const [id, f] of [['sizeRange'], ['arTransRange', (v) => `${v}%`], ['trSizeRange'], ['trTransRange', (v) => `${v}%`], ['dimRange', (v) => `${v}%`], ['shadowRange', (v) => `${v}%`]]) knob($(`#${id}`), f);
+  for (const [id, f] of [['sizeRange'], ['arTransRange', (v) => `${v}%`], ['trSizeRange'], ['trTransRange', (v) => `${v}%`], ['shadowRange', (v) => `${v}%`]]) knob($(`#${id}`), f);
   $('#weekCard').addEventListener('click', (e) => {
     if (!e.target.closest('[data-focus-search]')) return;
     const s = $('#surahSearch');
@@ -2170,7 +2170,7 @@ function bind() {
   $('#arTransRange').addEventListener('input', (e) => { remember('Cilësimet'); settings.arTrans = +e.target.value; saveSettings(); applySettings(); });
   $('#trTransRange').addEventListener('input', (e) => { remember('Cilësimet'); settings.trTrans = +e.target.value; saveSettings(); applySettings(); });
   $('#paperGrid').addEventListener('click', (e) => { const b = e.target.closest('[data-paper]'); if (b) setSetting('paper', b.dataset.paper); });
-  $('#themeGrid').addEventListener('click', (e) => { const b = e.target.closest('[data-th]'); if (!b) return; if (settings.paper !== 'classic') setSetting('paper', 'classic'); setSetting('theme', b.dataset.th); });
+  $('#themeGrid')?.addEventListener('click', (e) => { const b = e.target.closest('[data-th]'); if (!b) return; if (settings.paper !== 'classic') setSetting('paper', 'classic'); setSetting('theme', b.dataset.th); });
 
   // rrotullimi
   // A− / A+ dhe ajeti para/pas
