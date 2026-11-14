@@ -1874,6 +1874,7 @@ function bind() {
     document.addEventListener('touchmove', (e) => { const t = e.touches[0]; if (Math.hypot(t.clientX - sx, t.clientY - sy) > 10) moved = true; }, { capture: true, passive: true });
     document.addEventListener('click', (e) => {
       if (e.detail === 0) return; // tastiera
+      if (e.target.closest?.('button, a, input, label, .topbar, .rbar, .sheet')) { moved = false; return; }
       if (moved || Date.now() - lastScroll < 220) { e.preventDefault(); e.stopPropagation(); moved = false; }
     }, true);
   }

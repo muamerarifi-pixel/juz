@@ -84,7 +84,7 @@ a { color: var(--accent); }
   background: var(--top-bg); backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4);
   box-shadow: 0 1px 0 var(--line), 0 8px 20px -14px rgb(var(--shc) / .4); transition: transform .3s ease; }
 .actions { display: flex; margin-left: auto; gap: 2px; }
-.icon-btn { position: relative; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 14px; transition: background .15s, transform .1s; }
+.icon-btn { position: relative; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 14px; touch-action: manipulation; transition: background .15s, transform .1s; }
 .icon-btn:hover { background: color-mix(in srgb, var(--surface-2) 60%, transparent); }
 .icon-btn:active { background: var(--surface-2); transform: scale(.93); }
 .dot { position: absolute; top: 10px; right: 10px; width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 0 2px var(--bg); background: #9a9a9a; }
@@ -449,9 +449,10 @@ input[type="range"] { width: 100%; height: 44px; accent-color: var(--accent); ma
 /* ================= Telefoni horizontalisht ================= */
 @media (orientation: landscape) and (max-height: 520px) {
   :root { --safe-l: env(safe-area-inset-left, 0px); --safe-r: env(safe-area-inset-right, 0px); }
-  .topbar { min-height: 40px; padding-left: calc(10px + var(--safe-l)); padding-right: calc(10px + var(--safe-r)); }
-  .reader-top { padding-top: calc(2px + var(--safe-t)); padding-bottom: 2px; }
-  .reader-top .icon-btn { width: 36px; height: 36px; }
+  .topbar { min-height: 44px; padding-left: max(12px, calc(10px + var(--safe-l))); padding-right: max(14px, calc(12px + var(--safe-r))); }
+  .reader-top { padding-top: max(4px, var(--safe-t)); padding-bottom: 4px; }
+  .reader-top .actions { gap: 8px; }
+  .reader-top .icon-btn { width: 44px; height: 42px; }
   .home-body { padding-left: calc(14px + var(--safe-l)); padding-right: calc(14px + var(--safe-r)); }
   .reader-body { padding: 4px var(--safe-r) 72px var(--safe-l); }
   .pg { scroll-margin-top: 48px; max-width: 960px; padding: 6px max(22px, var(--safe-r)) 0 max(22px, var(--safe-l)); }
