@@ -319,6 +319,8 @@ a { color: var(--accent); }
 .pill-bar { position: absolute; left: 14px; right: 14px; bottom: 5px; height: 3px; border-radius: 2px; background: var(--surface-2); overflow: hidden; }
 .pill-bar span { display: block; height: 100%; background: var(--bmc, var(--gold)); border-radius: 2px; transition: width .3s; }
 #rotBtn.on { color: var(--accent); background: color-mix(in srgb, var(--accent-soft) 70%, transparent); }
+#bmBtn.on { color: var(--bmc, var(--gold)); background: color-mix(in srgb, var(--bmc, var(--gold)) 15%, transparent); }
+#bmBtn:not(.on) { opacity: .4; }
 
 /* ================= Butonat ================= */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 0 18px; border-radius: 14px;

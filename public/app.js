@@ -1415,6 +1415,12 @@ const updatePill = safe(() => {
   $('#pillBar').style.width = `${pr.pct}%`;
   $('#pillBar').style.setProperty('--pc', pcol(pr.pct));
   $('#pill').setAttribute('aria-label', `Faqja ${pos} nga ${n}, faqja ${mp} e Mus'hafit.${showBm ? ' Shko te shënjuesi.' : ''}`);
+  const bmBtn = $('#bmBtn');
+  if (bmBtn) {
+    bmBtn.classList.toggle('on', showBm);
+    bmBtn.setAttribute('aria-label', showBm ? `Shko te shënjuesi (${b.s}:${b.a})` : 'Nuk ka ajet të shënuar');
+    bmBtn.title = showBm ? `Shko te ajeti ${b.s}:${b.a}` : 'Prek një ajet për ta shënuar';
+  }
 });
 
 // ================================================================ shënjuesi = progresi
@@ -1929,11 +1935,13 @@ function bind() {
     if (cameFromHome && history.length > 1) { cameFromHome = false; history.back(); } else location.replace('#/');
   });
   for (const b of $$('[data-night]')) b.addEventListener('click', () => setSetting('bg', settings.bg === 'night' ? 'paper' : 'night'));
-  $('#pill').addEventListener('click', () => {
+  const jumpToBm = () => {
     const b = bmOf();
     if (b && bmInUnit(b)) scrollToAyah(`${b.s}:${b.a}`);
     else toast('Prek një ajet për ta shënuar — kështu ruhet progresi.');
-  });
+  };
+  $('#pill').addEventListener('click', jumpToBm);
+  $('#bmBtn')?.addEventListener('click', jumpToBm);
 
   // Mbaj gishtin mbi një ajet (ose kliko me të djathtën): përkthimi shqip i atij ajeti.
   const LP = { t: 0, x: 0, y: 0, fired: false };
