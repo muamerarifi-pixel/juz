@@ -1739,16 +1739,15 @@ async function toggleRot() {
   if (route.name === 'reader') { const k = visibleAyah(); if (k) R.curAyah = k; }
   const isLand = matchMedia('(orientation: landscape)').matches || screen.orientation?.type?.startsWith('landscape');
   const target = isLand ? 'portrait' : 'landscape';
-  if (!screen.orientation?.lock) {
-    toast('Shfletuesi nuk e lejon rrotullimin me buton');
-    return;
-  }
+  if (!screen.orientation?.lock) return;
   let ok = false;
   try {
     await screen.orientation.lock(target);
     ok = true;
   } catch {
-    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+    if (target === 'portrait') {
+      try { screen.orientation.unlock(); ok = true; } catch {}
+    } else if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
       try {
         await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
         ROT.fs = true;
@@ -1770,8 +1769,6 @@ async function toggleRot() {
       const top = $('.reader-top');
       if (top) document.documentElement.style.setProperty('--rtop', `${top.offsetHeight}px`);
     }, 100);
-  } else {
-    toast('Telefoni nuk e lejoi rrotullimin këtu. Shto JUZ në ekranin kryesor dhe provo nga aplikacioni.', 4000);
   }
 }
 async function setRotLock(on, quiet = false) {
@@ -1793,7 +1790,6 @@ async function setRotLock(on, quiet = false) {
   renderRot();
   if (quiet) return;
   if (ok) toast(screen.orientation.type.startsWith('portrait') ? 'U kyç vertikalisht për këtë herë' : 'U kyç horizontalisht për këtë herë');
-  else toast('Telefoni nuk e lejoi kyçjen këtu. Shto JUZ në ekranin kryesor dhe provo nga aplikacioni.', 4500);
 }
 function initRot() {
   lsSet(LS.rot, null); // kyçja e ruajtur nga versioni 7.0.0 nuk vendoset më vetë
