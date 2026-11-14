@@ -1321,6 +1321,7 @@ function buildReader() {
   const body = $('#readerBody');
   body.innerHTML = R.pages.map(pageHTML).join('') + endHTML();
   R.io = new IntersectionObserver((ents) => {
+    if (R.resizing) return;
     for (const e of ents) if (e.isIntersecting) setIdx(+e.target.dataset.i);
   }, paged() ? { root: body, threshold: 0.6 } : { rootMargin: '-35% 0px -60% 0px' });
   body.scrollLeft = 0;
@@ -1367,6 +1368,8 @@ function goTo(i, smooth = true) {
   i = clamp(i, 0, count());
   const el = $(`#readerBody [data-i="${i}"]`);
   if (!el) return;
+  const firstAy = $('.ay', el)?.dataset.k;
+  if (firstAy) R.curAyah = firstAy;
   if (paged()) { el.scrollIntoView({ inline: 'start', block: 'nearest', behavior: smooth ? 'smooth' : 'instant' }); setIdx(i); return; }
   const top = i === 0 ? 0 : el.getBoundingClientRect().top + scrollY - 70;
   scrollTo({ top: Math.max(0, top), behavior: smooth ? 'smooth' : 'instant' });
@@ -1374,6 +1377,7 @@ function goTo(i, smooth = true) {
 }
 function scrollToAyah(k, flash = true) {
   resetZoom(false);
+  R.curAyah = k;
   const el = $(`#readerBody .ay[data-k="${k}"]`);
   if (!el) return;
   const pg = el.closest('.pg');
@@ -1381,7 +1385,7 @@ function scrollToAyah(k, flash = true) {
     pg.scrollIntoView({ inline: 'start', block: 'nearest', behavior: 'instant' });
     pg.scrollTop = Math.max(0, el.getBoundingClientRect().top - pg.getBoundingClientRect().top + pg.scrollTop - pg.clientHeight * 0.28);
   } else {
-    const top = el.getBoundingClientRect().top + scrollY - innerHeight * 0.28;
+    const top = el.getBoundingClientRect().top + scrollY - Math.max(($('.reader-top')?.offsetHeight || 48) + 12, innerHeight * 0.25);
     scrollTo({ top: Math.max(0, top), behavior: 'instant' });
   }
   if (pg) setIdx(+pg.dataset.i);
@@ -1428,6 +1432,7 @@ function decorateBm() {
   if (b && bmInUnit(b)) for (const el of $$(`#readerBody [data-k="${b.s}:${b.a}"]`)) el.classList.add('bm');
 }
 function toggleAyahBm(k) {
+  R.curAyah = k;
   const [s, a] = k.split(':').map(Number);
   const pg = R.pages.find((g) => g.items.some((x) => x.s === s && x.a === a));
   if (!pg) return;
@@ -1559,6 +1564,7 @@ async function openReader(kind, n, target) {
   buildReader();
   scrollTo(0, 0);
   setIdx(0);
+  R.curAyah = ayah || visibleAyah();
   requestAnimationFrame(() => { if (token === R.token && ayah) scrollToAyah(ayah, !!target); });
   if (qcf) qcfLoadFonts(ti);
 }
@@ -1724,6 +1730,7 @@ function renderRot() {
   $('#rotToggle').checked = ROT.on;
 }
 async function toggleRot() {
+  if (route.name === 'reader') { const k = visibleAyah(); if (k) R.curAyah = k; }
   const isLand = matchMedia('(orientation: landscape)').matches || screen.orientation?.type?.startsWith('landscape');
   const target = isLand ? 'portrait' : 'landscape';
   if (!screen.orientation?.lock) {
@@ -2184,8 +2191,15 @@ function bind() {
     if (ay) toggleAyahBm(ay.dataset.k);
   }));
   // Shiriti i sipërm fshihet kur lexon poshtë dhe del kur kthehesh lart.
+  let ayTimer;
+  const trackCurAyah = () => {
+    if (R.resizing || route.name !== 'reader') return;
+    clearTimeout(ayTimer);
+    ayTimer = setTimeout(() => { if (!R.resizing && route.name === 'reader') { const k = visibleAyah(); if (k) R.curAyah = k; } }, 80);
+  };
   addEventListener('scroll', () => {
-    if (route.name !== 'reader') return;
+    if (route.name !== 'reader' || R.resizing) return;
+    trackCurAyah();
     const y = scrollY;
     const dy = y - R.lastY;
     if (Math.abs(dy) < 6) return;
@@ -2194,9 +2208,10 @@ function bind() {
     R.lastY = y;
   }, { passive: true });
   $('#readerBody').addEventListener('scroll', (e) => {
-    if (route.name !== 'reader' || settings.pager === 'scroll') return;
+    if (route.name !== 'reader' || settings.pager === 'scroll' || R.resizing) return;
     const el = e.target;
     if (!el.classList?.contains('pg')) return;
+    trackCurAyah();
     const y = el.scrollTop;
     const prev = el._lastY || 0;
     const dy = y - prev;
@@ -2204,13 +2219,35 @@ function bind() {
     $('#reader').classList.toggle('hide-bars', dy > 0 && y > 40);
     el._lastY = y;
   }, { passive: true, capture: true });
-  addEventListener('resize', () => {
-    if (route.name === 'reader') {
-      const top = $('.reader-top');
-      if (top) document.documentElement.style.setProperty('--rtop', `${top.offsetHeight}px`);
-      renderRot();
+  let rotRz;
+  const handleReaderResize = () => {
+    if (route.name !== 'reader') return;
+    if (!R.resizing) {
+      R.resizing = true;
+      R.savedIdx = Math.max(0, R.idx);
     }
-  }, { passive: true });
+    const top = $('.reader-top');
+    if (top) document.documentElement.style.setProperty('--rtop', `${top.offsetHeight}px`);
+    if (paged()) {
+      const curPg = $(`#readerBody [data-i="${R.savedIdx}"]`);
+      if (curPg) curPg.scrollIntoView({ inline: 'start', block: 'nearest', behavior: 'instant' });
+    }
+    clearTimeout(rotRz);
+    rotRz = setTimeout(() => {
+      if (route.name !== 'reader') { R.resizing = false; return; }
+      const t = $('.reader-top');
+      if (t) document.documentElement.style.setProperty('--rtop', `${t.offsetHeight}px`);
+      if (R.curAyah) scrollToAyah(R.curAyah, false);
+      else goTo(R.savedIdx ?? Math.max(0, R.idx), false);
+      decorateBm();
+      updatePill();
+      renderRot();
+      markOverflow();
+      setTimeout(() => { R.resizing = false; }, 60);
+    }, 150);
+  };
+  addEventListener('resize', handleReaderResize, { passive: true });
+  addEventListener('orientationchange', handleReaderResize, { passive: true });
 
   // cilësimet
   for (const seg of $$('[data-setting]')) seg.addEventListener('click', (e) => {
@@ -2279,8 +2316,7 @@ function bind() {
 
   // përkthimi anash: zbehja lart/poshtë
   $('#readerBody').addEventListener('scroll', (e) => { if (e.target.classList?.contains('tr-in')) trEdges(e.target); }, { capture: true, passive: true });
-  let rz;
-  addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (route.name === 'reader') markOverflow(); }, 200); });
+
 
   // pajisjet
   $('#shareBtn').addEventListener('click', shareLink);
