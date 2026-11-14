@@ -85,8 +85,8 @@ a { color: var(--accent); }
   box-shadow: 0 1px 0 var(--line), 0 8px 20px -14px rgb(var(--shc) / .4); transition: transform .3s ease; }
 .actions { display: flex; margin-left: auto; gap: 2px; }
 .icon-btn { position: relative; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 14px; touch-action: manipulation; transition: background .15s, transform .1s; }
-.icon-btn:hover { background: color-mix(in srgb, var(--surface-2) 60%, transparent); }
-.icon-btn:active { background: var(--surface-2); transform: scale(.93); }
+@media (hover: hover) { .icon-btn:hover { background: color-mix(in srgb, var(--surface-2) 60%, transparent); } }
+.icon-btn:active, .icon-btn.pressed { background: var(--surface-2); transform: scale(.9); transition-duration: .06s; }
 .dot { position: absolute; top: 10px; right: 10px; width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 0 2px var(--bg); background: #9a9a9a; }
 .dot[data-s="ok"] { background: #3aa66f; } .dot[data-s="busy"] { background: var(--gold); } .dot[data-s="error"] { background: #d34a4a; }
 .brand { display: flex; align-items: center; gap: 10px; }
@@ -225,8 +225,9 @@ a { color: var(--accent); }
 .hide-bars .reader-top { transform: translateY(-110%); }
 /* the reader's bar: compact, so the text gets the room */
 .reader-top { min-height: 0; gap: 2px; padding-top: calc(3px + var(--safe-t)); padding-bottom: 3px; z-index: 40; }
-.reader-top .icon-btn { width: 40px; height: 40px; border-radius: 12px; }
-.reader-top .icon-btn svg { width: 21px; height: 21px; }
+.reader-top .actions { gap: 8px; }
+.reader-top .icon-btn { width: 42px; height: 42px; border-radius: 13px; background: color-mix(in srgb, var(--surface-2) 55%, transparent); border: 1px solid color-mix(in srgb, var(--line) 85%, transparent); box-shadow: inset 0 1px 0 var(--hi), 0 1px 2px rgb(var(--shc) / .1); transition: transform .12s cubic-bezier(.2, .8, .2, 1), background-color .15s ease, border-color .15s ease, box-shadow .15s ease, opacity .15s ease; }
+.reader-top .icon-btn svg { width: 20px; height: 20px; }
 .reader-top .r-title { line-height: 1.15; }
 .reader-top .r-title strong { font-size: 15px; }
 .reader-top .r-title .sub { font-size: 11.5px; }
@@ -318,9 +319,12 @@ a { color: var(--accent); }
 .pill-bm svg { width: 14px; height: 14px; }
 .pill-bar { position: absolute; left: 14px; right: 14px; bottom: 5px; height: 3px; border-radius: 2px; background: var(--surface-2); overflow: hidden; }
 .pill-bar span { display: block; height: 100%; background: var(--bmc, var(--gold)); border-radius: 2px; transition: width .3s; }
-#rotBtn.on { color: var(--accent); background: color-mix(in srgb, var(--accent-soft) 70%, transparent); }
-#bmBtn.on { color: var(--bmc, var(--gold)); background: color-mix(in srgb, var(--bmc, var(--gold)) 15%, transparent); }
-#bmBtn:not(.on) { opacity: .4; }
+#rotBtn svg { transition: transform .32s cubic-bezier(.22, 1, .36, 1); }
+#rotBtn.on { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); border-color: color-mix(in srgb, var(--accent) 34%, transparent); box-shadow: inset 0 1px 0 var(--hi), 0 2px 10px -3px color-mix(in srgb, var(--accent) 32%, transparent); }
+#rotBtn.on svg { transform: rotate(90deg); }
+#bmBtn { --bm-fill: .08; }
+#bmBtn.on { --bm-fill: .24; color: var(--bmc, var(--gold)); background: color-mix(in srgb, var(--bmc, var(--gold)) 15%, var(--surface)); border-color: color-mix(in srgb, var(--bmc, var(--gold)) 36%, transparent); box-shadow: inset 0 1px 0 var(--hi), 0 2px 10px -3px color-mix(in srgb, var(--bmc, var(--gold)) 35%, transparent); }
+#bmBtn:not(.on) { opacity: .62; }
 
 /* ================= Butonat ================= */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 0 18px; border-radius: 14px;
@@ -452,7 +456,7 @@ input[type="range"] { width: 100%; height: 44px; accent-color: var(--accent); ma
   .topbar { min-height: 44px; padding-left: max(12px, calc(10px + var(--safe-l))); padding-right: max(14px, calc(12px + var(--safe-r))); }
   .reader-top { padding-top: max(4px, var(--safe-t)); padding-bottom: 4px; }
   .reader-top .actions { gap: 8px; }
-  .reader-top .icon-btn { width: 44px; height: 42px; }
+  .reader-top .icon-btn { width: 46px; height: 42px; }
   .home-body { padding-left: calc(14px + var(--safe-l)); padding-right: calc(14px + var(--safe-r)); }
   .reader-body { padding: 4px var(--safe-r) 72px var(--safe-l); }
   .pg { scroll-margin-top: 48px; max-width: 960px; padding: 6px max(22px, var(--safe-r)) 0 max(22px, var(--safe-l)); }

@@ -1900,7 +1900,7 @@ function bind() {
     setSetting('fs', e.target.checked);
     if (e.target.checked) enterFS(); else if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   });
-  { let t = 0; document.addEventListener('pointerup', () => { if (settings.fs && !document.fullscreenElement && Date.now() - t > 4000) { t = Date.now(); enterFS(); } }, true); }
+  { let t = 0; document.addEventListener('pointerup', (e) => { if (e.target.closest?.('button, a, input, label, .topbar, .rbar, .sheet')) return; if (settings.fs && !document.fullscreenElement && Date.now() - t > 4000) { t = Date.now(); enterFS(); } }, true); }
   $('#autoToggle').addEventListener('change', (e) => { setSetting('autoBg', e.target.checked); if (e.target.checked) autoTheme(true); });
   $('#dimRange')?.addEventListener('input', (e) => { remember('Cilësimet'); settings[settings.bg === 'night' ? 'dimNight' : 'dimDay'] = +e.target.value; saveSettings(); applySettings(); });
   $('#shadowRange').addEventListener('input', (e) => { remember('Cilësimet'); settings.shadow = +e.target.value; saveSettings(); applySettings(); });
@@ -1920,17 +1920,43 @@ function bind() {
     const b = e.target.closest('[data-s]');
     if (b) { pendingFromHome = true; navigate(`#/s/${b.dataset.s}`); }
   });
-  $('#backBtn').addEventListener('click', () => {
+  const onFastTap = (el, fn) => {
+    if (!el) return;
+    let pid = null, sx = 0, sy = 0, st = 0, lastTap = 0;
+    el.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse' || !e.isPrimary) return;
+      pid = e.pointerId; sx = e.clientX; sy = e.clientY; st = Date.now();
+      el.classList.add('pressed');
+    }, { passive: true });
+    el.addEventListener('pointerup', (e) => {
+      if (e.pointerId !== pid) return;
+      pid = null;
+      el.classList.remove('pressed');
+      if (Date.now() - st < 650 && Math.hypot(e.clientX - sx, e.clientY - sy) <= 22) {
+        lastTap = Date.now();
+        fn(e);
+      }
+    }, { passive: true });
+    const clr = (e) => { if (e.pointerId === pid) { pid = null; el.classList.remove('pressed'); } };
+    el.addEventListener('pointercancel', clr, { passive: true });
+    el.addEventListener('click', (e) => {
+      if (Date.now() - lastTap < 450) { e.preventDefault(); return; }
+      fn(e);
+    });
+  };
+  onFastTap($('#backBtn'), () => {
     if (cameFromHome && history.length > 1) { cameFromHome = false; history.back(); } else location.replace('#/');
   });
   for (const b of $$('[data-night]')) b.addEventListener('click', () => setSetting('bg', settings.bg === 'night' ? 'paper' : 'night'));
   const jumpToBm = () => {
+    haptic(8);
     const b = bmOf();
     if (b && bmInUnit(b)) scrollToAyah(`${b.s}:${b.a}`);
     else toast('Prek një ajet për ta shënuar — kështu ruhet progresi.');
   };
   $('#pill').addEventListener('click', jumpToBm);
-  $('#bmBtn')?.addEventListener('click', jumpToBm);
+  onFastTap($('#bmBtn'), jumpToBm);
+  onFastTap($('#rotBtn'), () => { haptic(8); toggleRot(); });
 
   // Mbaj gishtin mbi një ajet (ose kliko me të djathtën): përkthimi shqip i atij ajeti.
   const LP = { t: 0, x: 0, y: 0, fired: false };
@@ -2316,7 +2342,7 @@ function bind() {
       if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) stepAyah((settings.pager === 'rtl' ? dx > 0 : dx < 0) ? 1 : -1);
     }, { passive: true });
   }
-  $('#rotBtn')?.addEventListener('click', toggleRot);
+  // rotBtn lidhet me onFastTap më lart
 
   // statistikat
   $('#mPrev').addEventListener('click', () => { if (--statView.m < 0) { statView.m = 11; statView.y--; } renderStatsSheet(); });
