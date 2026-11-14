@@ -1715,10 +1715,51 @@ async function tryLock() {
   try { await screen.orientation.lock(screen.orientation.type); return true; } catch { return false; }
 }
 function renderRot() {
+  const isLand = matchMedia('(orientation: landscape)').matches || screen.orientation?.type?.startsWith('landscape');
+  const btn = $('#rotBtn');
+  if (btn) btn.classList.toggle('on', ROT.on || isLand);
   const show = canRotate();
   $('#rotRow').hidden = !show;
   if (!show) return;
   $('#rotToggle').checked = ROT.on;
+}
+async function toggleRot() {
+  const isLand = matchMedia('(orientation: landscape)').matches || screen.orientation?.type?.startsWith('landscape');
+  const target = isLand ? 'portrait' : 'landscape';
+  if (!screen.orientation?.lock) {
+    toast('Shfletuesi nuk e lejon rrotullimin me buton');
+    return;
+  }
+  let ok = false;
+  try {
+    await screen.orientation.lock(target);
+    ok = true;
+  } catch {
+    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+      try {
+        await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+        ROT.fs = true;
+        await screen.orientation.lock(target);
+        ok = true;
+      } catch {
+        if (ROT.fs && document.fullscreenElement) { ROT.fs = false; document.exitFullscreen().catch(() => {}); }
+      }
+    }
+  }
+  if (ok) {
+    ROT.on = target === 'landscape';
+    if (target === 'portrait' && ROT.fs && document.fullscreenElement) {
+      ROT.fs = false;
+      document.exitFullscreen().catch(() => {});
+    }
+    renderRot();
+    setTimeout(() => {
+      const top = $('.reader-top');
+      if (top) document.documentElement.style.setProperty('--rtop', `${top.offsetHeight}px`);
+    }, 100);
+  } else {
+    toast('Telefoni nuk e lejoi rrotullimin këtu. Shto JUZ në ekranin kryesor dhe provo nga aplikacioni.', 4000);
+  }
 }
 async function setRotLock(on, quiet = false) {
   if (!on) {
@@ -1781,6 +1822,7 @@ const handleRoute = safe(() => {
     openReader(R.fri ? 's' : m[1], +m[2], m[3] || null);
   } else {
     route.name = 'home';
+    if (ROT.on || ROT.fs) setRotLock(false, true);
     R.fri = false;
     R.token++;
     R.io?.disconnect();
@@ -2166,6 +2208,7 @@ function bind() {
     if (route.name === 'reader') {
       const top = $('.reader-top');
       if (top) document.documentElement.style.setProperty('--rtop', `${top.offsetHeight}px`);
+      renderRot();
     }
   }, { passive: true });
 
@@ -2227,6 +2270,7 @@ function bind() {
       if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) stepAyah((settings.pager === 'rtl' ? dx > 0 : dx < 0) ? 1 : -1);
     }, { passive: true });
   }
+  $('#rotBtn')?.addEventListener('click', toggleRot);
   $('#rotToggle').addEventListener('change', (e) => setRotLock(e.target.checked));
 
   // statistikat
