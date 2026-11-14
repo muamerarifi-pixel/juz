@@ -459,7 +459,6 @@ input[type="range"] { width: 100%; height: 44px; accent-color: var(--accent); ma
   .rbar .fsz { width: 38px; height: 38px; }
   .rbar #fszDown, .rbar #fszUp { display: none !important; }
   .rbar .pill { border-left: none; border-right: none; padding-left: 14px; padding-right: 14px; }
-  .hide-bars .rbar { transform: translate(-50%, calc(100% + 24px)); opacity: 0; pointer-events: none; }
   .sheet { max-height: 94dvh; }
 }
 /* Arabisht majtas–djathtas me përkthimin kur ka vend (pa panel ngjitës, se ekrani është i ulët) */
