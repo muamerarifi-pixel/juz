@@ -1722,18 +1722,16 @@ function startReadingClock() {
 // Si parazgjedhje aplikacioni ndjek cilësimin e telefonit (Rrotullimi automatik).
 // Butoni e kyç vetëm për këtë herë; kur aplikacioni hapet përsëri, vendos sërish telefoni.
 const ROT = { on: false, fs: false };
-const canRotate = () => !isIOS && !!screen.orientation?.lock && matchMedia('(pointer: coarse)').matches;
-async function tryLock() {
-  try { await screen.orientation.lock(screen.orientation.type); return true; } catch { return false; }
-}
 function renderRot() {
   const isLand = matchMedia('(orientation: landscape)').matches || screen.orientation?.type?.startsWith('landscape');
   const btn = $('#rotBtn');
   if (btn) btn.classList.toggle('on', ROT.on || isLand);
-  const show = canRotate();
-  $('#rotRow').hidden = !show;
-  if (!show) return;
-  $('#rotToggle').checked = ROT.on;
+}
+function unlockRot() {
+  ROT.on = false;
+  try { screen.orientation?.unlock(); } catch {}
+  if (ROT.fs && document.fullscreenElement) { ROT.fs = false; document.exitFullscreen().catch(() => {}); }
+  renderRot();
 }
 async function toggleRot() {
   if (route.name === 'reader') { const k = visibleAyah(); if (k) R.curAyah = k; }
@@ -1770,26 +1768,6 @@ async function toggleRot() {
       if (top) document.documentElement.style.setProperty('--rtop', `${top.offsetHeight}px`);
     }, 100);
   }
-}
-async function setRotLock(on, quiet = false) {
-  if (!on) {
-    ROT.on = false;
-    try { screen.orientation.unlock(); } catch {}
-    if (ROT.fs && document.fullscreenElement) { ROT.fs = false; document.exitFullscreen().catch(() => {}); }
-    renderRot();
-    if (!quiet) toast('Rrotullimi ndjek përsëri cilësimin e telefonit');
-    return;
-  }
-  let ok = await tryLock();
-  // Në shfletues (jo si aplikacion i instaluar) kyçja lejohet vetëm në ekran të plotë.
-  if (false) { // 7.7: rotating never switches to full screen
-    try { await document.documentElement.requestFullscreen({ navigationUI: 'hide' }); ROT.fs = true; ok = await tryLock(); } catch {}
-    if (!ok && ROT.fs) { ROT.fs = false; document.exitFullscreen().catch(() => {}); }
-  }
-  ROT.on = ok;
-  renderRot();
-  if (quiet) return;
-  if (ok) toast(screen.orientation.type.startsWith('portrait') ? 'U kyç vertikalisht për këtë herë' : 'U kyç horizontalisht për këtë herë');
 }
 function initRot() {
   lsSet(LS.rot, null); // kyçja e ruajtur nga versioni 7.0.0 nuk vendoset më vetë
@@ -1831,7 +1809,7 @@ const handleRoute = safe(() => {
     openReader(R.fri ? 's' : m[1], +m[2], m[3] || null);
   } else {
     route.name = 'home';
-    if (ROT.on || ROT.fs) setRotLock(false, true);
+    if (ROT.on || ROT.fs) unlockRot();
     R.fri = false;
     R.token++;
     R.io?.disconnect();
@@ -2312,7 +2290,6 @@ function bind() {
     }, { passive: true });
   }
   $('#rotBtn')?.addEventListener('click', toggleRot);
-  $('#rotToggle').addEventListener('change', (e) => setRotLock(e.target.checked));
 
   // statistikat
   $('#mPrev').addEventListener('click', () => { if (--statView.m < 0) { statView.m = 11; statView.y--; } renderStatsSheet(); });
