@@ -591,13 +591,16 @@ body::before { content: ''; position: fixed; inset: 0; background: #000; opacity
 #reader[data-kind="k"] { --bmc: #8a5a9c; --bmk: rgb(138 90 156 / .17); }
 /* pages turned sideways, one by one */
 body.paged #reader .reader-body { position: fixed; top: var(--rtop, 64px); bottom: 0; left: 0; right: 0; max-width: none; display: flex; padding: 0;
-  overflow: hidden; overscroll-behavior: contain; scrollbar-width: none; direction: ltr; touch-action: pan-y; -webkit-user-select: none; user-select: none; }
+  overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; overscroll-behavior-y: none; scrollbar-width: none; direction: ltr; touch-action: pan-x pan-y; -webkit-user-select: none; user-select: none; }
+body.paged.resizing #reader .reader-body { scroll-snap-type: none; }
 body.paged[data-pager="rtl"] #reader .reader-body { direction: rtl; }
 body.paged #reader .reader-body::-webkit-scrollbar { display: none; }
 body.paged #reader .reader-body > * { flex: 0 0 100%; width: 100%; max-width: none; margin: 0; scroll-snap-align: start; scroll-snap-stop: always; direction: ltr;
-  overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; position: relative; padding: 10px max(18px, calc((100% - 780px) / 2)) 130px; }
+  overflow-y: auto; overflow-x: clip; overscroll-behavior-y: contain; touch-action: pan-x pan-y; position: relative; padding: 10px max(18px, calc((100% - 780px) / 2)) 130px; contain: layout style paint; }
+body.paged #reader .reader-body > .pg.pg-far { content-visibility: hidden; }
 body.paged #reader .reader-body > .end { padding-top: 40px; }
 body.paged .hide-bars .reader-top { transform: none; }
+body.paged .reader-top { backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--surface); }
 /* one hand: the home buttons and the sheets come down to the thumb */
 @media (max-width: 760px) and (pointer: coarse) {
   #home .topbar { backdrop-filter: none; -webkit-backdrop-filter: none; background: color-mix(in srgb, var(--surface) 94%, transparent); }

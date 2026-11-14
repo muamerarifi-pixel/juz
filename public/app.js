@@ -1323,8 +1323,10 @@ function buildReader() {
   R.io = new IntersectionObserver((ents) => {
     if (R.resizing) return;
     for (const e of ents) if (e.isIntersecting) setIdx(+e.target.dataset.i);
-  }, paged() ? { root: body, threshold: 0.6 } : { rootMargin: '-35% 0px -60% 0px' });
+  }, paged() ? { root: body, threshold: 0.52 } : { rootMargin: '-35% 0px -60% 0px' });
   body.scrollLeft = 0;
+  body._lastSX = 0;
+  syncPagedWindow(0);
   for (const el of $$('.pg, .end', body)) R.io.observe(el);
   renderEnd();
   decorateBm();
@@ -1363,6 +1365,16 @@ function visibleAyah() {
   return null;
 }
 
+function syncPagedWindow(center = R.idx) {
+  const c = Math.max(0, center);
+  const p = paged();
+  for (const el of $$('#readerBody > .pg, #readerBody > .end')) {
+    const far = p && Math.abs(+el.dataset.i - c) > 3;
+    const wasFar = el.classList.contains('pg-far');
+    el.classList.toggle('pg-far', far);
+    if (!far && wasFar) for (const tr of $$('.tr-in', el)) trEdges(tr);
+  }
+}
 function goTo(i, smooth = true) {
   resetZoom(false);
   i = clamp(i, 0, count());
@@ -1370,7 +1382,7 @@ function goTo(i, smooth = true) {
   if (!el) return;
   const firstAy = $('.ay', el)?.dataset.k;
   if (firstAy) R.curAyah = firstAy;
-  if (paged()) { el.scrollIntoView({ inline: 'start', block: 'nearest', behavior: smooth ? 'smooth' : 'instant' }); setIdx(i); return; }
+  if (paged()) { syncPagedWindow(i); el.scrollIntoView({ inline: 'start', block: 'nearest', behavior: smooth ? 'smooth' : 'instant' }); setIdx(i); return; }
   const top = i === 0 ? 0 : el.getBoundingClientRect().top + scrollY - 70;
   scrollTo({ top: Math.max(0, top), behavior: smooth ? 'smooth' : 'instant' });
   setIdx(i);
@@ -1382,6 +1394,7 @@ function scrollToAyah(k, flash = true) {
   if (!el) return;
   const pg = el.closest('.pg');
   if (paged() && pg) {
+    syncPagedWindow(+pg.dataset.i);
     pg.scrollIntoView({ inline: 'start', block: 'nearest', behavior: 'instant' });
     pg.scrollTop = Math.max(0, el.getBoundingClientRect().top - pg.getBoundingClientRect().top + pg.scrollTop - pg.clientHeight * 0.28);
   } else {
@@ -1395,6 +1408,7 @@ function scrollToAyah(k, flash = true) {
 function setIdx(i) {
   if (i === R.idx) return;
   R.idx = i;
+  syncPagedWindow(i);
   updatePill();
 }
 
@@ -2130,7 +2144,7 @@ function bind() {
     }
   }, { passive: false });
 
-  // Kthimi i faqeve anash: me gisht ose me mi, një faqe në çdo rrëshqitje
+  // Kthimi i faqeve anash: prekja përdor lëvizjen vendase (scroll-snap), miu/lapsi me zvarritje
   {
     const body = $('#readerBody');
     let px = null, py = 0, pid = null;
@@ -2142,9 +2156,6 @@ function bind() {
       const to = clamp(Math.max(0, R.idx) + (fwd ? 1 : -1), 0, count());
       if (to !== R.idx) { goTo(to); haptic(8); }
     };
-    // gishti: ngjarjet e prekjes (shfletuesi nuk i anulon kur e merr vetë lëvizjen)
-    body.addEventListener('touchstart', (e) => { if (!paged() || e.touches.length !== 1 || FSZ.pinching) { px = null; return; } px = e.touches[0].clientX; py = e.touches[0].clientY; }, { passive: true });
-    body.addEventListener('touchend', (e) => { if (px === null) return; const t = e.changedTouches[0]; const x = px; px = null; turn(t.clientX - x, t.clientY - py); }, { passive: true });
     // miu ose lapsi
     body.addEventListener('pointerdown', (e) => { if (!paged() || e.pointerType === 'touch' || e.button || FSZ.pinching) return; px = e.clientX; py = e.clientY; pid = e.pointerId; }, true);
     addEventListener('pointerup', (e) => { if (px === null || e.pointerType === 'touch' || e.pointerId !== pid) return; const x = px; px = null; turn(e.clientX - x, e.clientY - py); }, true);
@@ -2190,9 +2201,23 @@ function bind() {
     $('#reader').classList.toggle('hide-bars', dy > 0 && y > thr);
     R.lastY = y;
   }, { passive: true });
+  let sxTimer;
   $('#readerBody').addEventListener('scroll', (e) => {
     if (route.name !== 'reader' || settings.pager === 'scroll' || R.resizing) return;
     const el = e.target;
+    const body = $('#readerBody');
+    if (el === body) {
+      const sx = el.scrollLeft;
+      if (el._lastSX != null && Math.abs(sx - el._lastSX) > 4) R.swipedAt = Date.now();
+      el._lastSX = sx;
+      clearTimeout(sxTimer);
+      sxTimer = setTimeout(() => {
+        if (route.name !== 'reader' || !paged() || R.resizing) return;
+        const ay = visibleAyah();
+        if (ay) R.curAyah = ay;
+      }, 90);
+      return;
+    }
     if (!el.classList?.contains('pg')) return;
     trackCurAyah();
     const y = el.scrollTop;
@@ -2208,6 +2233,7 @@ function bind() {
     if (!R.resizing) {
       R.resizing = true;
       R.savedIdx = Math.max(0, R.idx);
+      document.body.classList.add('resizing');
     }
     const top = $('.reader-top');
     if (top) document.documentElement.style.setProperty('--rtop', `${top.offsetHeight}px`);
@@ -2217,7 +2243,7 @@ function bind() {
     }
     clearTimeout(rotRz);
     rotRz = setTimeout(() => {
-      if (route.name !== 'reader') { R.resizing = false; return; }
+      if (route.name !== 'reader') { R.resizing = false; document.body.classList.remove('resizing'); return; }
       const t = $('.reader-top');
       if (t) document.documentElement.style.setProperty('--rtop', `${t.offsetHeight}px`);
       if (R.curAyah) scrollToAyah(R.curAyah, false);
@@ -2226,7 +2252,7 @@ function bind() {
       updatePill();
       renderRot();
       markOverflow();
-      setTimeout(() => { R.resizing = false; }, 60);
+      setTimeout(() => { R.resizing = false; document.body.classList.remove('resizing'); }, 60);
     }, 150);
   };
   addEventListener('resize', handleReaderResize, { passive: true });
