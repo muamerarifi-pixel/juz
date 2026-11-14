@@ -298,7 +298,7 @@ a { color: var(--accent); }
 /* Numëruesi i faqes — gjithmonë i dukshëm */
 /* One bar: A− · page info · A+ */
 .rbar { position: fixed; left: 50%; bottom: calc(14px + var(--safe-b)); transform: translateX(-50%); z-index: 40; display: flex; align-items: center; gap: 2px;
-  max-width: calc(100% - 20px); padding: 4px; border-radius: 26px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--sh-3), inset 0 1px 0 var(--hi); }
+  max-width: calc(100% - 20px); padding: 4px; border-radius: 26px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--sh-3), inset 0 1px 0 var(--hi); transition: transform .24s ease, opacity .2s ease; }
 .fsz { flex: none; display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; border: 0; background: transparent; color: var(--ink); cursor: pointer; transition: background .15s, transform .1s, opacity .2s; }
 .fsz svg { width: 22px; height: 22px; }
 @media (hover: hover) { .fsz:hover { background: var(--surface-2); } }
@@ -447,11 +447,19 @@ input[type="range"] { width: 100%; height: 44px; accent-color: var(--accent); ma
 /* ================= Telefoni horizontalisht ================= */
 @media (orientation: landscape) and (max-height: 520px) {
   :root { --safe-l: env(safe-area-inset-left, 0px); --safe-r: env(safe-area-inset-right, 0px); }
-  .topbar { min-height: 48px; padding-left: calc(10px + var(--safe-l)); padding-right: calc(10px + var(--safe-r)); }
+  .topbar { min-height: 40px; padding-left: calc(10px + var(--safe-l)); padding-right: calc(10px + var(--safe-r)); }
+  .reader-top { padding-top: calc(2px + var(--safe-t)); padding-bottom: 2px; }
+  .reader-top .icon-btn { width: 36px; height: 36px; }
   .home-body { padding-left: calc(14px + var(--safe-l)); padding-right: calc(14px + var(--safe-r)); }
-  .reader-body { padding-left: var(--safe-l); padding-right: var(--safe-r); padding-bottom: 90px; }
-  .pg { scroll-margin-top: 56px; max-width: 900px; }
-  .rbar { bottom: calc(8px + var(--safe-b)); }
+  .reader-body { padding: 4px var(--safe-r) 72px var(--safe-l); }
+  .pg { scroll-margin-top: 48px; max-width: 960px; padding: 6px max(22px, var(--safe-l)) 0 max(22px, var(--safe-r)); }
+  .pg-sep { margin: 12px 0 10px; }
+  .s-head { margin: 12px auto 4px; }
+  .rbar { bottom: calc(6px + var(--safe-b)); padding: 3px; }
+  .rbar .fsz { width: 38px; height: 38px; }
+  .rbar #fszDown, .rbar #fszUp { display: none !important; }
+  .rbar .pill { border-left: none; border-right: none; padding-left: 14px; padding-right: 14px; }
+  .hide-bars .rbar { transform: translate(-50%, calc(100% + 24px)); opacity: 0; pointer-events: none; }
   .sheet { max-height: 94dvh; }
 }
 /* Arabisht majtas–djathtas me përkthimin kur ka vend (pa panel ngjitës, se ekrani është i ulët) */

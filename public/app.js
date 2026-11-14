@@ -2147,8 +2147,26 @@ function bind() {
     const y = scrollY;
     const dy = y - R.lastY;
     if (Math.abs(dy) < 6) return;
-    $('#reader').classList.toggle('hide-bars', dy > 0 && y > 160);
+    const thr = innerHeight <= 520 ? 40 : 160;
+    $('#reader').classList.toggle('hide-bars', dy > 0 && y > thr);
     R.lastY = y;
+  }, { passive: true });
+  $('#readerBody').addEventListener('scroll', (e) => {
+    if (route.name !== 'reader' || settings.pager === 'scroll') return;
+    const el = e.target;
+    if (!el.classList?.contains('pg')) return;
+    const y = el.scrollTop;
+    const prev = el._lastY || 0;
+    const dy = y - prev;
+    if (Math.abs(dy) < 6) return;
+    $('#reader').classList.toggle('hide-bars', dy > 0 && y > 40);
+    el._lastY = y;
+  }, { passive: true, capture: true });
+  addEventListener('resize', () => {
+    if (route.name === 'reader') {
+      const top = $('.reader-top');
+      if (top) document.documentElement.style.setProperty('--rtop', `${top.offsetHeight}px`);
+    }
   }, { passive: true });
 
   // cilësimet
