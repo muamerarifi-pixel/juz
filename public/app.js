@@ -2,6 +2,7 @@
 // Një xhuz në javë, Kehfi të premteve. Progresi ruhet VETËM kur shënon një ajet.
 // JavaScript i thjeshtë, pa framework dhe pa hap ndërtimi.
 import { SCHEMA, SYNCED_SETTINGS, mergeDoc, sameDoc } from './merge.js';
+import { WAQF_DEFS, WAQF_ORDER, detectWaqf, renderArWords } from './waqf.js';
 
 // ================================================================ konstante
 const STATE_VERSION = 6;
@@ -747,6 +748,7 @@ const onRemoteChange = safe(() => {
 let openSheetEl = null;
 let lastFocus = null;
 function openSheet(name) {
+  closeWaqfPop();
   closeSheet(true);
   const el = $(`#sheet-${name}`);
   if (!el) return;
@@ -756,6 +758,7 @@ function openSheet(name) {
   if (name === 'about') renderAbout();
   if (name === 'pick') renderPick();
   if (name === 'stats') openStats();
+  if (name === 'waqf') renderWaqfSheet();
   if (name === 'settings') { buildPaperGrid(); renderRot(); }
   lastFocus = document.activeElement;
   $('#scrim').hidden = false;
@@ -1101,7 +1104,21 @@ function qcfFace(p) {
   qcfPalettes();
   return f;
 }
-const qcfHTML = (segs) => segs.map(([p, c]) => `<span class="qf" style="font-family:'${qcfFam(p)}'">${esc(c)}</span>`).join(' ');
+function qcfHTML(segs, x) {
+  const dWords = x ? String(x.d || '').trim().split(/\s+/).filter(Boolean) : [];
+  const tokens = segs.flatMap(([p, c]) => c.split(' ').filter(Boolean).map((g) => [p, g]));
+  const aligned = tokens.length === dWords.length;
+  return tokens.map(([p, g], idx) => {
+    const wi = aligned ? idx : (idx === tokens.length - 1 ? dWords.length - 1 : -1);
+    const w = wi >= 0 ? dWords[wi] : '';
+    const id = w ? detectWaqf(w, 'd') : null;
+    const fam = qcfFam(p);
+    if (!id) return `<span class="qf" style="font-family:'${fam}'">${esc(g)}</span>`;
+    const def = WAQF_DEFS[id];
+    const isEnd = wi === dWords.length - 1;
+    return `<span class="qf wq" data-wq="${id}" data-cat="${def.cat}" data-w="${esc(w)}"${isEnd ? ' data-end="1"' : ''} style="font-family:'${fam}'" tabindex="0" role="button" aria-label="${esc(def.badge + ' — ' + def.name)}">${esc(g)}</span>`;
+  }).join(' ');
+}
 function ayahItem(k) {
   for (const pg of R.pages) for (const x of pg.items) if (`${x.s}:${x.a}` === k) return x;
   return null;
@@ -1169,7 +1186,7 @@ function pageHTML(pg, i) {
     // Numri i ajetit me shifra perëndimore (1, 2, 3 …)
     const segs = qcf && qcfSegs(x);
     if (segs) for (const [p] of segs) qpages.add(p);
-    const at = segs ? `<span class="at q">${qcfHTML(segs)}</span>` : `<span class="at">${esc((key !== 'q' && x[key]) || x.d)}</span>`;
+    const at = segs ? `<span class="at q">${qcfHTML(segs, x)}</span>` : `<span class="at">${renderArWords((key !== 'q' && x[key]) || x.d, key === 'h' ? 'h' : 'd')}</span>`;
     ar += `<span class="ay" data-k="${x.s}:${x.a}">${at} <span class="an">${x.a}</span></span> `;
     tr += `<p data-k="${x.s}:${x.a}"><b>${x.s}:${x.a}</b><span class="tt">${esc(plain(x.t))}</span></p>`;
   }
@@ -1650,7 +1667,48 @@ function renderAbout() {
 }
 
 // ================================================================ përkthimi i një ajeti (gishti i mbajtur)
+let activeWqEl = null;
+function closeWaqfPop() {
+  const pop = $('#waqfPop');
+  if (!pop || pop.hidden) return;
+  pop.hidden = true;
+  activeWqEl?.classList.remove('active');
+  activeWqEl = null;
+}
+function showWaqfPop(el) {
+  const id = el?.dataset?.wq;
+  const def = WAQF_DEFS[id];
+  const pop = $('#waqfPop');
+  if (!def || !pop) return;
+  haptic(6);
+  activeWqEl?.classList.remove('active');
+  activeWqEl = el;
+  el.classList.add('active');
+  pop.dataset.cat = def.cat;
+  $('#wpSym').textContent = def.sym;
+  $('#wpBadge').textContent = def.badge;
+  $('#wpName').textContent = def.name;
+  $('#wpDesc').textContent = el.dataset.end === '1' && def.descEnd ? def.descEnd : def.desc;
+  $('#wpWord').textContent = el.dataset.w || el.textContent || '';
+  pop.hidden = false;
+}
+function renderWaqfSheet() {
+  const box = $('#waqfList');
+  if (!box || box.childElementCount) return;
+  box.innerHTML = WAQF_ORDER.map((id) => {
+    const d = WAQF_DEFS[id];
+    return `<article class="wq-card" data-cat="${d.cat}">
+      <div class="wq-sym ar-txt" lang="ar">${esc(d.sym)}</div>
+      <div class="wq-info">
+        <div class="wq-top"><span class="wp-badge">${esc(d.badge)}</span><strong>${esc(d.name)}</strong></div>
+        <p>${esc(d.desc)}</p>
+      </div>
+    </article>`;
+  }).join('');
+}
+
 function showAyah(k) {
+  closeWaqfPop();
   const x = ayahItem(k);
   if (!x) return;
   const su = surah(x.s);
@@ -1661,7 +1719,11 @@ function showAyah(k) {
   const ar = $('#ayAr');
   const src = $(`#readerBody .ay[data-k="${k}"] .at`);
   if (src && src.classList.contains('q')) { ar.innerHTML = src.innerHTML; ar.className = 'ay-ar ar-txt q'; }
-  else { ar.textContent = (textKey() === 'h' && x.h) || x.d; ar.className = 'ay-ar ar-txt'; }
+  else {
+    const hk = textKey() === 'h' ? 'h' : 'd';
+    ar.innerHTML = renderArWords((hk === 'h' && x.h) || x.d, hk);
+    ar.className = 'ay-ar ar-txt';
+  }
   $('#ayTr').textContent = plain(x.t);
   const b = bmOf();
   const on = b && bmInUnit(b) && `${b.s}:${b.a}` === k;
@@ -1823,6 +1885,7 @@ const handleRoute = safe(() => {
     openReader(R.fri ? 's' : m[1], +m[2], m[3] || null);
   } else {
     route.name = 'home';
+    closeWaqfPop();
     if (ROT.on || ROT.fs) unlockRot();
     R.fri = false;
     R.token++;
@@ -1837,6 +1900,7 @@ const handleRoute = safe(() => {
 // ================================================================ ngjarjet
 function bind() {
   document.addEventListener('click', (e) => {
+    if (!$('#waqfPop')?.hidden && !e.target.closest('#waqfPop, .wq')) closeWaqfPop();
     const open = e.target.closest('[data-open]');
     if (open) return openSheet(open.dataset.open);
     if (e.target.closest('[data-close]') || e.target === $('#scrim')) return closeSheet();
@@ -1850,10 +1914,19 @@ function bind() {
     const link = e.target.closest('[data-link]');
     if (link) { pendingFromHome = route.name === 'home'; navigate(link.dataset.link); }
   });
+  $('#wpClose')?.addEventListener('click', closeWaqfPop);
+  $('#wpAllBtn')?.addEventListener('click', () => { closeWaqfPop(); openSheet('waqf'); });
+  $('#ayAr')?.addEventListener('click', (e) => { const wq = e.target.closest('.wq'); if (wq) showWaqfPop(wq); });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
+      if (!$('#waqfPop')?.hidden) { closeWaqfPop(); return; }
       if (resetZoom(true)) return;
       closeSheet();
+    }
+    if ((e.key === 'Enter' || e.key === ' ') && e.target?.classList?.contains('wq')) {
+      e.preventDefault();
+      showWaqfPop(e.target);
+      return;
     }
     if (route.name === 'reader' && paged() && !openSheetEl && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !e.target.closest?.('.sl, input')) {
       resetZoom(false);
@@ -2207,6 +2280,8 @@ function bind() {
       return;
     }
     if (String(getSelection?.() || '').length) return;
+    const wq = e.target.closest('.wq');
+    if (wq) { showWaqfPop(wq); return; }
     const ay = e.target.closest('[data-k]');
     if (ay) toggleAyahBm(ay.dataset.k);
   }));

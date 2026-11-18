@@ -773,3 +773,111 @@ body.paged .reader-top { backdrop-filter: none; -webkit-backdrop-filter: none; b
     padding-right: 14px;
   }
 }
+
+/* ---- 7.13.18: Shenjat e ndalimit (Vakfi) interaktive me ngjyra sipas kuptimit ---- */
+[data-cat="stop"], .wq-leg.stop { --wc: #238656; }
+[data-cat="both"], .wq-leg.both { --wc: #b37817; }
+[data-cat="cont"], .wq-leg.cont { --wc: #256ea6; }
+[data-cat="no"], .wq-leg.no { --wc: #c24238; }
+[data-cat="sakt"], .wq-leg.sakt { --wc: #7b48a3; }
+:root[data-bg="night"] [data-cat="stop"], :root[data-bg="night"] .wq-leg.stop { --wc: #5cd69a; }
+:root[data-bg="night"] [data-cat="both"], :root[data-bg="night"] .wq-leg.both { --wc: #eab85c; }
+:root[data-bg="night"] [data-cat="cont"], :root[data-bg="night"] .wq-leg.cont { --wc: #6db6f2; }
+:root[data-bg="night"] [data-cat="no"], :root[data-bg="night"] .wq-leg.no { --wc: #f08076; }
+:root[data-bg="night"] [data-cat="sakt"], :root[data-bg="night"] .wq-leg.sakt { --wc: #c59be8; }
+
+.wq {
+  cursor: pointer;
+  border-radius: 7px;
+  padding: 0 3px;
+  margin: 0 -1px;
+  color: color-mix(in srgb, var(--wc) 80%, var(--ink));
+  background: color-mix(in srgb, var(--wc) 11%, transparent);
+  box-shadow: inset 0 -1.5px 0 color-mix(in srgb, var(--wc) 48%, transparent);
+  transition: background-color .15s ease, box-shadow .15s ease;
+}
+.pg-ar .at.q .wq {
+  color: inherit;
+  padding: 1px 4px;
+  background: color-mix(in srgb, var(--wc) 14%, transparent);
+}
+@media (hover: hover) {
+  .wq:hover { background: color-mix(in srgb, var(--wc) 19%, transparent); }
+}
+.wq.active, .wq:focus-visible {
+  outline: none;
+  background: color-mix(in srgb, var(--wc) 24%, transparent);
+  box-shadow: inset 0 -2px 0 var(--wc);
+}
+
+.waqf-pop {
+  position: fixed;
+  left: 50%;
+  bottom: calc(74px + var(--safe-b));
+  transform: translateX(-50%);
+  z-index: 55;
+  width: min(430px, calc(100vw - 24px));
+  padding: 14px 16px 12px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--surface) 95%, transparent);
+  backdrop-filter: blur(18px) saturate(1.3);
+  -webkit-backdrop-filter: blur(18px) saturate(1.3);
+  border: 1px solid color-mix(in srgb, var(--wc, var(--line)) 34%, var(--line));
+  box-shadow: var(--sh-3), inset 0 1px 0 var(--hi);
+  animation: wp-in .18s cubic-bezier(.22, 1, .36, 1);
+}
+.waqf-pop[hidden] { display: none; }
+@keyframes wp-in {
+  from { opacity: 0; transform: translate(-50%, 10px) scale(.97); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+.wp-head { display: flex; align-items: center; gap: 12px; }
+.wp-sym, .wq-sym {
+  flex: none;
+  display: grid;
+  place-items: center;
+  min-width: 48px;
+  height: 46px;
+  padding: 0 8px;
+  border-radius: 14px;
+  font-size: 26px;
+  line-height: 1;
+  color: var(--wc);
+  background: color-mix(in srgb, var(--wc) 14%, var(--surface-2));
+  border: 1px solid color-mix(in srgb, var(--wc) 30%, transparent);
+}
+.wp-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.wp-meta strong { font-size: 14px; line-height: 1.25; color: var(--ink); }
+.wp-badge {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 99px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: .01em;
+  color: var(--wc);
+  background: color-mix(in srgb, var(--wc) 15%, transparent);
+}
+.wp-close { flex: none; width: 36px; height: 36px; border-radius: 11px; }
+.wp-desc { margin: 10px 0 8px; font-size: 14px; line-height: 1.5; color: var(--ink); }
+.wp-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+.wp-word { font-size: 22px; line-height: 1.3; color: var(--wc); direction: rtl; }
+.wp-all { margin: 0; padding: 4px 2px; font-size: 13px; font-weight: 600; color: var(--accent); width: auto; }
+
+.wq-leg { font-weight: 600; color: var(--wc); }
+.waqf-list { display: grid; gap: 10px; margin-top: 10px; }
+.wq-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--surface-2);
+  border: 1px solid color-mix(in srgb, var(--wc) 22%, var(--line));
+}
+.wq-info { flex: 1; min-width: 0; }
+.wq-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-bottom: 4px; }
+.wq-top strong { font-size: 14px; color: var(--ink); }
+.wq-info p { margin: 0; font-size: 13.5px; line-height: 1.48; color: var(--muted); }

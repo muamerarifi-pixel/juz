@@ -313,6 +313,29 @@
   </div>
 </section>
 
+<aside class="waqf-pop" id="waqfPop" role="dialog" aria-label="Shenja e ndalimit" hidden>
+  <div class="wp-head">
+    <span class="wp-sym ar-txt" id="wpSym" lang="ar"></span>
+    <div class="wp-meta">
+      <span class="wp-badge" id="wpBadge"></span>
+      <strong id="wpName"></strong>
+    </div>
+    <button class="icon-btn wp-close" id="wpClose" aria-label="Mbyll"><svg><use href="#i-close"/></svg></button>
+  </div>
+  <p class="wp-desc" id="wpDesc"></p>
+  <div class="wp-foot">
+    <span class="wp-word ar-txt" id="wpWord" lang="ar"></span>
+    <button class="link-btn wp-all" id="wpAllBtn" type="button">Të gjitha shenjat →</button>
+  </div>
+</aside>
+
+<section class="sheet" id="sheet-waqf" role="dialog" aria-modal="true" aria-labelledby="waqfTitle" hidden>
+  <div class="grip"></div>
+  <header class="sheet-head"><h2 id="waqfTitle">Shenjat e ndalimit (Vakfi)</h2><button class="icon-btn" data-close aria-label="Mbyll"><svg><use href="#i-close"/></svg></button></header>
+  <p class="hint">Ngjyrat në tekst të tregojnë me një shikim çfarë të bësh: <b class="wq-leg stop">jeshile = ndalu</b>, <b class="wq-leg both">e artë = lejohet të dyja</b>, <b class="wq-leg cont">kaltër = më mirë vazhdo</b>, <b class="wq-leg no">e kuqe = mos u ndal</b>. Prek çdo fjalë me shenjë gjatë leximit për udhëzimin e saj.</p>
+  <div class="waqf-list" id="waqfList"></div>
+</section>
+
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 <script type="module" src="/app.js"></script>
 </body>
