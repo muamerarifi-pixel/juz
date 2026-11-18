@@ -775,19 +775,17 @@ body.paged .reader-top { backdrop-filter: none; -webkit-backdrop-filter: none; b
 }
 
 /* ---- 7.13.18: Shenjat e ndalimit (Vakfi) interaktive me ngjyra sipas kuptimit ---- */
-[data-cat="stop"], .wq-leg.stop { --wc: #238656; }
+[data-cat="stop"], .wq-leg.stop { --wc: #c24238; }
 [data-cat="both"], .wq-leg.both { --wc: #b37817; }
-[data-cat="cont"], .wq-leg.cont { --wc: #256ea6; }
-[data-cat="no"], .wq-leg.no { --wc: #c24238; }
+[data-cat="cont"], .wq-leg.cont, [data-cat="no"], .wq-leg.no { --wc: #238656; }
 [data-cat="sakt"], .wq-leg.sakt { --wc: #7b48a3; }
-[data-cat="pron"], .wq-leg.pron { --wc: #0d8276; }
+[data-cat="pron"], .wq-leg.pron { --wc: #256ea6; }
 [data-cat="sajda"], .wq-leg.sajda { --wc: var(--gold); }
-:root[data-bg="night"] [data-cat="stop"], :root[data-bg="night"] .wq-leg.stop { --wc: #5cd69a; }
+:root[data-bg="night"] [data-cat="stop"], :root[data-bg="night"] .wq-leg.stop { --wc: #f08076; }
 :root[data-bg="night"] [data-cat="both"], :root[data-bg="night"] .wq-leg.both { --wc: #eab85c; }
-:root[data-bg="night"] [data-cat="cont"], :root[data-bg="night"] .wq-leg.cont { --wc: #6db6f2; }
-:root[data-bg="night"] [data-cat="no"], :root[data-bg="night"] .wq-leg.no { --wc: #f08076; }
+:root[data-bg="night"] [data-cat="cont"], :root[data-bg="night"] .wq-leg.cont, :root[data-bg="night"] [data-cat="no"], :root[data-bg="night"] .wq-leg.no { --wc: #5cd69a; }
 :root[data-bg="night"] [data-cat="sakt"], :root[data-bg="night"] .wq-leg.sakt { --wc: #c59be8; }
-:root[data-bg="night"] [data-cat="pron"], :root[data-bg="night"] .wq-leg.pron { --wc: #4ad6c8; }
+:root[data-bg="night"] [data-cat="pron"], :root[data-bg="night"] .wq-leg.pron { --wc: #6db6f2; }
 
 .wq {
   cursor: pointer;
