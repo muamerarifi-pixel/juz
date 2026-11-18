@@ -2,7 +2,7 @@
 // Një xhuz në javë, Kehfi të premteve. Progresi ruhet VETËM kur shënon një ajet.
 // JavaScript i thjeshtë, pa framework dhe pa hap ndërtimi.
 import { SCHEMA, SYNCED_SETTINGS, mergeDoc, sameDoc } from './merge.js';
-import { WAQF_DEFS, WAQF_ORDER, detectWaqf, renderArWords } from './waqf.js';
+import { WAQF_DEFS, WAQF_ORDER, PRON_ORDER, SAJDA_LIST, SAJDA_VERSES, SAJDA_INFO, detectWaqf, detectPron, renderArWords } from './waqf.js';
 
 // ================================================================ konstante
 const STATE_VERSION = 6;
@@ -1111,12 +1111,16 @@ function qcfHTML(segs, x) {
   return tokens.map(([p, g], idx) => {
     const wi = aligned ? idx : (idx === tokens.length - 1 ? dWords.length - 1 : -1);
     const w = wi >= 0 ? dWords[wi] : '';
-    const id = w ? detectWaqf(w, 'd') : null;
+    const pronId = w ? detectPron(w) : null;
+    const waqfId = w ? detectWaqf(w, 'd') : null;
+    const primary = pronId || waqfId;
     const fam = qcfFam(p);
-    if (!id) return `<span class="qf" style="font-family:'${fam}'">${esc(g)}</span>`;
-    const def = WAQF_DEFS[id];
+    if (!primary) return `<span class="qf" style="font-family:'${fam}'">${esc(g)}</span>`;
+    const secondary = pronId && waqfId ? waqfId : null;
+    const def = WAQF_DEFS[primary];
     const isEnd = wi === dWords.length - 1;
-    return `<span class="qf wq" data-wq="${id}" data-cat="${def.cat}" data-w="${esc(w)}"${isEnd ? ' data-end="1"' : ''} style="font-family:'${fam}'" tabindex="0" role="button" aria-label="${esc(def.badge + ' — ' + def.name)}">${esc(g)}</span>`;
+    const label = secondary ? `${def.badge} · ${WAQF_DEFS[secondary].badge}` : `${def.badge} — ${def.name}`;
+    return `<span class="qf wq" data-wq="${primary}"${secondary ? ` data-wq2="${secondary}"` : ''} data-cat="${def.cat}" data-w="${esc(w)}"${isEnd ? ' data-end="1"' : ''} style="font-family:'${fam}'" tabindex="0" role="button" aria-label="${esc(label)}">${esc(g)}</span>`;
   }).join(' ');
 }
 function ayahItem(k) {
@@ -1186,9 +1190,12 @@ function pageHTML(pg, i) {
     // Numri i ajetit me shifra perëndimore (1, 2, 3 …)
     const segs = qcf && qcfSegs(x);
     if (segs) for (const [p] of segs) qpages.add(p);
+    const sajda = SAJDA_VERSES.has(`${x.s}:${x.a}`);
     const at = segs ? `<span class="at q">${qcfHTML(segs, x)}</span>` : `<span class="at">${renderArWords((key !== 'q' && x[key]) || x.d, key === 'h' ? 'h' : 'd')}</span>`;
-    ar += `<span class="ay" data-k="${x.s}:${x.a}">${at} <span class="an">${x.a}</span></span> `;
-    tr += `<p data-k="${x.s}:${x.a}"><b>${x.s}:${x.a}</b><span class="tt">${esc(plain(x.t))}</span></p>`;
+    const sTag = sajda ? ` <span class="sajda-tag" data-sajda="${x.s}:${x.a}" tabindex="0" role="button" aria-label="Ajet sexhdeje — kliko për udhëzim">۩ Sexhde</span>` : '';
+    const sTr = sajda ? ` <span class="sajda-tr" data-sajda="${x.s}:${x.a}" tabindex="0" role="button">۩ Sexhde</span>` : '';
+    ar += `<span class="ay" data-k="${x.s}:${x.a}">${at} <span class="an">${x.a}</span>${sTag}</span> `;
+    tr += `<p data-k="${x.s}:${x.a}"><b>${x.s}:${x.a}</b><span class="tt">${esc(plain(x.t))}</span>${sTr}</p>`;
   }
   ar = (ar + '</div>').replaceAll(`${OPEN}</div>`, '');
   const j = juzOfPage(pg.p);
@@ -1688,14 +1695,45 @@ function showWaqfPop(el) {
   $('#wpSym').textContent = def.sym;
   $('#wpBadge').textContent = def.badge;
   $('#wpName').textContent = def.name;
-  $('#wpDesc').textContent = el.dataset.end === '1' && def.descEnd ? def.descEnd : def.desc;
+  const primaryDesc = el.dataset.end === '1' && def.descEnd ? def.descEnd : def.desc;
+  const def2 = el.dataset.wq2 ? WAQF_DEFS[el.dataset.wq2] : null;
+  if (def2) {
+    const secDesc = el.dataset.end === '1' && def2.descEnd ? def2.descEnd : def2.desc;
+    $('#wpDesc').innerHTML = `${esc(primaryDesc)}<div class="wp-desc-sub"><b>${esc(def2.sym)} · ${esc(def2.badge)}:</b> ${esc(secDesc)}</div>`;
+  } else {
+    $('#wpDesc').textContent = primaryDesc;
+  }
+  const dua = $('#wpDua');
+  if (dua) { dua.hidden = true; dua.innerHTML = ''; }
   $('#wpWord').textContent = el.dataset.w || el.textContent || '';
+  pop.hidden = false;
+}
+function showSajdaPop(el) {
+  const pop = $('#waqfPop');
+  if (!pop) return;
+  haptic(8);
+  activeWqEl?.classList.remove('active');
+  activeWqEl = el;
+  el.classList.add('active');
+  pop.dataset.cat = SAJDA_INFO.cat;
+  $('#wpSym').textContent = SAJDA_INFO.sym;
+  $('#wpBadge').textContent = SAJDA_INFO.badge;
+  const k = el.dataset.sajda || '';
+  const entry = SAJDA_LIST.find(([vk]) => vk === k);
+  $('#wpName').textContent = entry ? `${SAJDA_INFO.name} (${entry[1]})` : SAJDA_INFO.name;
+  $('#wpDesc').textContent = SAJDA_INFO.desc;
+  const dua = $('#wpDua');
+  if (dua) {
+    dua.innerHTML = `<p class="dua-ar ar-txt" lang="ar">${esc(SAJDA_INFO.duaAr)}</p><p class="dua-tr">${esc(SAJDA_INFO.duaTr)}</p><p class="dua-sq">${esc(SAJDA_INFO.duaSq)}</p>`;
+    dua.hidden = false;
+  }
+  $('#wpWord').textContent = k ? `Ajeti ${k}` : '۩';
   pop.hidden = false;
 }
 function renderWaqfSheet() {
   const box = $('#waqfList');
   if (!box || box.childElementCount) return;
-  box.innerHTML = WAQF_ORDER.map((id) => {
+  const card = (id) => {
     const d = WAQF_DEFS[id];
     return `<article class="wq-card" data-cat="${d.cat}">
       <div class="wq-sym ar-txt" lang="ar">${esc(d.sym)}</div>
@@ -1704,7 +1742,25 @@ function renderWaqfSheet() {
         <p>${esc(d.desc)}</p>
       </div>
     </article>`;
+  };
+  const sajdaCards = SAJDA_LIST.map(([k, label]) => {
+    const s = +k.split(':')[0];
+    return `<button type="button" class="sajda-jump" data-goto-sajda="${k}" data-s="${s}"><b>${esc(label)}</b><span>۩ →</span></button>`;
   }).join('');
+  box.innerHTML = `
+    <h3 class="waqf-sec">Shenjat e ndalimit (Vakfi)</h3>
+    ${WAQF_ORDER.map(card).join('')}
+    <h3 class="waqf-sec">Shqiptimet e veçanta në Kur’an</h3>
+    ${PRON_ORDER.map(card).join('')}
+    <h3 class="waqf-sec">14 Ajetet e Sexhdes së leximit (۩)</h3>
+    <article class="wq-card" data-cat="sajda">
+      <div class="wq-sym ar-txt" lang="ar">${esc(SAJDA_INFO.sym)}</div>
+      <div class="wq-info">
+        <div class="wq-top"><span class="wp-badge">${esc(SAJDA_INFO.badge)}</span><strong>${esc(SAJDA_INFO.name)}</strong></div>
+        <p>${esc(SAJDA_INFO.desc)}</p>
+      </div>
+    </article>
+    <div class="sajda-grid">${sajdaCards}</div>`;
 }
 
 function showAyah(k) {
@@ -1900,7 +1956,7 @@ const handleRoute = safe(() => {
 // ================================================================ ngjarjet
 function bind() {
   document.addEventListener('click', (e) => {
-    if (!$('#waqfPop')?.hidden && !e.target.closest('#waqfPop, .wq')) closeWaqfPop();
+    if (!$('#waqfPop')?.hidden && !e.target.closest('#waqfPop, .wq, [data-sajda]')) closeWaqfPop();
     const open = e.target.closest('[data-open]');
     if (open) return openSheet(open.dataset.open);
     if (e.target.closest('[data-close]') || e.target === $('#scrim')) return closeSheet();
@@ -1916,16 +1972,30 @@ function bind() {
   });
   $('#wpClose')?.addEventListener('click', closeWaqfPop);
   $('#wpAllBtn')?.addEventListener('click', () => { closeWaqfPop(); openSheet('waqf'); });
-  $('#ayAr')?.addEventListener('click', (e) => { const wq = e.target.closest('.wq'); if (wq) showWaqfPop(wq); });
+  $('#waqfList')?.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-goto-sajda]');
+    if (!b) return;
+    const k = b.dataset.gotoSajda;
+    const su = surah(+b.dataset.s);
+    closeSheet(true);
+    if (su) navigate(`#/s/${su.n}/${k}`);
+  });
+  $('#ayAr')?.addEventListener('click', (e) => {
+    const sj = e.target.closest('[data-sajda]');
+    if (sj) { showSajdaPop(sj); return; }
+    const wq = e.target.closest('.wq');
+    if (wq) showWaqfPop(wq);
+  });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       if (!$('#waqfPop')?.hidden) { closeWaqfPop(); return; }
       if (resetZoom(true)) return;
       closeSheet();
     }
-    if ((e.key === 'Enter' || e.key === ' ') && e.target?.classList?.contains('wq')) {
+    if ((e.key === 'Enter' || e.key === ' ') && (e.target?.classList?.contains('wq') || e.target?.dataset?.sajda)) {
       e.preventDefault();
-      showWaqfPop(e.target);
+      if (e.target.dataset?.sajda) showSajdaPop(e.target);
+      else showWaqfPop(e.target);
       return;
     }
     if (route.name === 'reader' && paged() && !openSheetEl && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !e.target.closest?.('.sl, input')) {
@@ -2280,6 +2350,8 @@ function bind() {
       return;
     }
     if (String(getSelection?.() || '').length) return;
+    const sj = e.target.closest('[data-sajda]');
+    if (sj) { showSajdaPop(sj); return; }
     const wq = e.target.closest('.wq');
     if (wq) { showWaqfPop(wq); return; }
     const ay = e.target.closest('[data-k]');
