@@ -79,8 +79,8 @@ a { color: var(--accent); }
 .card { background: var(--surface); border: 1px solid var(--line); box-shadow: var(--sh-1), inset 0 1px 0 var(--hi); }
 
 /* ================= Shiriti i sipërm ================= */
-.topbar { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 6px; min-height: 60px;
-  padding: calc(8px + var(--safe-t)) max(8px, calc((100% - var(--w)) / 2)) 8px max(12px, calc((100% - var(--w)) / 2 + 4px));
+.topbar { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 10px; min-height: 60px;
+  padding: calc(8px + var(--safe-t)) max(14px, calc((100% - var(--w)) / 2)) 8px max(14px, calc((100% - var(--w)) / 2));
   background: var(--top-bg);
   box-shadow: 0 1px 0 color-mix(in srgb, var(--line) 65%, transparent); transition: transform .3s ease, background-color .3s; }
 .actions { display: flex; margin-left: auto; gap: 2px; }
@@ -224,13 +224,13 @@ a { color: var(--accent); }
 .reader-body { width: 100%; max-width: var(--w); margin: 0 auto; padding: 8px 0 120px; touch-action: pan-y; }
 .hide-bars .reader-top { transform: translateY(-110%); }
 /* the reader's bar: compact, so the text gets the room */
-.reader-top { min-height: 0; gap: 2px; padding-top: calc(3px + var(--safe-t)); padding-bottom: 3px; z-index: 40; }
-.reader-top .actions { gap: 8px; }
-.reader-top .icon-btn { width: 42px; height: 42px; border-radius: 13px; background: color-mix(in srgb, var(--surface-2) 55%, transparent); border: 1px solid color-mix(in srgb, var(--line) 85%, transparent); box-shadow: inset 0 1px 0 var(--hi), 0 1px 2px rgb(var(--shc) / .1); transition: transform .12s cubic-bezier(.2, .8, .2, 1), background-color .15s ease, border-color .15s ease, box-shadow .15s ease, opacity .15s ease; }
-.reader-top .icon-btn svg { width: 20px; height: 20px; }
-.reader-top .r-title { line-height: 1.15; }
-.reader-top .r-title strong { font-size: 15px; }
-.reader-top .r-title .sub { font-size: 11.5px; }
+.reader-top { min-height: 0; gap: 12px; padding: calc(8px + var(--safe-t)) max(14px, calc((100% - var(--w)) / 2)) 8px max(14px, calc((100% - var(--w)) / 2)); z-index: 40; }
+.reader-top .actions { gap: 8px; flex: none; }
+.reader-top .icon-btn { flex: none; width: 40px; height: 40px; border-radius: 12px; background: color-mix(in srgb, var(--surface-2) 55%, transparent); border: 1px solid color-mix(in srgb, var(--line) 85%, transparent); box-shadow: inset 0 1px 0 var(--hi), 0 1px 2px rgb(var(--shc) / .1); transition: transform .12s cubic-bezier(.2, .8, .2, 1), background-color .15s ease, border-color .15s ease, box-shadow .15s ease, opacity .15s ease; }
+.reader-top .icon-btn svg { width: 19px; height: 19px; }
+.reader-top .r-title { flex: 1; min-width: 0; gap: 2px; line-height: 1.2; }
+.reader-top .r-title strong { font-size: 15.5px; line-height: 1.2; }
+.reader-top .r-title .sub { font-size: 11.5px; line-height: 1.2; }
 .ay-nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 12px; }
 .ay-nav .btn svg { width: 16px; height: 16px; }
 .ay-nav .btn:disabled { opacity: .35; pointer-events: none; }
@@ -453,10 +453,10 @@ input[type="range"] { width: 100%; height: 44px; accent-color: var(--accent); ma
 /* ================= Telefoni horizontalisht ================= */
 @media (orientation: landscape) and (max-height: 520px) {
   :root { --safe-l: env(safe-area-inset-left, 0px); --safe-r: env(safe-area-inset-right, 0px); }
-  .topbar { min-height: 44px; padding-left: max(12px, calc(10px + var(--safe-l))); padding-right: max(14px, calc(12px + var(--safe-r))); }
-  .reader-top { padding-top: max(4px, var(--safe-t)); padding-bottom: 4px; }
+  .topbar { min-height: 44px; padding-left: max(14px, calc(12px + var(--safe-l))); padding-right: max(14px, calc(12px + var(--safe-r))); }
+  .reader-top { gap: 12px; padding-top: max(6px, var(--safe-t)); padding-bottom: 6px; }
   .reader-top .actions { gap: 8px; }
-  .reader-top .icon-btn { width: 46px; height: 42px; }
+  .reader-top .icon-btn { width: 40px; height: 40px; border-radius: 12px; }
   .home-body { padding-left: calc(14px + var(--safe-l)); padding-right: calc(14px + var(--safe-r)); }
   .reader-body { padding: 4px var(--safe-r) 72px var(--safe-l); }
   .pg { scroll-margin-top: 48px; max-width: 960px; padding: 6px max(22px, var(--safe-r)) 0 max(22px, var(--safe-l)); }
@@ -600,7 +600,7 @@ body.paged.resizing #reader .reader-body { scroll-snap-type: none; }
 body.paged[data-pager="rtl"] #reader .reader-body { direction: rtl; }
 body.paged #reader .reader-body::-webkit-scrollbar { display: none; }
 body.paged #reader .reader-body > * { flex: 0 0 100%; width: 100%; max-width: none; margin: 0; scroll-snap-align: start; scroll-snap-stop: always; direction: ltr;
-  overflow-y: auto; overflow-x: clip; overscroll-behavior-y: contain; touch-action: pan-x pan-y; position: relative; padding: 10px max(18px, calc((100% - 780px) / 2)) 130px; contain: layout style paint; }
+  overflow-y: auto; overflow-x: clip; overscroll-behavior-y: contain; touch-action: pan-x pan-y; position: relative; padding: 16px max(18px, calc((100% - 780px) / 2)) 130px; contain: layout style paint; }
 body.paged #reader .reader-body > .pg.pg-far { content-visibility: hidden; }
 body.paged #reader .reader-body > .end { padding-top: 40px; }
 body.paged .hide-bars .reader-top { transform: none; }
