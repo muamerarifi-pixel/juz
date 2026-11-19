@@ -1568,6 +1568,7 @@ async function openReader(kind, n, target) {
   $('#reader').classList.remove('hide-bars');
   $('#reader').dataset.kind = R.fri ? 'f' : kind; // ngjyra e shënjuesit: ari për xhuzin, blu për suret, e gjelbër për hatmen
   document.documentElement.style.setProperty('--rtop', `${$('.reader-top').offsetHeight}px`);
+  syncImmersive();
   const token = ++R.token;
   if (kind === 'k') {
     const jm = juzMeta(n);
@@ -1860,10 +1861,17 @@ function startReadingClock() {
 // Si parazgjedhje aplikacioni ndjek cilësimin e telefonit (Rrotullimi automatik).
 // Butoni e kyç vetëm për këtë herë; kur aplikacioni hapet përsëri, vendos sërish telefoni.
 const ROT = { on: false, fs: false };
+function syncImmersive() {
+  const land = matchMedia('(orientation: landscape) and (max-height: 520px)').matches;
+  const on = route.name === 'reader' && land;
+  try { window.JuzAndroid?.setImmersive?.(on); } catch {}
+  if (on) document.documentElement.style.setProperty('--rtop', '0px');
+}
 function renderRot() {
   const isLand = matchMedia('(orientation: landscape)').matches || screen.orientation?.type?.startsWith('landscape');
   const btn = $('#rotBtn');
   if (btn) btn.classList.toggle('on', ROT.on || isLand);
+  syncImmersive();
 }
 function unlockRot() {
   ROT.on = false;
@@ -1965,6 +1973,7 @@ const handleRoute = safe(() => {
   } else {
     route.name = 'home';
     closeWaqfPop();
+    syncImmersive();
     if (ROT.on || ROT.fs) unlockRot();
     R.fri = false;
     R.token++;
@@ -2123,6 +2132,7 @@ function bind() {
   $('#pill').addEventListener('click', jumpToBm);
   onFastTap($('#bmBtn'), jumpToBm);
   onFastTap($('#rotBtn'), () => { haptic(8); toggleRot(); });
+  onFastTap($('#rotBar'), () => { haptic(8); toggleRot(); });
 
   // Mbaj gishtin mbi një ajet (ose kliko me të djathtën): përkthimi shqip i atij ajeti.
   const LP = { t: 0, x: 0, y: 0, fired: false };

@@ -17,6 +17,7 @@ import android.os.VibratorManager;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.webkit.CookieManager;
@@ -34,6 +35,7 @@ public class MainActivity extends Activity {
     private static final String PREFS_UI = "juz_ui";
 
     private WebView webView;
+    private boolean immersiveMode = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -187,6 +189,56 @@ public class MainActivity extends Activity {
         return (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
     }
 
+    @SuppressWarnings("deprecation")
+    private void applyImmersive(final boolean on) {
+        immersiveMode = on;
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Window w = getWindow();
+                    if (w == null) return;
+                    if (Build.VERSION.SDK_INT >= 28) {
+                        WindowManager.LayoutParams lp = w.getAttributes();
+                        lp.layoutInDisplayCutoutMode = on
+                                ? WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                                : WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT;
+                        w.setAttributes(lp);
+                    }
+                    if (Build.VERSION.SDK_INT >= 30) {
+                        WindowInsetsController ic = w.getInsetsController();
+                        if (ic != null) {
+                            if (on) {
+                                ic.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                                ic.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+                            } else {
+                                ic.show(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+                            }
+                        }
+                    } else {
+                        View decor = w.getDecorView();
+                        int flags = decor.getSystemUiVisibility();
+                        int immFlags = View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                                | View.SYSTEM_UI_FLAG_FULLSCREEN
+                                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                                | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
+                        if (on) flags |= immFlags;
+                        else flags &= ~immFlags;
+                        decor.setSystemUiVisibility(flags);
+                    }
+                } catch (Throwable ignored) {}
+            }
+        });
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus && immersiveMode) applyImmersive(true);
+    }
+
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
@@ -233,6 +285,11 @@ public class MainActivity extends Activity {
                     }
                 }
             });
+        }
+
+        @JavascriptInterface
+        public void setImmersive(boolean on) {
+            applyImmersive(on);
         }
 
         @JavascriptInterface

@@ -454,9 +454,10 @@ input[type="range"] { width: 100%; height: 44px; accent-color: var(--accent); ma
 @media (orientation: landscape) and (max-height: 520px) {
   :root { --safe-l: env(safe-area-inset-left, 0px); --safe-r: env(safe-area-inset-right, 0px); }
   .topbar { min-height: 44px; padding-left: max(14px, calc(12px + var(--safe-l))); padding-right: max(14px, calc(12px + var(--safe-r))); }
-  .reader-top { gap: 12px; padding-top: max(6px, var(--safe-t)); padding-bottom: 6px; }
-  .reader-top .actions { gap: 8px; }
-  .reader-top .icon-btn { width: 40px; height: 40px; border-radius: 12px; }
+  .reader-top { display: none !important; }
+  body.paged #reader .reader-body { top: 0 !important; }
+  .rbar .fsz-rot { display: grid; color: var(--accent); }
+  .rbar .fsz-rot svg { width: 19px; height: 19px; transform: rotate(90deg); }
   .home-body { padding-left: calc(14px + var(--safe-l)); padding-right: calc(14px + var(--safe-r)); }
   .reader-body { padding: 4px var(--safe-r) 72px var(--safe-l); }
   .pg { scroll-margin-top: 48px; max-width: 960px; padding: 6px max(22px, var(--safe-r)) 0 max(22px, var(--safe-l)); }
@@ -680,6 +681,7 @@ body.paged .reader-top { backdrop-filter: none; -webkit-backdrop-filter: none; b
 .rbar .fsz-night { position: relative; margin-left: 3px; }
 .rbar .fsz-night::before { content: ''; position: absolute; left: -3px; top: 11px; bottom: 11px; width: 1px; background: var(--line); }
 .rbar .fsz-night svg { width: 20px; height: 20px; }
+.rbar .fsz-rot { display: none; }
 /* 7.12: the settings (Aa) at the end of the page bar too, within reach of the thumb */
 .rbar .fsz-aa svg { width: 21px; height: 21px; }
 @media (max-width: 380px) { .rbar .pill-pg .lbl { display: none; } }
