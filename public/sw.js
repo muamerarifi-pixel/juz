@@ -1,6 +1,6 @@
 // Service worker i JUZ — punon plotësisht pa internet.
 // RRITE VERSIONIN me çdo publikim të ri (p.sh. juz-v1.0.1), që pajisjet të marrin skedarët e rinj.
-const VERSION = 'juz-v7.13.21-cf';
+const VERSION = 'juz-v7.13.22-cf';
 const FONT_CACHE = 'juz-font-1'; // mbetet mes versioneve
 const QCF_CACHE = 'juz-qcf-1';   // fontet dhe kodet e texhvidit (QCF V4), mbeten mes versioneve
 
@@ -18,6 +18,7 @@ const PRECACHE = [
   '/icons/icon-512.png',
   '/icons/maskable-512.png',
   '/icons/apple-touch-icon.png',
+  '/icons/logo.svg',
   '/icons/favicon.png',
   '/fonts/inter-latin-ext-wght-normal.woff2',
   '/fonts/inter-latin-wght-normal.woff2',
