@@ -1869,7 +1869,7 @@ function syncImmersive() {
 }
 function renderRot() {
   const isLand = matchMedia('(orientation: landscape)').matches || screen.orientation?.type?.startsWith('landscape');
-  const btn = $('#rotBtn');
+  const btn = $('#rotBar');
   if (btn) btn.classList.toggle('on', ROT.on || isLand);
   syncImmersive();
 }
@@ -2130,8 +2130,6 @@ function bind() {
     else toast('Prek një ajet për ta shënuar — kështu ruhet progresi.');
   };
   $('#pill').addEventListener('click', jumpToBm);
-  onFastTap($('#bmBtn'), jumpToBm);
-  onFastTap($('#rotBtn'), () => { haptic(8); toggleRot(); });
   onFastTap($('#rotBar'), () => { haptic(8); toggleRot(); });
 
   // Mbaj gishtin mbi një ajet (ose kliko me të djathtën): përkthimi shqip i atij ajeti.

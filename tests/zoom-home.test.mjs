@@ -35,10 +35,10 @@ test('style.css: touch-action configuration disables zoom on #home & sheets with
   assert.doesNotMatch(css, /\.zoom-badge/);
 });
 
-test('sw.js: cache VERSION is bumped to v7.13.26', () => {
+test('sw.js: cache VERSION is bumped to v7.13.27', () => {
   const swPath = path.resolve('public/sw.js');
   const sw = fs.readFileSync(swPath, 'utf8');
-  assert.match(sw, /const VERSION = 'juz-v7\.13\.26-cf';/);
+  assert.match(sw, /const VERSION = 'juz-v7\.13\.27-cf';/);
 });
 
 test('app.js: static verification of zoom blocking handlers on #home and window', () => {

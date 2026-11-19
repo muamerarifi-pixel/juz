@@ -681,7 +681,9 @@ body.paged .reader-top { backdrop-filter: none; -webkit-backdrop-filter: none; b
 .rbar .fsz-night { position: relative; margin-left: 3px; }
 .rbar .fsz-night::before { content: ''; position: absolute; left: -3px; top: 11px; bottom: 11px; width: 1px; background: var(--line); }
 .rbar .fsz-night svg { width: 20px; height: 20px; }
-.rbar .fsz-rot { display: none; }
+.rbar .fsz-rot svg { width: 19px; height: 19px; transition: transform .32s cubic-bezier(.22, 1, .36, 1); }
+.rbar .fsz-rot.on { color: var(--accent); }
+.rbar .fsz-rot.on svg { transform: rotate(90deg); }
 /* 7.12: the settings (Aa) at the end of the page bar too, within reach of the thumb */
 .rbar .fsz-aa svg { width: 21px; height: 21px; }
 @media (max-width: 380px) { .rbar .pill-pg .lbl { display: none; } }
