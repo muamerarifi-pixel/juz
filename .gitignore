@@ -3,3 +3,5 @@ node_modules/
 dist/
 .dev.vars
 .env
+android/build/
+android/juz-signing.jks

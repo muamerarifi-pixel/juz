@@ -239,7 +239,7 @@ function renderHistory() {
     ? HIST.map((h, i) => `<li><div><b>Para: ${esc(h.note)}</b><small>${esc(ago(h.t))} · ${new Date(h.t).toLocaleTimeString('sq', { hour: '2-digit', minute: '2-digit' })} · ${esc(snapSummary(JSON.parse(h.s)))}</small></div><button class="btn" data-restore="${i}">Kthehu</button></li>`).join('')
     : '<li><div><small>Ende asnjë ndryshim. Sapo të lëvizësh një shënjues ose cilësim, del këtu.</small></div></li>';
 }
-const haptic = (ms = 8) => { try { navigator.vibrate?.(ms); } catch {} };
+const haptic = (ms = 8) => { try { if (window.JuzAndroid?.vibrateMs) window.JuzAndroid.vibrateMs(ms); else navigator.vibrate?.(ms); } catch {} };
 
 function setVal(field, value) {
   if (S[field] && JSON.stringify(val(S[field])) === JSON.stringify(value)) return;
@@ -350,7 +350,11 @@ function applySettings() {
   $('#holdToggle').checked = settings.hold;
   const tone = settings.bg === 'paper' && (window.JUZPaper?.TONES[settings.paper] || THEME_TONES[settings.theme]);
   for (const b of $$('#themeGrid button')) { const on = b.dataset.th === settings.theme && (settings.paper === 'classic' || settings.paper === 'none'); b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); }
-  $('meta[name="theme-color"]').content = tone || THEME_COLOR[settings.bg];
+  const bgHex = tone || THEME_COLOR[settings.bg];
+  const isDark = settings.bg === 'night';
+  $('meta[name="theme-color"]').content = bgHex;
+  $('meta[name="color-scheme"]')?.setAttribute('content', isDark ? 'dark' : 'light');
+  try { window.JuzAndroid?.setTheme?.(isDark, bgHex, bgHex); } catch {}
   for (const b of $$('#paperGrid button')) { const on = b.dataset.paper === settings.paper; b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); }
   $('#arTransRange').value = settings.arTrans;
   $('#arTransOut').textContent = `${settings.arTrans}%`;
@@ -1671,6 +1675,8 @@ function renderAbout() {
   const v = $('#aboutVersion');
   v.textContent = `Të dhënat: ${META.built}`;
   if ('caches' in window) caches.keys().then((ks) => { const k = ks.find((x) => x.startsWith('juz-')); if (k) v.textContent = `Versioni: ${k} · Të dhënat: ${META.built}`; }).catch(() => {});
+  const apk = $('#apkLink');
+  if (apk) apk.hidden = !!window.JuzAndroid;
 }
 
 // ================================================================ përkthimi i një ajeti (gishti i mbajtur)
@@ -1861,6 +1867,11 @@ function renderRot() {
 }
 function unlockRot() {
   ROT.on = false;
+  if (window.JuzAndroid?.setOrientation) {
+    try { window.JuzAndroid.setOrientation('auto'); } catch {}
+    renderRot();
+    return;
+  }
   try { screen.orientation?.unlock(); } catch {}
   if (ROT.fs && document.fullscreenElement) { ROT.fs = false; document.exitFullscreen().catch(() => {}); }
   renderRot();
@@ -1869,6 +1880,18 @@ async function toggleRot() {
   if (route.name === 'reader') { const k = visibleAyah(); if (k) R.curAyah = k; }
   const isLand = matchMedia('(orientation: landscape)').matches || screen.orientation?.type?.startsWith('landscape');
   const target = isLand ? 'portrait' : 'landscape';
+  if (window.JuzAndroid?.setOrientation) {
+    try {
+      window.JuzAndroid.setOrientation(target);
+      ROT.on = target === 'landscape';
+      renderRot();
+      setTimeout(() => {
+        const top = $('.reader-top');
+        if (top) document.documentElement.style.setProperty('--rtop', `${top.offsetHeight}px`);
+      }, 120);
+      return;
+    } catch {}
+  }
   if (!screen.orientation?.lock) return;
   let ok = false;
   try {
