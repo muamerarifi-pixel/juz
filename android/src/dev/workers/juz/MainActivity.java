@@ -39,14 +39,14 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        applySavedThemeImmediately();
-
         FrameLayout root = new FrameLayout(this);
         root.setLayoutParams(new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
         ));
         setContentView(root);
+
+        applySavedThemeImmediately();
 
         webView = new WebView(this);
         webView.setLayoutParams(new FrameLayout.LayoutParams(
@@ -131,40 +131,41 @@ public class MainActivity extends Activity {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                Window w = getWindow();
-                if (w == null) return;
-                int fallback = dark ? 0xFF0E1C17 : 0xFFECE2CB;
-                int barColor = parseColorSafe(barHex, fallback);
-                int bgColor = parseColorSafe(bgHex, barColor);
+                try {
+                    Window w = getWindow();
+                    if (w == null) return;
+                    int fallback = dark ? 0xFF0E1C17 : 0xFFECE2CB;
+                    int barColor = parseColorSafe(barHex, fallback);
+                    int bgColor = parseColorSafe(bgHex, barColor);
 
-                w.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-                w.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-                w.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
-                w.setStatusBarColor(barColor);
-                w.setNavigationBarColor(barColor);
-                w.setBackgroundDrawable(new ColorDrawable(bgColor));
-                if (webView != null) webView.setBackgroundColor(bgColor);
+                    w.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+                    w.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+                    w.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+                    w.setStatusBarColor(barColor);
+                    w.setNavigationBarColor(barColor);
+                    w.setBackgroundDrawable(new ColorDrawable(bgColor));
+                    if (webView != null) webView.setBackgroundColor(bgColor);
 
-                if (Build.VERSION.SDK_INT >= 29) {
-                    w.setNavigationBarContrastEnforced(false);
-                    w.setStatusBarContrastEnforced(false);
-                }
-
-                if (Build.VERSION.SDK_INT >= 30) {
-                    WindowInsetsController ic = w.getInsetsController();
-                    if (ic != null) {
-                        int mask = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
-                                | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
-                        ic.setSystemBarsAppearance(dark ? 0 : mask, mask);
+                    if (Build.VERSION.SDK_INT >= 29) {
+                        w.setNavigationBarContrastEnforced(false);
                     }
-                } else {
-                    View decor = w.getDecorView();
-                    int flags = decor.getSystemUiVisibility();
-                    int lightFlags = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
-                    if (dark) flags &= ~lightFlags;
-                    else flags |= lightFlags;
-                    decor.setSystemUiVisibility(flags);
-                }
+
+                    if (Build.VERSION.SDK_INT >= 30) {
+                        WindowInsetsController ic = w.getInsetsController();
+                        if (ic != null) {
+                            int mask = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                                    | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+                            ic.setSystemBarsAppearance(dark ? 0 : mask, mask);
+                        }
+                    } else {
+                        View decor = w.getDecorView();
+                        int flags = decor.getSystemUiVisibility();
+                        int lightFlags = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+                        if (dark) flags &= ~lightFlags;
+                        else flags |= lightFlags;
+                        decor.setSystemUiVisibility(flags);
+                    }
+                } catch (Throwable ignored) {}
             }
         });
     }

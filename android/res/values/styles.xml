@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.Juz" parent="@android:style/Theme.DeviceDefault.Light.NoActionBar">
-        <item name="android:windowBackground">#ece2cb</item>
-        <item name="android:statusBarColor">#ece2cb</item>
-        <item name="android:navigationBarColor">#ece2cb</item>
+        <item name="android:windowBackground">@color/juz_bg</item>
+        <item name="android:statusBarColor">@color/juz_bar</item>
+        <item name="android:navigationBarColor">@color/juz_bar</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowLightNavigationBar">true</item>
     </style>
+    <color name="juz_bg">#ece2cb</color>
+    <color name="juz_bar">#ece2cb</color>
 </resources>
