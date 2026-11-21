@@ -2400,9 +2400,12 @@ function bind() {
       fn(e);
     });
   };
-  onFastTap($('#backBtn'), () => {
+  const goBack = () => {
+    haptic(6);
     if (cameFromHome && history.length > 1) { cameFromHome = false; history.back(); } else location.replace('#/');
-  });
+  };
+  onFastTap($('#backBtn'), goBack);
+  onFastTap($('#backBar'), goBack);
   for (const b of $$('[data-night]')) b.addEventListener('click', () => setSetting('bg', settings.bg === 'night' ? 'paper' : 'night'));
   const jumpToBm = () => {
     haptic(8);
