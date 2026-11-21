@@ -91,31 +91,40 @@ test('waqf: every waqf character across all 30 juz JSON files maps cleanly', () 
   }
 });
 
-test('tajweed: colors Madd, Ghunnah, Idgham/Iqlab, Ikhfa, Qalqalah, and Idgham bila-ghunnah accurately', () => {
-  assert.equal(TAJWEED_RULES.length, 6);
+test('tajweed: colors all 10 Tajweed rules accurately', () => {
+  assert.equal(TAJWEED_RULES.length, 10);
 
-  // Madd (alif/waw/ya with maddah \u0653)
-  assert.match(renderArWords('وَلَا الضَّٓالّٖینَ', 'd', true), /<span class="tj-madd">/);
-  // Ghunnah (nun/mim mushaddadah)
+  // 1. Medd Lazim (6)
+  assert.match(renderArWords('وَلَا الضَّٓالّٖینَ', 'd', true), /<span class="tj-madd-6">/);
+  // 2. Medd Muttasil / Munfasil (4-5)
+  assert.match(renderArWords('بِمَٓا اُنْزِلَ', 'd', true), /<span class="tj-madd">/);
+  // 3. Medd 2 (Dagger Alif / Medd Silah)
+  assert.match(renderArWords('ذٰلِكَ الْكِتَابُ', 'd', true), /<span class="tj-madd-2">ذٰ<\/span>/);
+  // 4. Ghunnah (nun/mim mushaddadah)
   assert.match(renderArWords('اِنَّ الَّذٖینَ ثُمَّ', 'd', true), /<span class="tj-ghunnah">نَّ<\/span>/);
   assert.match(renderArWords('ثُمَّ', 'd', true), /<span class="tj-ghunnah">مَّ<\/span>/);
-  // Idgham bi-ghunnah across words (nun sakin + Farsi yeh \u06cc in d mode)
+  // 5. Idgham bi-ghunnah, Shafawi, Mutajanisayn (excluding Izhar Mutlaq within single word)
   assert.match(renderArWords('مَنْ یُفْسِدُ', 'd', true), /<span class="tj-idgham">نْ<\/span>/);
-  // Izhar Mutlaq within single word must NOT trigger Idgham
   assert.doesNotMatch(renderArWords('الدُّنْیَا', 'd', true), /tj-idgham/);
-  // Iqlab (nun sakin + ba)
-  assert.match(renderArWords('مِنْ بَعْدِ', 'd', true), /<span class="tj-idgham">نْ<\/span>/);
-  // Idgham Shafawi (mim sakin + mim)
   assert.match(renderArWords('قُلُوبِهِمْ مَرَضٌ', 'd', true), /<span class="tj-idgham">مْ<\/span>/);
-  // Ikhfa Haqiqi (nun sakin + qaf/kaf/zay) & Ikhfa Shafawi (mim sakin + ba)
+  assert.match(renderArWords('قَدْ تَبَیَّنَ', 'd', true), /<span class="tj-idgham">دْ<\/span>/);
+  // 6. Iqlab (nun sakin + ba)
+  assert.match(renderArWords('مِنْ بَعْدِ', 'd', true), /<span class="tj-iqlab">نْ<\/span>/);
+  // 7. Ikhfa Haqiqi & Shafawi
   assert.match(renderArWords('مِنْ قَبْلِكَ', 'd', true), /<span class="tj-ikhfa">نْ<\/span>/);
   assert.match(renderArWords('هُمْ بِمُؤْمِنٖینَ', 'd', true), /<span class="tj-ikhfa">مْ<\/span>/);
-  // Qalqalah (qaf/ta/ba/jim/dal with sukun)
-  assert.match(renderArWords('اَبْصَارِهِمْ خَلَقْنَا', 'd', true), /<span class="tj-qalqalah">بْ<\/span>/);
+  // 8. Qalqalah (sukun + end of ayah)
   assert.match(renderArWords('خَلَقْنَا', 'd', true), /<span class="tj-qalqalah">قْ<\/span>/);
-  // Idgham bila-ghunnah (nun sakin / tanwin + lam/ra across words)
+  assert.match(renderArWords('كُفُوًا اَحَدٌ', 'd', true), /<span class="tj-qalqalah">دٌ<\/span>/);
+  // 9. Tafkhim (heavy Raa & heavy Allah after fatha/damma, NOT after kasra)
+  assert.match(renderArWords('الرَّحْمٰنِ', 'd', true), /<span class="tj-tafkhim">رَّ<\/span>/);
+  assert.match(renderArWords('قُلْ هُوَ اللّٰهُ', 'd', true), /<span class="tj-tafkhim">لّٰ<\/span>/);
+  assert.doesNotMatch(renderArWords('بِسْمِ اللّٰهِ', 'd', true), /tj-tafkhim/);
+  // 10. Silent (Idgham bila-ghunnah, Lam Shamsiyyah, trailing silent Alif after waw)
   assert.match(renderArWords('مِنْ رَبِّهِمْ', 'd', true), /<span class="tj-silent">نْ<\/span>/);
   assert.match(renderArWords('هُدًى لِلْمُتَّقٖینَ', 'd', true), /<span class="tj-silent">دً<\/span>/);
+  assert.match(renderArWords('الرَّحْمٰنِ', 'd', true), /<span class="tj-silent">ل<\/span>/);
+  assert.match(renderArWords('قَالُوا', 'd', true), /<span class="tj-silent">ا<\/span>/);
   // Off by flag produces no tj-* spans
   assert.doesNotMatch(renderArWords('اِنَّ مِنْ رَبِّهِمْ', 'd', false), /tj-/);
   // Waqf word preserves its waqf class when tajweed is active

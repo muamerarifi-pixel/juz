@@ -936,18 +936,26 @@ body.paged .reader-top { backdrop-filter: none; -webkit-backdrop-filter: none; b
 }
 .sajda-jump span { color: var(--gold); }
 
-/* ---- 7.13.28: Ngjyrat e Texhvidit (offline mbi çdo font arab) ---- */
-.tj-madd, [data-cat="tj-madd"] { --tc: #c53737; --wc: #c53737; }
+/* ---- 7.13.29: Të gjitha 10 rregullat e Texhvidit (offline mbi çdo font arab) ---- */
+.tj-madd-6, [data-cat="tj-madd-6"] { --tc: #9c1c1c; --wc: #9c1c1c; }
+.tj-madd, [data-cat="tj-madd"] { --tc: #d63636; --wc: #d63636; }
+.tj-madd-2, [data-cat="tj-madd-2"] { --tc: #c44f74; --wc: #c44f74; }
 .tj-ghunnah, [data-cat="tj-ghunnah"] { --tc: #c96d12; --wc: #c96d12; }
 .tj-idgham, [data-cat="tj-idgham"] { --tc: #1b874f; --wc: #1b874f; }
+.tj-iqlab, [data-cat="tj-iqlab"] { --tc: #0d8282; --wc: #0d8282; }
 .tj-ikhfa, [data-cat="tj-ikhfa"] { --tc: #7d44ad; --wc: #7d44ad; }
 .tj-qalqalah, [data-cat="tj-qalqalah"] { --tc: #1a6eb3; --wc: #1a6eb3; }
+.tj-tafkhim, [data-cat="tj-tafkhim"] { --tc: #3b4ec2; --wc: #3b4ec2; }
 .tj-silent, [data-cat="tj-silent"] { --tc: #7e858c; --wc: #7e858c; }
-:root[data-bg="night"] .tj-madd, :root[data-bg="night"] [data-cat="tj-madd"] { --tc: #f27575; --wc: #f27575; }
+:root[data-bg="night"] .tj-madd-6, :root[data-bg="night"] [data-cat="tj-madd-6"] { --tc: #ff6666; --wc: #ff6666; }
+:root[data-bg="night"] .tj-madd, :root[data-bg="night"] [data-cat="tj-madd"] { --tc: #f58484; --wc: #f58484; }
+:root[data-bg="night"] .tj-madd-2, :root[data-bg="night"] [data-cat="tj-madd-2"] { --tc: #f295b2; --wc: #f295b2; }
 :root[data-bg="night"] .tj-ghunnah, :root[data-bg="night"] [data-cat="tj-ghunnah"] { --tc: #f5a64d; --wc: #f5a64d; }
 :root[data-bg="night"] .tj-idgham, :root[data-bg="night"] [data-cat="tj-idgham"] { --tc: #54d68c; --wc: #54d68c; }
+:root[data-bg="night"] .tj-iqlab, :root[data-bg="night"] [data-cat="tj-iqlab"] { --tc: #4fd6d6; --wc: #4fd6d6; }
 :root[data-bg="night"] .tj-ikhfa, :root[data-bg="night"] [data-cat="tj-ikhfa"] { --tc: #c58ff2; --wc: #c58ff2; }
 :root[data-bg="night"] .tj-qalqalah, :root[data-bg="night"] [data-cat="tj-qalqalah"] { --tc: #64b8f7; --wc: #64b8f7; }
+:root[data-bg="night"] .tj-tafkhim, :root[data-bg="night"] [data-cat="tj-tafkhim"] { --tc: #8da0ff; --wc: #8da0ff; }
 :root[data-bg="night"] .tj-silent, :root[data-bg="night"] [data-cat="tj-silent"] { --tc: #83918b; --wc: #83918b; }
 
 .pg-ar .at span[class^="tj-"], .ay-ar span[class^="tj-"], #previewAr span[class^="tj-"] {
