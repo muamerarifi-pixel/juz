@@ -93,6 +93,9 @@ test('waqf: every waqf character across all 30 juz JSON files maps cleanly', () 
 
 test('tajweed: colors all 10 Tajweed rules accurately', () => {
   assert.equal(TAJWEED_RULES.length, 10);
+  for (const r of TAJWEED_RULES) {
+    assert.ok(r.how && r.how.length > 20, `Missing how-to-read guide for ${r.id}`);
+  }
 
   // 1. Medd Lazim (6)
   assert.match(renderArWords('وَلَا الضَّٓالّٖینَ', 'd', true), /<span class="tj-madd-6">/);

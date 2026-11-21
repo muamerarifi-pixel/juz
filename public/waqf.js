@@ -11,17 +11,69 @@ export const WAQF_CATS = {
 };
 
 export const TAJWEED_RULES = [
-  { id: 'madd-6', sym: 'آلّ', badge: 'Medd Lazim (6)', name: 'Medd i domosdoshëm — 6 lëvizje', desc: 'Zgjatet plotësisht 6 lëvizje kur shenja e zgjatjes (~) pasohet nga shede (ّ), sukun (ْ) ose te shkronjat e ndara në fillim të sureve (الٓمٓ).' },
-  { id: 'madd', sym: 'آء', badge: 'Medd (4–5)', name: 'Medd Muttasil & Munfasil — 4–5 lëvizje', desc: 'Zgjatet 4–5 lëvizje kur shenja e zgjatjes (~) pasohet nga hemzeja në të njëjtën fjalë (سَوَٓاءٌ) ose në fjalën tjetër (بِمَٓا اُنْزِلَ).' },
-  { id: 'madd-2', sym: 'ـٰ', badge: 'Medd (2)', name: 'Elifi i vogël (ٰ) & Medd Silah', desc: 'Zgjatje normale 2 lëvizje te elifi i vogël mbi shkronjë (الرَّحْمٰنِ، ذٰلِكَ) ose te përemri هٖ / هُ kur lidhet.' },
-  { id: 'ghunnah', sym: 'نّ مّ', badge: 'Gunneh (2)', name: 'Nun dhe Mim me shede', desc: 'Shkronja نّ ose مّ me shede mbahet me hundëzim të butë për 2 lëvizje.' },
-  { id: 'idgham', sym: 'ي ن م و', badge: 'Idgam (2)', name: 'Idgam me Gunneh, Shafavi & Mutamathilejn', desc: 'Nuni me sukun/tenvini para (ي ن م و), mimi me sukun para (م) dhe shkronjat e njëjta/të afërta që shkrihen (قَدْ تَبَیَّنَ) lexohen të shkrira.' },
-  { id: 'iqlab', sym: 'نْ ب', badge: 'Iklab (2)', name: 'Shndërrimi i N-së në M para B-së', desc: 'Nuni me sukun ose tenvini para shkronjës (ب) kthehet në një «m» të butë me hundëzim 2 lëvizje (p.sh. مِنْ بَعْدِ → «mim-ba’di»).' },
-  { id: 'ikhfa', sym: 'إخفاء', badge: 'Ihfa (2)', name: 'Ihfa Hakiki & Shafavi', desc: 'Nuni me sukun/tenvini para 15 shkronjave të Ihfasë (ق، ك، ف، ت، س، ش…) dhe mimi me sukun para (ب) shqiptohen lehtë me hundëzim 2 lëvizje.' },
-  { id: 'qalqalah', sym: 'ق ط ب ج د', badge: 'Kalkale', name: 'Jehonë e lehtë (sukun & fund ajeti)', desc: 'Shkronjat ق، ط، ب، ج، د kur kanë sukun (ْ) ose kur ndalesh te ato në fund të ajetit (اَحَدٌ، الْفَلَقِ) shqiptohen me jehonë të lehtë.' },
-  { id: 'tafkhim', sym: 'ر · اللّٰه', badge: 'Tefhim (e trashë)', name: 'R-ja e trashë & Llami i trashë te اللّٰه', desc: 'Shkronja ر lexohet e trashë me e/u (ose me sukun pas e/u), dhe emri اللّٰه lexohet i trashë kur paraprihet nga e/u ose në fillim.' },
-  { id: 'silent', sym: 'ال · ل ر', badge: 'E heshtur / Pa gunneh', name: 'Lam diellore, elif i heshtur & Idgam pa gunneh', desc: 'Nuk shqiptohen: نْ/tenvini para (ل ر), llami diellor para shedes (الرَّحْمٰنِ), hemzetul-vasli në lidhje dhe elifi i heshtur pas «وا» (قَالُوا).' },
+  {
+    id: 'madd-6', sym: 'آلّ', badge: 'Medd Lazim · 6 lëvizje',
+    name: 'Zgjatje e domosdoshme (6 harakat)',
+    desc: 'Kur shenja e zgjatjes (~) pasohet nga shede (ّ), sukun (ْ) në të njëjtën fjalë, ose te shkronjat e ndara në fillim të sureve (الٓمٓ، قٓ، صٓ).',
+    how: 'Zgjate zanoren plotësisht 6 numërime (rreth 3 sekonda) para se ta shtypësh shkronjën me shede. Shembull: الضَّٓالّٖینَ → «ed-dââââââllîn»; الٓمٓ → «elif-lââââââm-mîîîîîîm».',
+  },
+  {
+    id: 'madd', sym: 'آء', badge: 'Medd · 4–5 lëvizje',
+    name: 'Medd Muttasil & Munfasil (4–5 harakat)',
+    desc: 'Kur shenja e zgjatjes (~) pasohet nga hemzeja (ء / ا) në të njëjtën fjalë (Muttasil) ose në fjalën pasuese (Munfasil), si dhe te Medd Silah Kubra (عِلْمِهٖٓ).',
+    how: 'Zgjate zanoren qetë 4 deri në 5 numërime (rreth 2 sekonda) pa u ndalur. Shembull: السَّمَٓاءِ → «es-semââââ-i»; بِمَٓا اُنْزِلَ → «bimââââ unzile».',
+  },
+  {
+    id: 'madd-2', sym: 'ـٰ', badge: 'Medd · 2 lëvizje',
+    name: 'Elifi i vogël (ٰ) & Medd Silah (2 harakat)',
+    desc: 'Elifi i vogël vertikal mbi shkronjë (ٰ) dhe përemri هٖ / ه۪ kur lidhet me fjalën tjetër.',
+    how: 'Zgjate zanoren natyrshëm 2 numërime (si dy zanore të shkurtra). Shembull: الرَّحْمٰنِ → «er-rahmân» (jo «rahman»); بِهٖ → «bihî».',
+  },
+  {
+    id: 'ghunnah', sym: 'نّ مّ', badge: 'Gunneh · 2 lëvizje',
+    name: 'Nun (نّ) dhe Mim (مّ) me shede',
+    desc: 'Çdo herë që shkronja ن ose م ka shede (ّ) sipër saj.',
+    how: 'Mbaje zërin butë në hundë (hundëzim) për 2 numërime para se të kalosh te zanorja. Shembull: اِنَّ → «innn-ne»; ثُمَّ → «thummm-me».',
+  },
+  {
+    id: 'idgham', sym: 'ي ن م و', badge: 'Idgam · 2 lëvizje',
+    name: 'Shkrirje me hundëzim (Idgam)',
+    desc: 'Nuni me sukun/tenvini para (ي ن م و), mimi me sukun para (م), si dhe shkronjat e njëjta ose të afërta që shkrihen bashkë (p.sh. دْ + ت).',
+    how: 'Mos e shqipto shkronjën e parë veçmas — shkrije drejt në shkronjën tjetër me hundëzim 2 numërime (për ي ن م و / مْ+م). Shembull: مَنْ یَّعْمَلْ → «mej-ja’mel»; قَدْ تَبَیَّنَ → «kat-tebejjene».',
+  },
+  {
+    id: 'iqlab', sym: 'نْ ب', badge: 'Iklab · 2 lëvizje',
+    name: 'Shndërrimi i N-së në M para B-së',
+    desc: 'Kur nuni me sukun (نْ) ose tenvini (ً ٌ ٍ) pasohet menjëherë nga shkronja ب.',
+    how: 'Shndërroje «n»-në në një «m» të butë duke i prekur buzët lehtë (pa i shtrënguar fort) me hundëzim 2 numërime para «b»-së. Shembull: مِنْ بَعْدِ → «mimmm-ba’di»; سَمٖیعٌ بَصٖیرٌ → «semî’ummm-besîr».',
+  },
+  {
+    id: 'ikhfa', sym: 'إخفاء', badge: 'Ihfa · 2 lëvizje',
+    name: 'Fshehja e N-së / M-së me hundëzim',
+    desc: 'Nuni me sukun/tenvini para 15 shkronjave të Ihfasë (ت ث ج د ذ ز س ش ص ض ط ظ ف ق ك) dhe mimi me sukun para (ب).',
+    how: 'Mos e mbështet gjuhën te qiellza për «n» të qartë — mbaje gjuhën gati për shkronjën pasuese dhe lësho një hundëzim të butë 2 numërime. Shembull: مِنْ قَبْلِكَ → «minnn-kablike» (me «n» të fshehur e të trashë para ق).',
+  },
+  {
+    id: 'qalqalah', sym: 'ق ط ب ج د', badge: 'Kalkale · Jehonë',
+    name: 'Jehonë e lehtë (ق ط ب ج د)',
+    desc: 'Shkronjat ق، ط، ب، ج، د kur kanë sukun (ْ) ose kur ndalesh te to në fund të ajetit.',
+    how: 'Shqiptoje shkronjën me një «kërcim» / jehonë të shkurtër pa shtuar zanore të plotë (a/e/i/u). Në mes të fjalës më lehtë (خَلَقْنَا → «halek-nâ»), kur ndalesh në fund më qartë (اَحَدٌ → «ehad»).',
+  },
+  {
+    id: 'tafkhim', sym: 'ر · اللّٰه', badge: 'Tefhim · E trashë',
+    name: 'R-ja e trashë & Llami i trashë te اللّٰه',
+    desc: 'Shkronja ر kur ka fetha/damma (ose sukun pas fetha/damma), dhe emri اللّٰه kur paraprihet nga fetha/damma ose në fillim.',
+    how: 'Ngrije pjesën e pasme të gjuhës dhe mbushe gojën me tingull të plotë e të rëndë (jo të hollë). Shembull: الرَّحْمٰنِ → «er-Rahmân»; قُلْ هُوَ اللّٰهُ → «All-llâhu» (e trashë), ndërsa بِسْمِ اللّٰهِ → «bil-lâhi» (e hollë, e pangjyrosur).',
+  },
+  {
+    id: 'silent', sym: 'ال · ل ر', badge: 'E heshtur',
+    name: 'Shkronjë që nuk shqiptohet',
+    desc: 'Nuni/tenvini para (ل، ر) [Idgam pa gunneh], llami diellor para shedes (الرَّحْمٰنِ), hemzetul-vasli në lidhje, elifi pas «وا» (قَالُوا) dhe sifri (اُو࣑لٰٓئِكَ).',
+    how: 'Kaloje plotësisht pa e lexuar këtë shkronjë dhe vazhdo drejt te shkronja tjetër. Shembull: مِنْ رَبِّهِمْ → «mir-rabbihim» (pa «n»); قَالُوا → «kâlû» (elifi i fundit nuk lexohet); الشَّمْسِ → «esh-shemsi» (pa «l»).',
+  },
 ];
+
+export const TAJWEED_BY_ID = Object.fromEntries(TAJWEED_RULES.map((r) => [r.id, r]));
 
 export const WAQF_DEFS = {
   m: {

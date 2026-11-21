@@ -2,7 +2,7 @@
 // Një xhuz në javë, Kehfi të premteve. Progresi ruhet VETËM kur shënon një ajet.
 // JavaScript i thjeshtë, pa framework dhe pa hap ndërtimi.
 import { SCHEMA, SYNCED_SETTINGS, mergeDoc, sameDoc } from './merge.js';
-import { WAQF_DEFS, WAQF_ORDER, PRON_ORDER, SAJDA_LIST, SAJDA_VERSES, SAJDA_INFO, TAJWEED_RULES, detectWaqf, detectPron, renderArWords } from './waqf.js';
+import { WAQF_DEFS, WAQF_ORDER, PRON_ORDER, SAJDA_LIST, SAJDA_VERSES, SAJDA_INFO, TAJWEED_RULES, TAJWEED_BY_ID, detectWaqf, detectPron, renderArWords } from './waqf.js';
 
 // ================================================================ konstante
 const STATE_VERSION = 6;
@@ -778,6 +778,7 @@ function openSheet(name) {
   requestAnimationFrame(() => $('[data-close]', el)?.focus({ preventScroll: true }));
 }
 function closeSheet(silent) {
+  closeWaqfPop();
   if (!openSheetEl) return;
   openSheetEl.hidden = true;
   openSheetEl = null;
@@ -1688,11 +1689,56 @@ function renderAbout() {
 
 // ================================================================ përkthimi i një ajeti (gishti i mbajtur)
 let activeWqEl = null;
+let tjInspect = false;
+function setTjInspect(on) {
+  tjInspect = !!on;
+  $('#reader')?.classList.toggle('tj-inspect', tjInspect);
+  const btn = $('#tjBar');
+  if (btn) {
+    btn.classList.toggle('on', tjInspect);
+    btn.setAttribute('aria-pressed', String(tjInspect));
+  }
+  if (tjInspect && !settings.tajweed) setSetting('tajweed', true);
+  if (!tjInspect && $('#waqfPop')?.dataset?.cat?.startsWith('tj-')) closeWaqfPop();
+}
+function extractWordHTML(span) {
+  if (!span) return '';
+  let before = '', after = '';
+  let n = span.previousSibling;
+  while (n) {
+    if (n.nodeType === 3) {
+      const s = n.nodeValue || '';
+      const sp = s.search(/\s[^\s]*$/);
+      if (sp >= 0) { before = esc(s.slice(sp + 1)) + before; break; }
+      before = esc(s) + before;
+    } else if (n.nodeType === 1) {
+      if (n.classList.contains('an')) break;
+      before = esc(n.textContent || '') + before;
+    }
+    n = n.previousSibling;
+  }
+  n = span.nextSibling;
+  while (n) {
+    if (n.nodeType === 3) {
+      const s = n.nodeValue || '';
+      const sp = s.search(/\s/);
+      if (sp >= 0) { after += esc(s.slice(0, sp)); break; }
+      after += esc(s);
+    } else if (n.nodeType === 1) {
+      if (n.classList.contains('an')) break;
+      after += esc(n.textContent || '');
+    }
+    n = n.nextSibling;
+  }
+  const cls = (span.className.match(/\btj-[a-z0-9-]+/) || [''])[0];
+  const mid = cls ? `<span class="${cls}">${esc(span.textContent || '')}</span>` : esc(span.textContent || '');
+  return `${before}${mid}${after}`;
+}
 function closeWaqfPop() {
   const pop = $('#waqfPop');
   if (!pop || pop.hidden) return;
   pop.hidden = true;
-  activeWqEl?.classList.remove('active');
+  activeWqEl?.classList.remove('active', 'tj-active');
   activeWqEl = null;
 }
 function showWaqfPop(el) {
@@ -1701,7 +1747,7 @@ function showWaqfPop(el) {
   const pop = $('#waqfPop');
   if (!def || !pop) return;
   haptic(6);
-  activeWqEl?.classList.remove('active');
+  activeWqEl?.classList.remove('active', 'tj-active');
   activeWqEl = el;
   el.classList.add('active');
   pop.dataset.cat = def.cat;
@@ -1716,16 +1762,42 @@ function showWaqfPop(el) {
   } else {
     $('#wpDesc').textContent = primaryDesc;
   }
+  const how = $('#wpHow');
+  if (how) { how.hidden = true; how.innerHTML = ''; }
   const dua = $('#wpDua');
   if (dua) { dua.hidden = true; dua.innerHTML = ''; }
   $('#wpWord').textContent = el.dataset.w || el.textContent || '';
+  pop.hidden = false;
+}
+function showTajweedPop(el, forcedId) {
+  const id = forcedId || el?.dataset?.tj || el?.className?.match(/\btj-([a-z0-9-]+)/)?.[1];
+  const def = TAJWEED_BY_ID[id];
+  const pop = $('#waqfPop');
+  if (!def || !pop) return;
+  haptic(6);
+  activeWqEl?.classList.remove('active', 'tj-active');
+  activeWqEl = el;
+  if (el && !el.classList.contains('tj-chip')) el.classList.add('tj-active');
+  pop.dataset.cat = `tj-${def.id}`;
+  $('#wpSym').textContent = def.sym;
+  $('#wpBadge').textContent = def.badge;
+  $('#wpName').textContent = def.name;
+  $('#wpDesc').textContent = def.desc;
+  const how = $('#wpHow');
+  if (how) {
+    how.innerHTML = `<b>Si lexohet:</b> ${esc(def.how)}`;
+    how.hidden = false;
+  }
+  const dua = $('#wpDua');
+  if (dua) { dua.hidden = true; dua.innerHTML = ''; }
+  $('#wpWord').innerHTML = el && !el.classList.contains('tj-chip') ? extractWordHTML(el) : esc(def.sym);
   pop.hidden = false;
 }
 function showSajdaPop(el) {
   const pop = $('#waqfPop');
   if (!pop) return;
   haptic(8);
-  activeWqEl?.classList.remove('active');
+  activeWqEl?.classList.remove('active', 'tj-active');
   activeWqEl = el;
   el.classList.add('active');
   pop.dataset.cat = SAJDA_INFO.cat;
@@ -1735,6 +1807,8 @@ function showSajdaPop(el) {
   const entry = SAJDA_LIST.find(([vk]) => vk === k);
   $('#wpName').textContent = entry ? `${SAJDA_INFO.name} (${entry[1]})` : SAJDA_INFO.name;
   $('#wpDesc').textContent = SAJDA_INFO.desc;
+  const how = $('#wpHow');
+  if (how) { how.hidden = true; how.innerHTML = ''; }
   const dua = $('#wpDua');
   if (dua) {
     dua.innerHTML = `<p class="dua-ar ar-txt" lang="ar">${esc(SAJDA_INFO.duaAr)}</p><p class="dua-tr">${esc(SAJDA_INFO.duaTr)}</p><p class="dua-sq">${esc(SAJDA_INFO.duaSq)}</p>`;
@@ -1765,6 +1839,7 @@ function renderWaqfSheet() {
     <div class="wq-info">
       <div class="wq-top"><span class="wp-badge">${esc(r.badge)}</span><strong>${esc(r.name)}</strong></div>
       <p>${esc(r.desc)}</p>
+      <p class="wq-how"><b>Si lexohet:</b> ${esc(r.how)}</p>
     </div>
   </article>`).join('');
   box.innerHTML = `
@@ -1987,6 +2062,7 @@ const handleRoute = safe(() => {
     openReader(R.fri ? 's' : m[1], +m[2], m[3] || null);
   } else {
     route.name = 'home';
+    setTjInspect(false);
     closeWaqfPop();
     syncImmersive();
     if (ROT.on || ROT.fs) unlockRot();
@@ -2003,7 +2079,7 @@ const handleRoute = safe(() => {
 // ================================================================ ngjarjet
 function bind() {
   document.addEventListener('click', (e) => {
-    if (!$('#waqfPop')?.hidden && !e.target.closest('#waqfPop, .wq, [data-sajda]')) closeWaqfPop();
+    if (!$('#waqfPop')?.hidden && !e.target.closest('#waqfPop, .wq, [data-sajda], span[class^="tj-"], .tj-chip, #tjBar')) closeWaqfPop();
     const open = e.target.closest('[data-open]');
     if (open) return openSheet(open.dataset.open);
     if (e.target.closest('[data-close]') || e.target === $('#scrim')) return closeSheet();
@@ -2031,7 +2107,13 @@ function bind() {
     const sj = e.target.closest('[data-sajda]');
     if (sj) { showSajdaPop(sj); return; }
     const wq = e.target.closest('.wq');
-    if (wq) showWaqfPop(wq);
+    if (wq) { showWaqfPop(wq); return; }
+    const tj = e.target.closest('span[class^="tj-"]');
+    if (tj) showTajweedPop(tj);
+  });
+  $('#tjLegend')?.addEventListener('click', (e) => {
+    const chip = e.target.closest('.tj-chip[data-tj]');
+    if (chip) showTajweedPop(chip, chip.dataset.tj);
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
@@ -2145,6 +2227,11 @@ function bind() {
     else toast('Prek një ajet për ta shënuar — kështu ruhet progresi.');
   };
   $('#pill').addEventListener('click', jumpToBm);
+  onFastTap($('#tjBar'), () => {
+    haptic(8);
+    setTjInspect(!tjInspect);
+    if (tjInspect) toast('Prek çdo shkronjë me ngjyrë për shpjegim · numri i ajetit shënon progresin', 3400);
+  });
   onFastTap($('#rotBar'), () => { haptic(8); toggleRot(); });
 
   // Mbaj gishtin mbi një ajet (ose kliko me të djathtën): përkthimi shqip i atij ajeti.
@@ -2400,6 +2487,10 @@ function bind() {
     if (sj) { showSajdaPop(sj); return; }
     const wq = e.target.closest('.wq');
     if (wq) { showWaqfPop(wq); return; }
+    if (tjInspect) {
+      const tj = e.target.closest('span[class^="tj-"]');
+      if (tj) { showTajweedPop(tj); return; }
+    }
     const ay = e.target.closest('[data-k]');
     if (ay) toggleAyahBm(ay.dataset.k);
   }));

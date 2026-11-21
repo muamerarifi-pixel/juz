@@ -114,6 +114,7 @@
       </button>
       <button class="fsz" id="fszUp" aria-label="Tekst më i madh" title="Tekst më i madh"><svg><use href="#i-tup"/></svg></button>
       <button class="fsz fsz-night" id="nightBar" data-night aria-label="Modaliteti i natës" title="Ditë / natë"><svg><use class="night-ic" href="#i-moon"/></svg></button>
+      <button class="fsz fsz-tj" id="tjBar" aria-label="Shpjegimi i Texhvidit" title="Prek shkronjat e Texhvidit për shpjegim" aria-pressed="false"><span class="tj-ic" aria-hidden="true"><b></b><b></b><b></b><b></b></span></button>
       <button class="fsz fsz-rot" id="rotBar" aria-label="Kthe vertikalisht" title="Kthe horizontalisht / vertikalisht"><svg><use href="#i-rot"/></svg></button>
       <button class="fsz fsz-aa" data-open="settings" aria-label="Cilësimet" title="Cilësimet"><svg><use href="#i-aa"/></svg></button>
     </div>
@@ -154,16 +155,16 @@
     <input type="checkbox" class="toggle" id="tajweedToggle">
   </label>
   <div class="tj-legend" id="tjLegend">
-    <span class="tj-chip tj-madd-6"><b></b>Medd Lazim (6)</span>
-    <span class="tj-chip tj-madd"><b></b>Medd (4–5)</span>
-    <span class="tj-chip tj-madd-2"><b></b>Medd (2)</span>
-    <span class="tj-chip tj-ghunnah"><b></b>Gunneh</span>
-    <span class="tj-chip tj-idgham"><b></b>Idgam</span>
-    <span class="tj-chip tj-iqlab"><b></b>Iklab</span>
-    <span class="tj-chip tj-ikhfa"><b></b>Ihfa</span>
-    <span class="tj-chip tj-qalqalah"><b></b>Kalkale</span>
-    <span class="tj-chip tj-tafkhim"><b></b>Tefhim (ر · اللّٰه)</span>
-    <span class="tj-chip tj-silent"><b></b>E heshtur / ل ر</span>
+    <button type="button" class="tj-chip tj-madd-6" data-tj="madd-6"><b></b>Medd Lazim (6)</button>
+    <button type="button" class="tj-chip tj-madd" data-tj="madd"><b></b>Medd (4–5)</button>
+    <button type="button" class="tj-chip tj-madd-2" data-tj="madd-2"><b></b>Medd (2)</button>
+    <button type="button" class="tj-chip tj-ghunnah" data-tj="ghunnah"><b></b>Gunneh</button>
+    <button type="button" class="tj-chip tj-idgham" data-tj="idgham"><b></b>Idgam</button>
+    <button type="button" class="tj-chip tj-iqlab" data-tj="iqlab"><b></b>Iklab</button>
+    <button type="button" class="tj-chip tj-ikhfa" data-tj="ikhfa"><b></b>Ihfa</button>
+    <button type="button" class="tj-chip tj-qalqalah" data-tj="qalqalah"><b></b>Kalkale</button>
+    <button type="button" class="tj-chip tj-tafkhim" data-tj="tafkhim"><b></b>Tefhim (ر · اللّٰه)</button>
+    <button type="button" class="tj-chip tj-silent" data-tj="silent"><b></b>E heshtur / ل ر</button>
   </div>
   <div class="field">
     <span class="label">Fonti</span>
@@ -347,16 +348,17 @@
     <button class="icon-btn wp-close" id="wpClose" aria-label="Mbyll"><svg><use href="#i-close"/></svg></button>
   </div>
   <p class="wp-desc" id="wpDesc"></p>
+  <p class="wp-how" id="wpHow" hidden></p>
   <div class="wp-dua" id="wpDua" hidden></div>
   <div class="wp-foot">
     <span class="wp-word ar-txt" id="wpWord" lang="ar"></span>
-    <button class="link-btn wp-all" id="wpAllBtn" type="button">Të gjitha shenjat →</button>
+    <button class="link-btn wp-all" id="wpAllBtn" type="button">Të gjitha rregullat →</button>
   </div>
 </aside>
 
 <section class="sheet" id="sheet-waqf" role="dialog" aria-modal="true" aria-labelledby="waqfTitle" hidden>
   <div class="grip"></div>
-  <header class="sheet-head"><h2 id="waqfTitle">Shenjat e ndalimit (Vakfi)</h2><button class="icon-btn" data-close aria-label="Mbyll"><svg><use href="#i-close"/></svg></button></header>
+  <header class="sheet-head"><h2 id="waqfTitle">Texhvidi & Shenjat e leximit</h2><button class="icon-btn" data-close aria-label="Mbyll"><svg><use href="#i-close"/></svg></button></header>
   <p class="hint">Ngjyrat në tekst të tregojnë me një shikim çfarë të bësh: <b class="wq-leg stop">e kuqe = ndalu</b>, <b class="wq-leg both">e artë = lejohet të dyja</b>, <b class="wq-leg cont">jeshile = vazhdo / mos u ndal</b>, <b class="wq-leg sakt">vjollcë = sekte (pa frymë)</b>, <b class="wq-leg pron">kaltër = shqiptim i veçantë</b>. Prek çdo fjalë ose shenjën <b>۩ Sexhde</b> gjatë leximit për udhëzimin e plotë.</p>
   <div class="waqf-list" id="waqfList"></div>
 </section>
