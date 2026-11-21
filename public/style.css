@@ -935,3 +935,35 @@ body.paged .reader-top { backdrop-filter: none; -webkit-backdrop-filter: none; b
   font-size: 13px; font-weight: 600; color: var(--ink); text-align: left; cursor: pointer;
 }
 .sajda-jump span { color: var(--gold); }
+
+/* ---- 7.13.28: Ngjyrat e Texhvidit (offline mbi çdo font arab) ---- */
+.tj-madd, [data-cat="tj-madd"] { --tc: #c53737; --wc: #c53737; }
+.tj-ghunnah, [data-cat="tj-ghunnah"] { --tc: #c96d12; --wc: #c96d12; }
+.tj-idgham, [data-cat="tj-idgham"] { --tc: #1b874f; --wc: #1b874f; }
+.tj-ikhfa, [data-cat="tj-ikhfa"] { --tc: #7d44ad; --wc: #7d44ad; }
+.tj-qalqalah, [data-cat="tj-qalqalah"] { --tc: #1a6eb3; --wc: #1a6eb3; }
+.tj-silent, [data-cat="tj-silent"] { --tc: #7e858c; --wc: #7e858c; }
+:root[data-bg="night"] .tj-madd, :root[data-bg="night"] [data-cat="tj-madd"] { --tc: #f27575; --wc: #f27575; }
+:root[data-bg="night"] .tj-ghunnah, :root[data-bg="night"] [data-cat="tj-ghunnah"] { --tc: #f5a64d; --wc: #f5a64d; }
+:root[data-bg="night"] .tj-idgham, :root[data-bg="night"] [data-cat="tj-idgham"] { --tc: #54d68c; --wc: #54d68c; }
+:root[data-bg="night"] .tj-ikhfa, :root[data-bg="night"] [data-cat="tj-ikhfa"] { --tc: #c58ff2; --wc: #c58ff2; }
+:root[data-bg="night"] .tj-qalqalah, :root[data-bg="night"] [data-cat="tj-qalqalah"] { --tc: #64b8f7; --wc: #64b8f7; }
+:root[data-bg="night"] .tj-silent, :root[data-bg="night"] [data-cat="tj-silent"] { --tc: #83918b; --wc: #83918b; }
+
+.pg-ar .at span[class^="tj-"], .ay-ar span[class^="tj-"], #previewAr span[class^="tj-"] {
+  color: color-mix(in srgb, var(--tc) 82%, var(--ink));
+}
+.tj-legend {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin: -2px 0 12px; padding: 10px 12px;
+  border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line);
+}
+.tj-legend[hidden] { display: none; }
+.tj-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; color: var(--ink);
+  padding: 3px 9px; border-radius: 99px;
+  background: color-mix(in srgb, var(--tc) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--tc) 28%, transparent);
+}
+.tj-chip b { width: 8px; height: 8px; border-radius: 50%; background: var(--tc); }

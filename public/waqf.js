@@ -1,4 +1,4 @@
-// Shenjat e ndalimit (Vakfi), shqiptimet e veçanta dhe 14 ajetet e Sexhdes — udhëzime praktike në shqip.
+// Shenjat e ndalimit (Vakfi), shqiptimet e veçanta, 14 ajetet e Sexhdes dhe ngjyrat e Texhvidit offline.
 
 export const WAQF_CATS = {
   stop:  { badge: 'Ndalu', icon: '●' },
@@ -9,6 +9,15 @@ export const WAQF_CATS = {
   pron:  { badge: 'Shqiptim i veçantë', icon: '✦' },
   sajda: { badge: 'Sexhde Tilaveti', icon: '۩' },
 };
+
+export const TAJWEED_RULES = [
+  { id: 'madd', sym: 'آ', badge: 'Medd i zgjatur (4–6)', name: 'Medd Muttasil / Munfasil / Lazim', desc: 'Shkronjat me shenjën e zgjatjes (~) zgjaten 4–5 lëvizje (ose 6 lëvizje kur pasohen nga shede ose sukun).' },
+  { id: 'ghunnah', sym: 'نّ مّ', badge: 'Gunneh (2 lëvizje)', name: 'Nun dhe Mim me shede', desc: 'Shkronja نّ ose مّ me shede mbahet me hundëzim të butë për 2 lëvizje.' },
+  { id: 'idgham', sym: 'ي ن م و ب', badge: 'Idgam / Iklab (2 lëvizje)', name: 'Shkrirje me hundëzim & Iklab', desc: 'Nuni me sukun ose tenvini para (ي ن م و) shkrihet me hundëzim; para (ب) kthehet në «m» me hundëzim; mimi me sukun para (م) shkrihet me hundëzim.' },
+  { id: 'ikhfa', sym: 'إخفاء', badge: 'Ihfa (2 lëvizje)', name: 'Fshehje me hundëzim', desc: 'Nuni me sukun ose tenvini para 15 shkronjave të Ihfasë (si ق، ك، ف، ت، س…) dhe mimi me sukun para (ب) shqiptohen lehtë me hundëzim 2 lëvizje.' },
+  { id: 'qalqalah', sym: 'ق ط ب ج د', badge: 'Kalkale (jehonë)', name: 'Jehonë e lehtë e shkronjës', desc: 'Kur shkronjat ق، ط، ب، ج، د kanë sukun (ْ), shqiptohen me një jehonë/kërcitje të lehtë zëri.' },
+  { id: 'silent', sym: 'ل ر', badge: 'Idgam pa gunneh', name: 'Shkrirje e plotë pa hundëzim', desc: 'Nuni me sukun ose tenvini para (ل) ose (ر) nuk shqiptohet fare — kalon drejtpërdrejt te shkronja pasuese (p.sh. «min rabbihim» → «mir-rabbihim»).' },
+];
 
 export const WAQF_DEFS = {
   m: {
@@ -155,7 +164,6 @@ export const SAJDA_INFO = {
 
 const SAKT_WORDS_H = /(?:عِوَجًۜا|مَرْقَدِنَۜا|مَنْۜ|بَلْۜ)/;
 
-// Kthen kodin e shenjës së ndalimit brenda një fjale arabe, ose null nëse nuk ka.
 export function detectWaqf(word, mode = 'd') {
   if (!word) return null;
   if (mode === 'h') {
@@ -187,7 +195,6 @@ export function detectWaqf(word, mode = 'd') {
   return null;
 }
 
-// Kthen kodin e shqiptimit të veçantë brenda një fjale arabe, ose null.
 export function detectPron(word) {
   if (!word) return null;
   if (word.includes('\u06ea') && /مَجْر/.test(word)) return 'imale';
@@ -205,18 +212,101 @@ export function detectPron(word) {
 
 const escHTML = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-// Ndërton HTML-në e fjalëve arabe duke vënë fjalët me shenjë ndalimi ose shqiptim të veçantë brenda <span class="wq">.
-export function renderArWords(text, mode = 'd') {
+// ── Texhvid offline: ndan fjalën në grupe shkronjë + zanore dhe gjen rregullat pa prishur lidhjen arabe ──
+const AR_LETTER = /[\u0621-\u064a\u0671\u06a9\u06cc]/;
+const AR_MARKS = /[\u0610-\u061a\u064b-\u065f\u0670\u06d6-\u06ed\u08d0-\u08ff]/;
+const TANWIN = /[\u064b\u064c\u064d]/;
+const VOWEL_OR_SHADDA = /[\u064b-\u0651\u0670]/;
+const IDGHAM_GHUNNAH = /[ينمو\u06cc]/;
+const IDGHAM_NO_GHUNNAH = /[لر]/;
+const IKHFA_LETTERS = /[تثجدذزسشصضطظفقك]/;
+const QALQALAH_LETTERS = /[قطبجد]/;
+
+function splitClusters(word) {
+  const out = [];
+  for (let i = 0; i < word.length; ) {
+    const ch = word[i];
+    if (AR_LETTER.test(ch)) {
+      let j = i + 1;
+      while (j < word.length && AR_MARKS.test(word[j])) j++;
+      out.push({ base: ch, marks: word.slice(i + 1, j), text: word.slice(i, j) });
+      i = j;
+    } else {
+      if (out.length) {
+        out[out.length - 1].marks += ch;
+        out[out.length - 1].text += ch;
+      } else {
+        out.push({ base: '', marks: ch, text: ch });
+      }
+      i++;
+    }
+  }
+  return out;
+}
+
+function firstSoundLetter(clusters) {
+  if (!clusters || !clusters.length) return '';
+  const c0 = clusters[0];
+  // Hemzetul-vasl te "ال..." kalon te shkronja pasuese kur lidhet
+  if (c0.base === 'ا' && !c0.marks && clusters.length > 1) return clusters[1].base;
+  return c0.base;
+}
+
+export function tajweedWordHTML(clusters, nextClusters) {
+  let html = '';
+  for (let i = 0; i < clusters.length; i++) {
+    const c = clusters[i];
+    const nextInWord = i + 1 < clusters.length ? clusters[i + 1] : null;
+    const isLast = !nextInWord;
+    // Kur tenvini (ً) pasohet nga elifi i heshtur në fund të fjalës (p.sh. هُدًى / رِزْقًا), shkronja pasuese është te fjala tjetër
+    const trailingAlif = nextInWord && i + 2 === clusters.length && (nextInWord.base === 'ا' || nextInWord.base === 'ى') && !nextInWord.marks;
+    const acrossWord = isLast || trailingAlif;
+    const nextBase = !acrossWord ? nextInWord.base : firstSoundLetter(nextClusters);
+
+    let rule = null;
+    const hasSukun = c.marks.includes('\u0652');
+    const hasShadda = c.marks.includes('\u0651');
+    const hasTanwin = TANWIN.test(c.marks);
+    const isNunSakin = c.base === 'ن' && (hasSukun || !VOWEL_OR_SHADDA.test(c.marks));
+    const isMimSakin = c.base === 'م' && hasSukun;
+
+    if (c.marks.includes('\u0653')) {
+      rule = 'madd';
+    } else if ((c.base === 'ن' || c.base === 'م') && hasShadda) {
+      rule = 'ghunnah';
+    } else if ((isNunSakin || hasTanwin) && nextBase) {
+      if (nextBase === 'ب') rule = 'idgham'; // Iklab
+      else if (acrossWord && IDGHAM_GHUNNAH.test(nextBase)) rule = 'idgham'; // Idgam me gunneh (jo brenda një fjale si دُنْيَا)
+      else if (acrossWord && IDGHAM_NO_GHUNNAH.test(nextBase)) rule = 'silent'; // Idgam pa gunneh (ل ر)
+      else if (IKHFA_LETTERS.test(nextBase)) rule = 'ikhfa';
+    } else if (isMimSakin && acrossWord && nextBase) {
+      if (nextBase === 'م') rule = 'idgham'; // Idgam shafavi
+      else if (nextBase === 'ب') rule = 'ikhfa'; // Ihfa shafavi
+    } else if (QALQALAH_LETTERS.test(c.base) && hasSukun) {
+      rule = 'qalqalah';
+    }
+
+    html += rule ? `<span class="tj-${rule}">${escHTML(c.text)}</span>` : escHTML(c.text);
+  }
+  return html;
+}
+
+// Ndërton HTML-në e fjalëve arabe duke vënë fjalët me shenjë ndalimi/shqiptimi brenda <span class="wq"> dhe opsionalisht ngjyrat e Texhvidit.
+export function renderArWords(text, mode = 'd', tajweed = false) {
   const words = String(text || '').trim().split(/\s+/).filter(Boolean);
+  const allClusters = tajweed ? words.map(splitClusters) : null;
   return words.map((w, idx) => {
     const pronId = detectPron(w);
     const waqfId = detectWaqf(w, mode);
     const primary = pronId || waqfId;
-    if (!primary) return escHTML(w);
-    const secondary = pronId && waqfId ? waqfId : null;
-    const def = WAQF_DEFS[primary];
-    const isEnd = idx === words.length - 1;
-    const label = secondary ? `${def.badge} · ${WAQF_DEFS[secondary].badge}` : `${def.badge} — ${def.name}`;
-    return `<span class="wq" data-wq="${primary}"${secondary ? ` data-wq2="${secondary}"` : ''} data-cat="${def.cat}"${isEnd ? ' data-end="1"' : ''} tabindex="0" role="button" aria-label="${escHTML(label)}">${escHTML(w)}</span>`;
+    if (primary) {
+      const secondary = pronId && waqfId ? waqfId : null;
+      const def = WAQF_DEFS[primary];
+      const isEnd = idx === words.length - 1;
+      const label = secondary ? `${def.badge} · ${WAQF_DEFS[secondary].badge}` : `${def.badge} — ${def.name}`;
+      return `<span class="wq" data-wq="${primary}"${secondary ? ` data-wq2="${secondary}"` : ''} data-cat="${def.cat}"${isEnd ? ' data-end="1"' : ''} tabindex="0" role="button" aria-label="${escHTML(label)}">${escHTML(w)}</span>`;
+    }
+    if (tajweed) return tajweedWordHTML(allClusters[idx], allClusters[idx + 1] || null);
+    return escHTML(w);
   }).join(' ');
 }

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="dev.workers.juz"
-    android:versionCode="71327"
-    android:versionName="7.13.27">
+    android:versionCode="71328"
+    android:versionName="7.13.28">
 
     <uses-sdk
         android:minSdkVersion="26"

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
-  WAQF_DEFS, WAQF_ORDER, PRON_ORDER, SAJDA_LIST, SAJDA_VERSES, SAJDA_INFO,
+  WAQF_DEFS, WAQF_ORDER, PRON_ORDER, SAJDA_LIST, SAJDA_VERSES, SAJDA_INFO, TAJWEED_RULES,
   detectWaqf, detectPron, renderArWords,
 } from '../public/waqf.js';
 
@@ -89,4 +89,37 @@ test('waqf: every waqf character across all 30 juz JSON files maps cleanly', () 
       }
     }
   }
+});
+
+test('tajweed: colors Madd, Ghunnah, Idgham/Iqlab, Ikhfa, Qalqalah, and Idgham bila-ghunnah accurately', () => {
+  assert.equal(TAJWEED_RULES.length, 6);
+
+  // Madd (alif/waw/ya with maddah \u0653)
+  assert.match(renderArWords('وَلَا الضَّٓالّٖینَ', 'd', true), /<span class="tj-madd">/);
+  // Ghunnah (nun/mim mushaddadah)
+  assert.match(renderArWords('اِنَّ الَّذٖینَ ثُمَّ', 'd', true), /<span class="tj-ghunnah">نَّ<\/span>/);
+  assert.match(renderArWords('ثُمَّ', 'd', true), /<span class="tj-ghunnah">مَّ<\/span>/);
+  // Idgham bi-ghunnah across words (nun sakin + Farsi yeh \u06cc in d mode)
+  assert.match(renderArWords('مَنْ یُفْسِدُ', 'd', true), /<span class="tj-idgham">نْ<\/span>/);
+  // Izhar Mutlaq within single word must NOT trigger Idgham
+  assert.doesNotMatch(renderArWords('الدُّنْیَا', 'd', true), /tj-idgham/);
+  // Iqlab (nun sakin + ba)
+  assert.match(renderArWords('مِنْ بَعْدِ', 'd', true), /<span class="tj-idgham">نْ<\/span>/);
+  // Idgham Shafawi (mim sakin + mim)
+  assert.match(renderArWords('قُلُوبِهِمْ مَرَضٌ', 'd', true), /<span class="tj-idgham">مْ<\/span>/);
+  // Ikhfa Haqiqi (nun sakin + qaf/kaf/zay) & Ikhfa Shafawi (mim sakin + ba)
+  assert.match(renderArWords('مِنْ قَبْلِكَ', 'd', true), /<span class="tj-ikhfa">نْ<\/span>/);
+  assert.match(renderArWords('هُمْ بِمُؤْمِنٖینَ', 'd', true), /<span class="tj-ikhfa">مْ<\/span>/);
+  // Qalqalah (qaf/ta/ba/jim/dal with sukun)
+  assert.match(renderArWords('اَبْصَارِهِمْ خَلَقْنَا', 'd', true), /<span class="tj-qalqalah">بْ<\/span>/);
+  assert.match(renderArWords('خَلَقْنَا', 'd', true), /<span class="tj-qalqalah">قْ<\/span>/);
+  // Idgham bila-ghunnah (nun sakin / tanwin + lam/ra across words)
+  assert.match(renderArWords('مِنْ رَبِّهِمْ', 'd', true), /<span class="tj-silent">نْ<\/span>/);
+  assert.match(renderArWords('هُدًى لِلْمُتَّقٖینَ', 'd', true), /<span class="tj-silent">دً<\/span>/);
+  // Off by flag produces no tj-* spans
+  assert.doesNotMatch(renderArWords('اِنَّ مِنْ رَبِّهِمْ', 'd', false), /tj-/);
+  // Waqf word preserves its waqf class when tajweed is active
+  const mixed = renderArWords('اِنَّ اللّٰهَ قَدٖیرٌؕ', 'd', true);
+  assert.match(mixed, /<span class="tj-ghunnah">نَّ<\/span>/);
+  assert.match(mixed, /<span class="wq" data-wq="t" data-cat="stop"/);
 });

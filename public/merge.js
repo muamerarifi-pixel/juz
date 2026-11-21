@@ -65,6 +65,7 @@ export const SYNCED_SETTINGS = {
   bg: ['paper', 'night'],
   font: ['hamdullah', 'scheherazade', 'naskh', 'harmattan', 'sans', 'kufi', 'qcf'],
   weight: [400, 500, 600, 700],
+  tajweed: [true, false],
   trans: [true, false],
   latin: ['literata', 'lora', 'inter'],
   paper: ['classic', 'none', 'smooth', 'cotton', 'recycled', 'laid', 'linen', 'washi', 'antique'],

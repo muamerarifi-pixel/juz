@@ -2,7 +2,7 @@
 // Një xhuz në javë, Kehfi të premteve. Progresi ruhet VETËM kur shënon një ajet.
 // JavaScript i thjeshtë, pa framework dhe pa hap ndërtimi.
 import { SCHEMA, SYNCED_SETTINGS, mergeDoc, sameDoc } from './merge.js';
-import { WAQF_DEFS, WAQF_ORDER, PRON_ORDER, SAJDA_LIST, SAJDA_VERSES, SAJDA_INFO, detectWaqf, detectPron, renderArWords } from './waqf.js';
+import { WAQF_DEFS, WAQF_ORDER, PRON_ORDER, SAJDA_LIST, SAJDA_VERSES, SAJDA_INFO, TAJWEED_RULES, detectWaqf, detectPron, renderArWords } from './waqf.js';
 
 // ================================================================ konstante
 const STATE_VERSION = 6;
@@ -25,7 +25,7 @@ const THEME_COLOR = { paper: '#ece2cb', night: '#0e1c17' };
 // 7.8: temat e sfondit (ditën); nata është gjithmonë e gjelbër e thellë
 const THEMES = [['parchment', 'Pergamenë'], ['geometry', 'Gjeometri'], ['linen', 'Li i butë'], ['sage', 'Sherebelë'], ['ivory', 'Fildish']];
 const THEME_TONES = { parchment: '#ece2cb', geometry: '#efe6d2', linen: '#ebe5d8', sage: '#e2e8d9', ivory: '#f6f2e8' };
-const DEFAULTS = { bg: 'paper', font: 'hamdullah', weight: 400, trans: true, latin: 'literata', size: 30, trSize: 17, home: 'juz', paper: 'classic', arTrans: 0, trTrans: 0, hold: true, shadow: 0, dimDay: 0, dimNight: 0, autoBg: true, fs: false, pager: 'scroll', theme: 'parchment' };
+const DEFAULTS = { bg: 'paper', font: 'hamdullah', weight: 400, tajweed: true, trans: true, latin: 'literata', size: 30, trSize: 17, home: 'juz', paper: 'classic', arTrans: 0, trTrans: 0, hold: true, shadow: 0, dimDay: 0, dimNight: 0, autoBg: true, fs: false, pager: 'scroll', theme: 'parchment' };
 const SYNC_URL = '/api/sync';
 const CH = SCHEMA.sync;
 const DAYS = ['e diel', 'e hënë', 'e martë', 'e mërkurë', 'e enjte', 'e premte', 'e shtunë'];
@@ -364,13 +364,19 @@ function applySettings() {
   for (const b of $$('[data-night]')) b.setAttribute('aria-label', settings.bg === 'night' ? 'Modaliteti i ditës' : 'Modaliteti i natës');
   for (const seg of $$('[data-setting]')) for (const b of $$('button', seg)) b.setAttribute('aria-pressed', String(String(settings[seg.dataset.setting]) === b.dataset.v));
   $('#trFields').hidden = !settings.trans;
+  $('#tajweedToggle').checked = !!settings.tajweed;
+  const tjLeg = $('#tjLegend');
+  if (tjLeg) tjLeg.hidden = !settings.tajweed;
   $('#transToggle').checked = settings.trans;
   $('#sizeRange').value = settings.size;
   $('#sizeOut').textContent = settings.size;
   $('#trSizeRange').value = settings.trSize;
   $('#trSizeOut').textContent = settings.trSize;
   const p = $('#previewAr');
-  p.textContent = basmala();
+  const prevSample = textKey() === 'h'
+    ? 'بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّح۪يمِ · اِنَّ اللّٰهَ بِكُلِّ شَيْءٍ قَد۪يرٌ'
+    : 'بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحٖیمِ · اِنَّ اللّٰهَ بِكُلِّ شَیْءٍ قَدٖیرٌ';
+  p.innerHTML = renderArWords(prevSample, textKey() === 'h' ? 'h' : 'd', !!settings.tajweed);
   p.className = 'ar ar-txt';
   const hint = $('#fontHint');
   hint.hidden = !(settings.font === 'hamdullah' && fontState.hamdullah === 'failed');
@@ -499,7 +505,7 @@ function setSetting(k, v, quiet = false) {
   applySettings();
   if (k in SYNCED_SETTINGS) setVal('st', syncedSnapshot());
   if (k === 'font' && v === 'hamdullah') checkHamdullah();
-  if (route.name === 'reader' && (prevKey !== textKey() || k === 'pager')) rebuildReader();
+  if (route.name === 'reader' && (prevKey !== textKey() || k === 'pager' || k === 'tajweed')) rebuildReader();
 }
 
 // ================================================================ të dhënat
@@ -1195,7 +1201,7 @@ function pageHTML(pg, i) {
     const segs = qcf && qcfSegs(x);
     if (segs) for (const [p] of segs) qpages.add(p);
     const sajda = SAJDA_VERSES.has(`${x.s}:${x.a}`);
-    const at = segs ? `<span class="at q">${qcfHTML(segs, x)}</span>` : `<span class="at">${renderArWords((key !== 'q' && x[key]) || x.d, key === 'h' ? 'h' : 'd')}</span>`;
+    const at = segs ? `<span class="at q">${qcfHTML(segs, x)}</span>` : `<span class="at">${renderArWords((key !== 'q' && x[key]) || x.d, key === 'h' ? 'h' : 'd', !!settings.tajweed)}</span>`;
     const sTag = sajda ? ` <span class="sajda-tag" data-sajda="${x.s}:${x.a}" tabindex="0" role="button" aria-label="Ajet sexhdeje — kliko për udhëzim">۩ Sexhde</span>` : '';
     const sTr = sajda ? ` <span class="sajda-tr" data-sajda="${x.s}:${x.a}" tabindex="0" role="button">۩ Sexhde</span>` : '';
     ar += `<span class="ay" data-k="${x.s}:${x.a}">${at} <span class="an">${x.a}</span>${sTag}</span> `;
@@ -1754,7 +1760,16 @@ function renderWaqfSheet() {
     const s = +k.split(':')[0];
     return `<button type="button" class="sajda-jump" data-goto-sajda="${k}" data-s="${s}"><b>${esc(label)}</b><span>۩ →</span></button>`;
   }).join('');
+  const tjCards = TAJWEED_RULES.map((r) => `<article class="wq-card" data-cat="tj-${r.id}">
+    <div class="wq-sym ar-txt" lang="ar">${esc(r.sym)}</div>
+    <div class="wq-info">
+      <div class="wq-top"><span class="wp-badge">${esc(r.badge)}</span><strong>${esc(r.name)}</strong></div>
+      <p>${esc(r.desc)}</p>
+    </div>
+  </article>`).join('');
   box.innerHTML = `
+    <h3 class="waqf-sec">Ngjyrat e Texhvidit</h3>
+    ${tjCards}
     <h3 class="waqf-sec">Shenjat e ndalimit (Vakfi)</h3>
     ${WAQF_ORDER.map(card).join('')}
     <h3 class="waqf-sec">Shqiptimet e veçanta në Kur’an</h3>
@@ -1784,7 +1799,7 @@ function showAyah(k) {
   if (src && src.classList.contains('q')) { ar.innerHTML = src.innerHTML; ar.className = 'ay-ar ar-txt q'; }
   else {
     const hk = textKey() === 'h' ? 'h' : 'd';
-    ar.innerHTML = renderArWords((hk === 'h' && x.h) || x.d, hk);
+    ar.innerHTML = renderArWords((hk === 'h' && x.h) || x.d, hk, !!settings.tajweed);
     ar.className = 'ay-ar ar-txt';
   }
   $('#ayTr').textContent = plain(x.t);
@@ -2467,6 +2482,7 @@ function bind() {
     const b = e.target.closest('button');
     if (b) setSetting(seg.dataset.setting, /^\d+$/.test(b.dataset.v) ? +b.dataset.v : b.dataset.v);
   });
+  $('#tajweedToggle').addEventListener('change', (e) => setSetting('tajweed', e.target.checked));
   $('#transToggle').addEventListener('change', (e) => setSetting('trans', e.target.checked));
   $('#holdToggle').addEventListener('change', (e) => { settings.hold = e.target.checked; saveSettings(); applySettings(); });
   $('#ayBm').addEventListener('click', () => { const k = $('#sheet-ayah').dataset.k; closeSheet(true); if (k) toggleAyahBm(k); });
