@@ -1844,10 +1844,10 @@ function setTjInspect(on) {
   if (!tjInspect && $('#waqfPop')?.dataset?.cat?.startsWith('tj-')) closeWaqfPop();
 }
 function findNearestInspect(e, scope, maxDist = 28) {
-  const directWq = e.target?.closest?.('.wq');
-  if (directWq) return directWq;
   const directTj = e.target?.closest?.('span[class^="tj-"]');
   if (directTj) return directTj;
+  const directWq = e.target?.closest?.('.wq');
+  if (directWq) return directWq;
   if (!scope || e.clientX == null || e.clientY == null) return null;
   const x = e.clientX, y = e.clientY;
   let best = null, bestD = maxDist;

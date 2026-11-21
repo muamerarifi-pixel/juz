@@ -794,34 +794,29 @@ body.paged .reader-top { backdrop-filter: none; -webkit-backdrop-filter: none; b
 
 .wq {
   cursor: inherit;
-  padding: 0 .14em;
-  border-radius: 7px;
-  color: color-mix(in srgb, var(--wc) 62%, var(--ink));
-  background: color-mix(in srgb, var(--wc) 11%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wc) 22%, transparent);
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
-  transition: color .15s ease, background-color .15s ease, box-shadow .15s ease;
+  border-radius: 5px;
+  transition: background-color .15s ease;
 }
-:root[data-bg="night"] .wq {
-  background: color-mix(in srgb, var(--wc) 14%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wc) 26%, transparent);
+.wq::after {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--wc);
+  vertical-align: .48em;
+  margin-inline-start: 2px;
+  opacity: .92;
 }
 #reader.tj-inspect .wq, .ay-ar .wq { cursor: pointer; }
-.pg-ar .at.q .wq {
-  color: inherit;
-}
 @media (hover: hover) {
   #reader.tj-inspect .wq:hover, .ay-ar .wq:hover {
-    color: color-mix(in srgb, var(--wc) 80%, var(--ink));
-    background: color-mix(in srgb, var(--wc) 18%, transparent);
+    background: color-mix(in srgb, var(--wc) 12%, transparent);
   }
 }
 .wq.active, .wq:focus-visible {
   outline: none;
-  color: color-mix(in srgb, var(--wc) 84%, var(--ink));
-  background: color-mix(in srgb, var(--wc) 22%, transparent);
-  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--wc) 42%, transparent);
+  background: color-mix(in srgb, var(--wc) 16%, transparent);
 }
 
 .waqf-pop {

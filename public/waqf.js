@@ -441,7 +441,8 @@ export function renderArWords(text, mode = 'd', tajweed = false) {
       const secondary = pronId && waqfId ? waqfId : null;
       const def = WAQF_DEFS[primary];
       const label = secondary ? `${def.badge} · ${WAQF_DEFS[secondary].badge}` : `${def.badge} — ${def.name}`;
-      return `<span class="wq" data-wq="${primary}"${secondary ? ` data-wq2="${secondary}"` : ''} data-cat="${def.cat}"${isEnd ? ' data-end="1"' : ''} tabindex="0" role="button" aria-label="${escHTML(label)}">${escHTML(w)}</span>`;
+      const inner = tajweed ? tajweedWordHTML(allClusters[idx], allClusters[idx - 1] || null, allClusters[idx + 1] || null, isEnd) : escHTML(w);
+      return `<span class="wq" data-wq="${primary}"${secondary ? ` data-wq2="${secondary}"` : ''} data-cat="${def.cat}"${isEnd ? ' data-end="1"' : ''} tabindex="0" role="button" aria-label="${escHTML(label)}">${inner}</span>`;
     }
     if (tajweed) return tajweedWordHTML(allClusters[idx], allClusters[idx - 1] || null, allClusters[idx + 1] || null, isEnd);
     return escHTML(w);
