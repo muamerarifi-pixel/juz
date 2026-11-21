@@ -1841,6 +1841,22 @@ function setTjInspect(on) {
   if (tjInspect && !settings.tajweed) setSetting('tajweed', true);
   if (!tjInspect && $('#waqfPop')?.dataset?.cat?.startsWith('tj-')) closeWaqfPop();
 }
+function findNearestTajweed(e, scope, maxDist = 28) {
+  const direct = e.target?.closest?.('span[class^="tj-"]');
+  if (direct) return direct;
+  if (!scope || e.clientX == null || e.clientY == null) return null;
+  const x = e.clientX, y = e.clientY;
+  let best = null, bestD = maxDist;
+  for (const sp of $$('span[class^="tj-"]', scope)) {
+    for (const r of sp.getClientRects()) {
+      const dx = Math.max(r.left - x, 0, x - r.right);
+      const dy = Math.max(r.top - y, 0, y - r.bottom);
+      const d = Math.hypot(dx, dy);
+      if (d < bestD) { bestD = d; best = sp; }
+    }
+  }
+  return best;
+}
 function extractWordHTML(span) {
   if (!span) return '';
   let before = '', after = '';
@@ -2230,7 +2246,7 @@ const handleRoute = safe(() => {
 // ================================================================ ngjarjet
 function bind() {
   document.addEventListener('click', (e) => {
-    if (!$('#waqfPop')?.hidden && !e.target.closest('#waqfPop, .wq, [data-sajda], span[class^="tj-"], .tj-chip, #tjBar')) closeWaqfPop();
+    if (!$('#waqfPop')?.hidden && !e.target.closest('#waqfPop, .wq, [data-sajda], span[class^="tj-"], .tj-chip, #tjBar, #ayAr') && !(tjInspect && e.target.closest('#readerBody .at'))) closeWaqfPop();
     const open = e.target.closest('[data-open]');
     if (open) return openSheet(open.dataset.open);
     if (e.target.closest('[data-close]') || e.target === $('#scrim')) return closeSheet();
@@ -2271,8 +2287,9 @@ function bind() {
     if (sj) { showSajdaPop(sj); return; }
     const wq = e.target.closest('.wq');
     if (wq) { showWaqfPop(wq); return; }
-    const tj = e.target.closest('span[class^="tj-"]');
+    const tj = findNearestTajweed(e, $('#ayAr'));
     if (tj) showTajweedPop(tj);
+    else closeWaqfPop();
   });
   $('#tjLegend')?.addEventListener('click', (e) => {
     const chip = e.target.closest('.tj-chip[data-tj]');
@@ -2652,8 +2669,16 @@ function bind() {
     const wq = e.target.closest('.wq');
     if (wq) { showWaqfPop(wq); return; }
     if (tjInspect) {
-      const tj = e.target.closest('span[class^="tj-"]');
+      const an = e.target.closest('.an');
+      if (an) {
+        const ay = an.closest('[data-k]');
+        if (ay) toggleAyahBm(ay.dataset.k);
+        return;
+      }
+      const tj = findNearestTajweed(e, e.target.closest('.at'));
       if (tj) { showTajweedPop(tj); return; }
+      closeWaqfPop();
+      return;
     }
     const ay = e.target.closest('[data-k]');
     if (ay) toggleAyahBm(ay.dataset.k);
