@@ -1,8 +1,9 @@
 // Service worker i JUZ — punon plotësisht pa internet.
 // RRITE VERSIONIN me çdo publikim të ri (p.sh. juz-v1.0.1), që pajisjet të marrin skedarët e rinj.
-const VERSION = 'juz-v7.13.30-cf';
+const VERSION = 'juz-v7.13.31-cf';
 const FONT_CACHE = 'juz-font-1'; // mbetet mes versioneve
 const QCF_CACHE = 'juz-qcf-1';   // fontet dhe kodet e texhvidit (QCF V4), mbeten mes versioneve
+const AUDIO_CACHE = 'juz-audio-1'; // audioja e fjalëve dhe ajeteve (ruhet pas dëgjimit të parë)
 
 const JUZ = Array.from({ length: 30 }, (_, i) => `/data/juz-${String(i + 1).padStart(2, '0')}.json`);
 const PRECACHE = [
@@ -54,7 +55,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter((k) => k !== VERSION && k !== FONT_CACHE && k !== QCF_CACHE).map((k) => caches.delete(k)));
+    await Promise.all(keys.filter((k) => k !== VERSION && k !== FONT_CACHE && k !== QCF_CACHE && k !== AUDIO_CACHE).map((k) => caches.delete(k)));
     await self.clients.claim();
   })());
 });

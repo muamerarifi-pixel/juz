@@ -1004,6 +1004,37 @@ body.paged .reader-top { backdrop-filter: none; -webkit-backdrop-filter: none; b
 }
 .wp-how b, .wq-how b { color: var(--wc, var(--accent)); }
 .wq-how { margin: 6px 0 0; font-size: 13px; }
+.wp-audio {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+.wp-audio[hidden] { display: none; }
+.wp-play {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 13px;
+  border-radius: 99px;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--wc, var(--accent));
+  background: color-mix(in srgb, var(--wc, var(--accent)) 13%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--wc, var(--accent)) 32%, transparent);
+  cursor: pointer;
+  transition: transform .1s ease, background-color .15s ease, color .15s ease;
+}
+.wp-play[hidden] { display: none; }
+.wp-play:active { transform: scale(.96); }
+.wp-play.playing {
+  background: var(--wc, var(--accent));
+  color: #fff;
+  border-color: transparent;
+}
+.wp-play.loading { opacity: .65; pointer-events: none; }
 .wp-word { color: var(--ink); }
 .waqf-pop:not([data-cat^="tj-"]) .wp-word { color: var(--wc); }
 .wp-word span[class^="tj-"] { color: var(--tc); }
