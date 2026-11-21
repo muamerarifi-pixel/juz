@@ -1690,15 +1690,25 @@ function renderAbout() {
 // ================================================================ përkthimi i një ajeti (gishti i mbajtur)
 const AUDIO_CACHE = 'juz-audio-1';
 const pad3 = (n) => String(n).padStart(3, '0');
-const AUD = { el: null, blobUrl: '', kind: '', token: 0, ctx: null };
+const AUD = { el: null, blobUrl: '', kind: '', lastKind: 'ayah', token: 0, ctx: null, ayEl: null };
+function setPopMini(on) {
+  $('#waqfPop')?.classList.toggle('mini', !!on);
+}
+function syncMiniBar() {
+  const mw = $('#wpMiniWord'), mb = $('#wpMiniBadge');
+  if (mw) mw.innerHTML = $('#wpWord')?.innerHTML || '';
+  if (mb) mb.textContent = $('#wpBadge')?.textContent || '';
+}
 function resetAudioBtns() {
-  const bw = $('#wpPlayWord'), ba = $('#wpPlayAyah');
+  const bw = $('#wpPlayWord'), ba = $('#wpPlayAyah'), bm = $('#wpMiniPlay');
   if (bw) { bw.classList.remove('playing', 'loading'); bw.textContent = '▶ Fjala'; }
   if (ba) { ba.classList.remove('playing', 'loading'); ba.textContent = '▶ Ajeti · El-Husari'; }
+  if (bm) { bm.classList.remove('playing', 'loading'); bm.textContent = '▶ Përsërit'; }
 }
 function stopAudio() {
   AUD.token++;
   AUD.kind = '';
+  if (AUD.ayEl) { AUD.ayEl.classList.remove('playing-ay'); AUD.ayEl = null; }
   if (AUD.el) {
     try { AUD.el.pause(); AUD.el.src = ''; } catch {}
     AUD.el = null;
@@ -1754,8 +1764,13 @@ async function playQuranAudio(kind) {
   stopAudio();
   const token = AUD.token;
   AUD.kind = kind;
+  AUD.lastKind = kind;
+  syncMiniBar();
+  setPopMini(true);
   const btn = kind === 'word' ? $('#wpPlayWord') : $('#wpPlayAyah');
+  const bm = $('#wpMiniPlay');
   if (btn) { btn.classList.add('loading'); btn.textContent = '⏳ …'; }
+  if (bm) { bm.classList.add('loading'); bm.textContent = '⏳ …'; }
   const url = kind === 'word'
     ? `https://audio.qurancdn.com/wbw/${pad3(ctx.s)}_${pad3(ctx.a)}_${pad3(ctx.w)}.mp3`
     : `https://everyayah.com/data/Husary_Muallim_128kbps/${pad3(ctx.s)}${pad3(ctx.a)}.mp3`;
@@ -1789,12 +1804,21 @@ async function playQuranAudio(kind) {
     AUD.blobUrl = blobUrl;
     const audio = new Audio(blobUrl);
     AUD.el = audio;
+    if (kind === 'ayah') {
+      const ayEl = $(`#readerBody .ay[data-k="${ctx.s}:${ctx.a}"]`);
+      if (ayEl) { ayEl.classList.add('playing-ay'); AUD.ayEl = ayEl; }
+    }
     audio.addEventListener('ended', () => { if (token === AUD.token) stopAudio(); });
     audio.addEventListener('error', () => { if (token === AUD.token) { stopAudio(); toast('Audioja nuk u lëshua.', 2600); } });
     if (btn) {
       btn.classList.remove('loading');
       btn.classList.add('playing');
       btn.textContent = kind === 'word' ? '⏹ Fjala' : '⏹ Ajeti';
+    }
+    if (bm) {
+      bm.classList.remove('loading');
+      bm.classList.add('playing');
+      bm.textContent = '⏹ Ndal';
     }
     await audio.play();
   } catch {
@@ -1852,6 +1876,7 @@ function extractWordHTML(span) {
 }
 function closeWaqfPop() {
   stopAudio();
+  setPopMini(false);
   const pop = $('#waqfPop');
   if (!pop || pop.hidden) return;
   pop.hidden = true;
@@ -1864,6 +1889,7 @@ function showWaqfPop(el) {
   const pop = $('#waqfPop');
   if (!def || !pop) return;
   haptic(6);
+  setPopMini(false);
   activeWqEl?.classList.remove('active', 'tj-active');
   activeWqEl = el;
   el.classList.add('active');
@@ -1893,6 +1919,7 @@ function showTajweedPop(el, forcedId) {
   const pop = $('#waqfPop');
   if (!def || !pop) return;
   haptic(6);
+  setPopMini(false);
   activeWqEl?.classList.remove('active', 'tj-active');
   activeWqEl = el;
   if (el && !el.classList.contains('tj-chip')) el.classList.add('tj-active');
@@ -1916,6 +1943,7 @@ function showSajdaPop(el) {
   const pop = $('#waqfPop');
   if (!pop) return;
   haptic(8);
+  setPopMini(false);
   activeWqEl?.classList.remove('active', 'tj-active');
   activeWqEl = el;
   el.classList.add('active');
@@ -2214,6 +2242,14 @@ function bind() {
     if (link) { pendingFromHome = route.name === 'home'; navigate(link.dataset.link); }
   });
   $('#wpClose')?.addEventListener('click', closeWaqfPop);
+  $('#wpMiniClose')?.addEventListener('click', closeWaqfPop);
+  $('#wpMiniExp')?.addEventListener('click', () => { haptic(6); setPopMini(false); });
+  $('#wpMiniInfo')?.addEventListener('click', () => { haptic(6); setPopMini(false); });
+  $('#wpMiniPlay')?.addEventListener('click', () => {
+    haptic(6);
+    if (AUD.kind) stopAudio();
+    else playQuranAudio(AUD.lastKind || 'ayah');
+  });
   $('#wpAllBtn')?.addEventListener('click', () => { closeWaqfPop(); openSheet('waqf'); });
   $('#wpAudio')?.addEventListener('click', (e) => {
     const b = e.target.closest('[data-play]');

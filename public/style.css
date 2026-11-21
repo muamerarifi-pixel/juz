@@ -1035,6 +1035,59 @@ body.paged .reader-top { backdrop-filter: none; -webkit-backdrop-filter: none; b
   border-color: transparent;
 }
 .wp-play.loading { opacity: .65; pointer-events: none; }
+.wp-mini { display: none; }
+.waqf-pop.mini {
+  width: min(410px, calc(100vw - 24px));
+  padding: 6px 8px 6px 10px;
+  border-radius: 99px;
+}
+.waqf-pop.mini .wp-head,
+.waqf-pop.mini .wp-desc,
+.waqf-pop.mini .wp-how,
+.waqf-pop.mini .wp-dua,
+.waqf-pop.mini .wp-audio,
+.waqf-pop.mini .wp-foot { display: none !important; }
+.waqf-pop.mini .wp-mini {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.wp-mini .wp-play { min-height: 34px; padding: 0 12px; flex: none; }
+.wp-mini-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  padding: 2px 4px;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+}
+.wp-mini-w {
+  font-size: 19px;
+  line-height: 1.2;
+  color: var(--ink);
+  white-space: nowrap;
+  flex: none;
+  direction: rtl;
+}
+.wp-mini-w span[class^="tj-"] { color: var(--tc); }
+.wp-mini-b {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wp-mini-btn { flex: none; width: 32px; height: 32px; border-radius: 50%; }
+.ay.playing-ay {
+  background: color-mix(in srgb, var(--accent) 13%, transparent);
+  box-shadow: inset 0 -1.5px 0 color-mix(in srgb, var(--accent) 42%, transparent);
+}
 .wp-word { color: var(--ink); }
 .waqf-pop:not([data-cat^="tj-"]) .wp-word { color: var(--wc); }
 .wp-word span[class^="tj-"] { color: var(--tc); }

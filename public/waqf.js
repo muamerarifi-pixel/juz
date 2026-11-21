@@ -68,7 +68,7 @@ export const TAJWEED_RULES = [
   {
     id: 'silent', sym: 'ال · ل ر', badge: 'E heshtur',
     name: 'Shkronjë që nuk shqiptohet',
-    desc: 'Nuni/tenvini para (ل، ر) [Idgam pa gunneh], llami diellor para shedes (الرَّحْمٰنِ), hemzetul-vasli në lidhje, elifi pas «وا» (قَالُوا) dhe sifri (اُو࣑لٰٓئِكَ).',
+    desc: 'Nuni/tenvini para (ل، ر) [Idgam pa gunneh], llami diellor para shedes (الرَّحْمٰنِ), hemzetul-vasli në lidhje, elifi pas «وا» (قَالُوا) dhe sifri (اُولٰٓئِكَ).',
     how: 'Kaloje plotësisht pa e lexuar këtë shkronjë dhe vazhdo drejt te shkronja tjetër. Shembull: مِنْ رَبِّهِمْ → «mir-rabbihim» (pa «n»); قَالُوا → «kâlû» (elifi i fundit nuk lexohet); الشَّمْسِ → «esh-shemsi» (pa «l»).',
   },
 ];
