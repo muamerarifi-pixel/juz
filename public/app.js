@@ -1918,6 +1918,9 @@ function showTajweedPop(el, forcedId) {
   const def = TAJWEED_BY_ID[id];
   const pop = $('#waqfPop');
   if (!def || !pop) return;
+  clearTimeout(toastTimer);
+  const t = $('#toast');
+  if (t) t.hidden = true;
   haptic(6);
   setPopMini(false);
   activeWqEl?.classList.remove('active', 'tj-active');
@@ -2390,7 +2393,8 @@ function bind() {
   onFastTap($('#tjBar'), () => {
     haptic(8);
     setTjInspect(!tjInspect);
-    if (tjInspect) toast('Prek çdo shkronjë me ngjyrë për shpjegim · numri i ajetit shënon progresin', 3400);
+    if (tjInspect) toast('Texhvidi aktiv', 900);
+    else { clearTimeout(toastTimer); const t = $('#toast'); if (t) t.hidden = true; }
   });
   onFastTap($('#rotBar'), () => { haptic(8); toggleRot(); });
 
